@@ -109,6 +109,26 @@ python3 -m c3_neural_compression.experiments.video --config=c3_neural_compressio
 
 Note that for the UVG experiment, the value of `exp.dataset.root_dir` must match the value of the `ROOT` variable used for `download_uvg.sh`.
 
+### RTX 50-series / Blackwell smoke test
+
+The original JAX 0.4.24 environment is retained in `requirements.txt`. The
+Docker image installs the separately pinned `requirements-blackwell.txt` by
+default; build with `--build-arg C3_JAX_PROFILE=official` to retain only the
+original environment.
+
+From `/workspace`, run the short, non-benchmark Kodak pipeline check with:
+
+```shell
+CUDA_VISIBLE_DEVICES=0 python -m c3_neural_compression.experiments.image \
+  --config=c3_neural_compression/configs/kodak_smoke.py
+```
+
+It uses one image and writes its reconstruction, config, and metrics under
+`/workspace/outputs/c3_baseline_smoke`. The reported rates are entropy
+estimates for latents and quantized network parameters. This repository does
+not generate an arithmetic/range-coded bitstream, so these values are not
+actual file-size bpp measurements.
+
 ## Citing this work
 If you use this code in your work, we ask you to please cite our work:
 

@@ -64,6 +64,9 @@ def get_config() -> config_dict.ConfigDict:
   exp.model.upsampling = config_dict.ConfigDict()
   exp.model.quant = config_dict.ConfigDict()
 
+  # Optional directory for persistent per-datum reconstructions and metrics.
+  exp.output_dir = None
+
   # Whether to log per-datum metrics.
   exp.log_per_datum_metrics = True
   # Log gradient norms for different sets of params
