@@ -1,0 +1,39 @@
+# syntax=docker/dockerfile:1
+
+# Isolated runtime for COCO detector evaluation. The C3/JAX environment stays
+# unchanged because its TensorFlow/JAX CUDA pins have different constraints.
+FROM python:3.10-slim-bookworm
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    NVIDIA_VISIBLE_DEVICES=all \
+    NVIDIA_DRIVER_CAPABILITIES=compute,utility \
+    PYTHONPATH=/workspace
+
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends \
+        ca-certificates \
+        git \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace/c3_neural_compression
+COPY requirements-detector.txt ./
+
+# CUDA 12.1 wheels are supported by the host's newer NVIDIA driver. Keep the
+# torch/torchvision pair explicit and install the remaining evaluator pins
+# separately so pip cannot silently replace it with a CPU build.
+RUN python -m pip install --upgrade pip setuptools wheel \
+    && python -m pip install \
+        --index-url https://download.pytorch.org/whl/cu121 \
+        torch==2.2.0 torchvision==0.17.0 \
+    && sed '/^torch==/d; /^torchvision==/d' requirements-detector.txt \
+        > /tmp/requirements-detector-extra.txt \
+    && python -m pip install --requirement /tmp/requirements-detector-extra.txt \
+    && rm /tmp/requirements-detector-extra.txt
+
+COPY . ./
+WORKDIR /workspace
+CMD ["bash"]

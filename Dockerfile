@@ -18,6 +18,7 @@ RUN apt-get update \
     && apt-get install --yes --no-install-recommends \
         ca-certificates \
         ffmpeg \
+        git \
         p7zip-full \
         wget \
     && rm -rf /var/lib/apt/lists/*
