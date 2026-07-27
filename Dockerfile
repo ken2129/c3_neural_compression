@@ -4,6 +4,8 @@
 # CUDA 12. GPU access is provided at runtime by the NVIDIA Container Toolkit.
 FROM python:3.10-slim-bookworm
 
+ARG CODEX_VERSION=latest
+
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -14,13 +16,19 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONPATH=/workspace
 
 # ffmpeg and 7z are needed by download_uvg.sh; wget downloads the UVG archives.
+# Node.js and npm are used to install the Codex CLI.
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends \
         ca-certificates \
         ffmpeg \
+        nodejs \
+        npm \
         p7zip-full \
         wget \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && npm install --global "@openai/codex@${CODEX_VERSION}" \
+    && npm cache clean --force \
+    && codex --version
 
 # Keep the repository directory name because imports use the
 # c3_neural_compression package from its parent directory.
