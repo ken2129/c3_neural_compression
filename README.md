@@ -129,6 +129,17 @@ estimates for latents and quantized network parameters. This repository does
 not generate an arithmetic/range-coded bitstream, so these values are not
 actual file-size bpp measurements.
 
+After the smoke test succeeds, run the same image with the official optimization
+step counts using:
+
+```shell
+CUDA_VISIBLE_DEVICES=0 python -m c3_neural_compression.experiments.image \
+  --config=c3_neural_compression/configs/kodak_baseline.py
+```
+
+This writes to `/workspace/outputs/c3_baseline_official` and can take several
+hours on a single GPU.
+
 ## Citing this work
 If you use this code in your work, we ask you to please cite our work:
 

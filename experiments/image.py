@@ -261,7 +261,7 @@ class Experiment(base.Experiment):
     # the function with "ste" as this is equivalent to "round" at test time.
     out = self.forward.apply(params=params, rng=None, quant_type='ste',
                              input_res=inputs.shape[:-1])
-    rec, _, all_latents, loc, scale = out
+    rec, latent_grids, all_latents, loc, scale = out
     # Round rec to integer pixel values for distortion computation.
     # Note that `jnp.round` rounds 0.5 to 0. but n + 0.5 to n + 1 for n >= 1.
     # The difference with standard rounding is only for 0.5 (set of measure 0)
@@ -272,9 +272,10 @@ class Experiment(base.Experiment):
     # Sum rate over all pixels. Ensure that the rate is computed in the space
     # where the bin width of the latents is 1 by passing q_step to the rate
     # function.
-    rate = entropy_models.compute_rate(
+    rates = entropy_models.compute_rate(
         all_latents, loc, scale, q_step=self.config.model.latents.q_step
-    ).sum()
+    )
+    rate = rates.sum()
     # Compute rate distortion loss
     num_pixels = self._num_pixels(inputs.shape[:-1])  # without channel dim
     loss = distortion + self.config.loss.rd_weight * rate / num_pixels
@@ -285,6 +286,12 @@ class Experiment(base.Experiment):
         'psnr': psnr_utils.psnr_fn(distortion),
         'ssim': dm_pix.ssim(rec, inputs),
     }
+    start = 0
+    for grid_index, grid in enumerate(latent_grids):
+      end = start + grid.size
+      metrics[f'rate_grid_{grid_index}'] = rates[start:end].sum()
+      start = end
+    assert start == all_latents.size
     return metrics
 
   @functools.partial(jax.jit, static_argnums=(0, 2))
@@ -342,6 +349,16 @@ class Experiment(base.Experiment):
             'entropy_network': scalar_metrics['entropy'] / num_pixels,
             'total': total_bits / num_pixels,
         },
+        'estimated_latent_grids': [
+            {
+                'grid_index': grid_index,
+                'bits': scalar_metrics[f'rate_grid_{grid_index}'],
+                'bpp': (
+                    scalar_metrics[f'rate_grid_{grid_index}'] / num_pixels
+                ),
+            }
+            for grid_index in range(self.config.model.latents.num_grids)
+        ],
         'network_quantization': {
             'q_step_weight': scalar_metrics['q_step_weight'],
             'q_step_bias': scalar_metrics['q_step_bias'],
@@ -739,6 +756,12 @@ class Experiment(base.Experiment):
       metrics_per_datum['bpp_latents_quantized'].append(
           quantized_metrics['rate'] / num_pixels
       )
+      for grid_index in range(self.config.model.latents.num_grids):
+        grid_rate = quantized_metrics[f'rate_grid_{grid_index}']
+        metrics_per_datum[f'rate_grid_{grid_index}'].append(grid_rate)
+        metrics_per_datum[f'bpp_grid_{grid_index}'].append(
+            grid_rate / num_pixels
+        )
       for key in ['synthesis', 'entropy']:
         metrics_per_datum[f'rate_{key}'].append(quantized_metrics[key])
         metrics_per_datum[f'bpp_{key}'].append(
