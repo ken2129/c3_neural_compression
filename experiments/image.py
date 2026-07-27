@@ -18,8 +18,10 @@
 import collections
 from collections.abc import Mapping
 import functools
+import glob
 import json
 import os
+import pickle
 import platform as python_platform
 import subprocess
 import sys
@@ -53,6 +55,91 @@ FLAGS = flags.FLAGS
 
 class Experiment(base.Experiment):
   """Per data-point compression experiment for images. Assume single-device."""
+
+  def __init__(self, mode, init_rng, config):
+    super().__init__(mode=mode, init_rng=init_rng, config=config)
+    self._wandb_run = None
+
+  def _init_wandb(self, datum_index):
+    """Starts an optional W&B run without storing credentials in config."""
+    if not self.config.tracking.enabled:
+      return
+    import wandb  # pylint: disable=g-import-not-at-top
+
+    os.makedirs(self.config.tracking.directory, exist_ok=True)
+    run_name = self.config.tracking.run_name
+    if run_name and self.config.dataset.num_examples != 1:
+      run_name = f'{run_name}-datum-{datum_index:05d}'
+    run_id = self.config.tracking.run_id
+    if run_id and self.config.dataset.num_examples != 1:
+      run_id = f'{run_id}-datum-{datum_index:05d}'
+    self._wandb_run = wandb.init(
+        project=self.config.tracking.project,
+        entity=self.config.tracking.entity,
+        name=run_name,
+        id=run_id,
+        resume='allow' if run_id else None,
+        mode=self.config.tracking.mode,
+        dir=self.config.tracking.directory,
+        config=self.config.to_dict(),
+        job_type='image-compression',
+    )
+
+  def _finish_wandb(self):
+    if self._wandb_run is not None:
+      self._wandb_run.finish()
+      self._wandb_run = None
+
+  def _save_noise_checkpoint(self, params, opt_state, rng, next_step):
+    """Atomically saves state required to resume noise optimization."""
+    checkpointing = self.config.checkpointing
+    if not checkpointing.enabled:
+      return
+    os.makedirs(checkpointing.directory, exist_ok=True)
+    path = os.path.join(
+        checkpointing.directory, f'noise_step_{next_step:09d}.pkl'
+    )
+    payload = {
+        'version': 1,
+        'phase': 'noise',
+        'next_step': next_step,
+        'num_noise_steps': self.config.opt.num_noise_steps,
+        'params': jax.device_get(params),
+        'opt_state': jax.device_get(opt_state),
+        'rng': jax.device_get(rng),
+    }
+    temporary_path = f'{path}.tmp'
+    with open(temporary_path, 'wb') as file:
+      pickle.dump(payload, file, protocol=pickle.HIGHEST_PROTOCOL)
+    os.replace(temporary_path, path)
+    logging.info('Saved resumable checkpoint: %s', path)
+    if self._wandb_run is not None:
+      self._wandb_run.log(
+          {'checkpoint/noise_step': next_step}, step=next_step
+      )
+
+  def _load_noise_checkpoint(self):
+    """Loads the latest compatible noise checkpoint when resume is enabled."""
+    checkpointing = self.config.checkpointing
+    if not (checkpointing.enabled and checkpointing.resume):
+      return None
+    paths = sorted(glob.glob(os.path.join(
+        checkpointing.directory, 'noise_step_*.pkl'
+    )))
+    if not paths:
+      return None
+    path = paths[-1]
+    with open(path, 'rb') as file:
+      payload = pickle.load(file)  # pylint: disable=consider-using-with
+    if payload.get('version') != 1 or payload.get('phase') != 'noise':
+      raise ValueError(f'Unsupported checkpoint: {path}')
+    if payload.get('num_noise_steps') != self.config.opt.num_noise_steps:
+      raise ValueError(
+          'Checkpoint num_noise_steps does not match the current config: '
+          f'{path}'
+      )
+    logging.info('Resuming noise optimization from checkpoint: %s', path)
+    return payload
 
   def init_params(self, input_res, soft_round_temp=None, input_mean=None):
     forward_init = jax.jit(
@@ -406,6 +493,21 @@ class Experiment(base.Experiment):
     logging_message += f' time={(delta_time):.4f}.'
     logging_message = textwrap.fill(logging_message, 80)
     logging.info(logging_message)
+    if self._wandb_run is not None:
+      phase = 'noise' if i < self.config.opt.num_noise_steps else 'ste'
+      wandb_metrics = {
+          f'{phase}/{key}': float(jax.device_get(value))
+          for key, value in metrics.items()
+      }
+      wandb_metrics.update({
+          f'{phase}/{key}': float(jax.device_get(value))
+          for key, value in other_metrics.items()
+      })
+      wandb_metrics[f'{phase}/bpp'] = float(
+          jax.device_get(metrics['rate'] / num_pixels)
+      )
+      wandb_metrics[f'{phase}/seconds_per_log_interval'] = delta_time
+      self._wandb_run.log(wandb_metrics, step=int(i))
 
   def fit_datum(self, inputs, rng):
     # Move input to the GPU (or other existing device). Otherwise it gets
@@ -423,6 +525,15 @@ class Experiment(base.Experiment):
         soft_round_temp=self.config.quant.soft_round_temp_start,
         input_mean=input_mean,
     )
+
+    noise_start_step = 0
+    checkpoint = self._load_noise_checkpoint()
+    if checkpoint is not None:
+      device = jax.devices()[0]
+      params = jax.device_put(checkpoint['params'], device)
+      opt_state = jax.device_put(checkpoint['opt_state'], device)
+      rng = checkpoint['rng']
+      noise_start_step = checkpoint['next_step']
 
     start = time.time()
 
@@ -452,7 +563,7 @@ class Experiment(base.Experiment):
       )
     else:
       kumaraswamy_a_fn = lambda _: None
-    for i in range(self.config.opt.num_noise_steps):
+    for i in range(noise_start_step, self.config.opt.num_noise_steps):
       # Split `rng` to ensure we use a different noise for noise quantization
       # at each step.
       # It is faster to split this on the CPU than outside of jit on GPU.
@@ -478,6 +589,15 @@ class Experiment(base.Experiment):
           soft_round_temp=soft_round_temp,
           kumaraswamy_a=kumaraswamy_a,
       )
+
+      checkpoint_interval = self.config.checkpointing.save_every_steps
+      if (
+          self.config.checkpointing.enabled
+          and checkpoint_interval > 0
+          and (i + 1) % checkpoint_interval == 0
+      ):
+        jax.block_until_ready(params)
+        self._save_noise_checkpoint(params, opt_state, rng, i + 1)
 
       if i % self.config.opt.noise_log_every == 0:
         end = time.time()
@@ -563,7 +683,7 @@ class Experiment(base.Experiment):
               end - start,
               num_pixels=np.prod(inputs.shape[:-1]),
               rd_weight=rd_weight,
-              soft_round_temp=soft_round_temp,
+              soft_round_temp=self.config.quant.ste_soft_round_temp,
           )
           start = time.time()
 
@@ -703,6 +823,8 @@ class Experiment(base.Experiment):
       logging.info('inputs shape: %s', input_shape)
       logging.info('num_pixels: %s', num_pixels)
 
+      self._init_wandb(i)
+
       # Compute MACs per pixel.
       macs_per_pixel = self._count_macs_per_pixel(input_shape)
 
@@ -740,6 +862,20 @@ class Experiment(base.Experiment):
           },
           macs_per_pixel=macs_per_pixel,
       )
+      if self._wandb_run is not None:
+        final_metrics = {
+            f'final/{key}': float(jax.device_get(value))
+            for key, value in quantized_metrics.items()
+        }
+        final_metrics['final/bpp_total'] = float(
+            jax.device_get(
+                (quantized_metrics['rate']
+                 + quantized_metrics['synthesis']
+                 + quantized_metrics['entropy']) / num_pixels
+            )
+        )
+        self._wandb_run.log(final_metrics)
+        self._finish_wandb()
 
       # Save metrics
       # Reconstruction metrics

@@ -18,5 +18,16 @@ def get_config() -> config_dict.ConfigDict:
   exp.dataset.skip_examples = 0
   exp.dataset.num_examples = 1
   exp.output_dir = '/workspace/outputs/c3_baseline_official'
+  exp.checkpointing.enabled = True
+  exp.checkpointing.directory = (
+      '/workspace/outputs/c3_baseline_official/checkpoints'
+  )
+  exp.checkpointing.save_every_steps = 5_000
+  exp.checkpointing.resume = True
+  exp.tracking.enabled = True
+  exp.tracking.project = 'c3-neural-compression'
+  exp.tracking.run_name = 'kodak01-official-rd-0.001'
+  exp.tracking.run_id = 'kodak01-official-rd-0001'
+  exp.tracking.mode = 'online'
   config.lock()
   return config

@@ -67,6 +67,21 @@ def get_config() -> config_dict.ConfigDict:
   # Optional directory for persistent per-datum reconstructions and metrics.
   exp.output_dir = None
 
+  exp.checkpointing = config_dict.ConfigDict()
+  exp.checkpointing.enabled = False
+  exp.checkpointing.directory = None
+  exp.checkpointing.save_every_steps = 0
+  exp.checkpointing.resume = True
+
+  exp.tracking = config_dict.ConfigDict()
+  exp.tracking.enabled = False
+  exp.tracking.project = 'c3-neural-compression'
+  exp.tracking.entity = None
+  exp.tracking.run_name = None
+  exp.tracking.run_id = None
+  exp.tracking.mode = 'online'
+  exp.tracking.directory = '/workspace/outputs/wandb'
+
   # Whether to log per-datum metrics.
   exp.log_per_datum_metrics = True
   # Log gradient norms for different sets of params

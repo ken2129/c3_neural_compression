@@ -24,5 +24,11 @@ def get_config() -> config_dict.ConfigDict:
   exp.quant.kumaraswamy_decay_steps = exp.opt.num_noise_steps
   exp.opt.noise_log_every = 10
   exp.opt.ste_log_every = 5
+  exp.checkpointing.enabled = True
+  exp.checkpointing.directory = (
+      '/workspace/outputs/c3_baseline_smoke/checkpoints'
+  )
+  exp.checkpointing.save_every_steps = 50
+  exp.checkpointing.resume = True
   config.lock()
   return config

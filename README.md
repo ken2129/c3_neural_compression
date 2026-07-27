@@ -140,6 +140,17 @@ CUDA_VISIBLE_DEVICES=0 python -m c3_neural_compression.experiments.image \
 This writes to `/workspace/outputs/c3_baseline_official` and can take several
 hours on a single GPU.
 
+The official config logs live metrics to the `c3-neural-compression` W&B
+project and saves a resumable noise-optimization checkpoint every 5,000 steps.
+Authenticate without placing the API key in source control:
+
+```shell
+wandb login
+```
+
+Re-running the same command automatically resumes from the latest checkpoint
+under `/workspace/outputs/c3_baseline_official/checkpoints`.
+
 ## Citing this work
 If you use this code in your work, we ask you to please cite our work:
 

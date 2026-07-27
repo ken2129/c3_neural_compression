@@ -25,6 +25,7 @@ RUN apt-get update \
         nodejs \
         npm \
         p7zip-full \
+        tmux \
         wget \
     && rm -rf /var/lib/apt/lists/* \
     && npm install --global "@openai/codex@${CODEX_VERSION}" \
