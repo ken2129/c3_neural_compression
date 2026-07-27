@@ -23,6 +23,7 @@ RUN apt-get update \
         ffmpeg \
         nodejs \
         npm \
+        git \
         p7zip-full \
         wget \
     && rm -rf /var/lib/apt/lists/* \
