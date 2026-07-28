@@ -52,6 +52,8 @@ def get_config() -> config_dict.ConfigDict:
   # Create config dict hierarchy.
   config.experiment_kwargs = config_dict.ConfigDict()
   exp = config.experiment_kwargs.config = config_dict.ConfigDict()
+  exp.random_seed = config.random_seed
+  exp.seed_rule = 'fixed jaxline random_seed shared across objective conditions'
   exp.dataset = config_dict.ConfigDict()
   exp.opt = config_dict.ConfigDict()
   exp.loss = config_dict.ConfigDict()
