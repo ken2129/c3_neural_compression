@@ -3,6 +3,7 @@
 import unittest
 from types import SimpleNamespace
 
+from c3_neural_compression.configs import coco2017_phase4_calibration
 from c3_neural_compression.configs import kodak
 from c3_neural_compression.configs import kodak_image_only_pilot
 from c3_neural_compression.configs import kodak_machine_only_pilot
@@ -100,6 +101,45 @@ class MachineLossConfigTest(unittest.TestCase):
     self.assertEqual(config.loss.image_weight, 1.0)
     self.assertEqual(config.loss.machine_weight, 0.0)
     self.assertFalse(config.checkpointing.enabled)
+
+  def test_phase4_calibration_variants_share_schedule_and_manifest(self):
+    image_config = coco2017_phase4_calibration.get_config(
+        'image_rd3e4').experiment_kwargs.config
+    combined_config = coco2017_phase4_calibration.get_config(
+        'combined_rd3e4').experiment_kwargs.config
+    self.assertEqual(image_config.dataset.num_examples, 20)
+    self.assertTrue(
+        image_config.dataset.subset_ids_file.endswith('calibration_20.json'))
+    self.assertEqual(image_config.loss.rd_weight, 3e-4)
+    self.assertEqual(combined_config.loss.rd_weight, 3e-4)
+    self.assertEqual(
+        (image_config.loss.image_weight, image_config.loss.machine_weight),
+        (1.0, 0.0))
+    self.assertEqual(
+        (combined_config.loss.image_weight,
+         combined_config.loss.machine_weight),
+        (1.0, 0.1))
+    self.assertEqual(
+        image_config.opt.num_noise_steps,
+        combined_config.opt.num_noise_steps)
+    self.assertNotEqual(image_config.output_dir, combined_config.output_dir)
+    self.assertTrue(image_config.checkpointing.enabled)
+    self.assertTrue(image_config.tracking.enabled)
+
+  def test_phase4_calibration_rejects_unknown_variant(self):
+    with self.assertRaisesRegex(ValueError, 'Unknown calibration'):
+      coco2017_phase4_calibration.get_config('unknown')
+
+  def test_datum_rng_depends_on_image_id_not_chunk_index(self):
+    import jax  # pylint: disable=import-outside-toplevel
+    import numpy as np  # pylint: disable=import-outside-toplevel
+
+    rng = jax.random.PRNGKey(0)
+    first = image.Experiment._datum_rng(rng, {'image_id': 42}, 0)
+    retried = image.Experiment._datum_rng(rng, {'image_id': 42}, 17)
+    other = image.Experiment._datum_rng(rng, {'image_id': 43}, 0)
+    np.testing.assert_array_equal(first, retried)
+    self.assertFalse(np.array_equal(first, other))
 
 
 if __name__ == "__main__":
