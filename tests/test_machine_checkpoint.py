@@ -23,6 +23,7 @@ class MachineCheckpointTest(unittest.TestCase):
     experiment = object.__new__(image.Experiment)
     experiment.config = config
     experiment._wandb_run = None
+    experiment._current_datum_index = 0
     experiment._current_input_signature = {
         'sha256': 'input-a',
         'shape': (4, 5, 3),
@@ -44,6 +45,30 @@ class MachineCheckpointTest(unittest.TestCase):
       self.assertEqual(
           payload['objective_signature'], experiment._objective_signature()
       )
+
+  def test_checkpoints_are_isolated_by_datum_for_all_objectives(self):
+    for machine_weight in (0.0, 1.0):
+      with self.subTest(machine_weight=machine_weight):
+        with tempfile.TemporaryDirectory() as directory:
+          experiment = self._experiment(directory)
+          experiment.config.unlock()
+          experiment.config.loss.machine_weight = machine_weight
+          experiment.config.lock()
+          experiment._current_datum_index = 0
+          experiment._save_noise_checkpoint({}, {}, None, 1)
+          self.assertIsNotNone(experiment._load_noise_checkpoint())
+          experiment._current_datum_index = 1
+          experiment._current_input_signature = {
+              'sha256': 'input-b', 'shape': (4, 5, 3)
+          }
+          self.assertIsNone(experiment._load_noise_checkpoint())
+          experiment._save_noise_checkpoint({}, {}, None, 1)
+          self.assertIsNotNone(experiment._load_noise_checkpoint())
+          experiment._current_datum_index = 0
+          experiment._current_input_signature = {
+              'sha256': 'input-a', 'shape': (4, 5, 3)
+          }
+          self.assertIsNotNone(experiment._load_noise_checkpoint())
 
   def test_changed_objective_is_rejected(self):
     with tempfile.TemporaryDirectory() as directory:
@@ -69,7 +94,9 @@ class MachineCheckpointTest(unittest.TestCase):
   def test_legacy_checkpoint_is_rejected_for_machine_loss(self):
     with tempfile.TemporaryDirectory() as directory:
       experiment = self._experiment(directory)
-      path = os.path.join(directory, 'noise_step_000000001.pkl')
+      datum_directory = experiment._checkpoint_directory()
+      os.makedirs(datum_directory, exist_ok=True)
+      path = os.path.join(datum_directory, 'noise_step_000000001.pkl')
       with open(path, 'wb') as stream:
         pickle.dump({
             'version': 1,
@@ -86,7 +113,9 @@ class MachineCheckpointTest(unittest.TestCase):
       experiment.config.unlock()
       experiment.config.loss.machine_weight = 0.0
       experiment.config.lock()
-      path = os.path.join(directory, 'noise_step_000000001.pkl')
+      datum_directory = experiment._checkpoint_directory()
+      os.makedirs(datum_directory, exist_ok=True)
+      path = os.path.join(datum_directory, 'noise_step_000000001.pkl')
       with open(path, 'wb') as stream:
         pickle.dump({
             'version': 1,

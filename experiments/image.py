@@ -65,6 +65,7 @@ class Experiment(base.Experiment):
     self._machine_detector_checksum_before = None
     self._machine_detector_identifier = None
     self._current_input_signature = None
+    self._current_datum_index = 0
 
   def _init_wandb(self, datum_index):
     """Starts an optional W&B run without storing credentials in config."""
@@ -114,6 +115,7 @@ class Experiment(base.Experiment):
         ),
         'noise_quant_type': str(self.config.quant.noise_quant_type),
     }
+    signature['input'] = getattr(self, '_current_input_signature', None)
     if self.config.loss.machine_weight > 0:
       import torchvision  # pylint: disable=g-import-not-at-top
       signature.update({
@@ -121,18 +123,25 @@ class Experiment(base.Experiment):
           'detector_weights': 'COCO_V1',
           'torchvision_version': torchvision.__version__,
           'preprocessing': 'torchvision_detection_weights_transform',
-          'input': getattr(self, '_current_input_signature', None),
       })
     return signature
+
+  def _checkpoint_directory(self):
+    """Returns the checkpoint directory isolated to the current datum."""
+    return os.path.join(
+        self.config.checkpointing.directory,
+        f'datum_{getattr(self, "_current_datum_index", 0):05d}',
+    )
 
   def _save_noise_checkpoint(self, params, opt_state, rng, next_step):
     """Atomically saves state required to resume noise optimization."""
     checkpointing = self.config.checkpointing
     if not checkpointing.enabled:
       return
-    os.makedirs(checkpointing.directory, exist_ok=True)
+    directory = self._checkpoint_directory()
+    os.makedirs(directory, exist_ok=True)
     path = os.path.join(
-        checkpointing.directory, f'noise_step_{next_step:09d}.pkl'
+        directory, f'noise_step_{next_step:09d}.pkl'
     )
     payload = {
         'version': 3,
@@ -160,7 +169,7 @@ class Experiment(base.Experiment):
     if not (checkpointing.enabled and checkpointing.resume):
       return None
     paths = sorted(glob.glob(os.path.join(
-        checkpointing.directory, 'noise_step_*.pkl'
+        self._checkpoint_directory(), 'noise_step_*.pkl'
     )))
     if not paths:
       return None
@@ -783,6 +792,20 @@ class Experiment(base.Experiment):
       uint8_total, uint8_layers = self._machine_reconstruction_metrics(
           decoder_uint8
       )
+      float_weighted = {
+          layer: weight * float_layers[layer]
+          for layer, weight in zip(
+              self._machine_detector.layers,
+              self._machine_detector.layer_weights,
+          )
+      }
+      uint8_weighted = {
+          layer: weight * uint8_layers[layer]
+          for layer, weight in zip(
+              self._machine_detector.layers,
+              self._machine_detector.layer_weights,
+          )
+      }
       result['machine_loss'] = {
           'feature_layers': list(self._machine_detector.layers),
           'feature_layer_weights': list(
@@ -790,11 +813,12 @@ class Experiment(base.Experiment):
           ),
           'weight': self.config.loss.machine_weight,
           'image_weight': self.config.loss.image_weight,
-          'distortion_quantized': float_total,
-          'distortion_decoder_float': float_total,
-          'distortion_uint8': uint8_total,
-          'distortion_layers_decoder_float': float_layers,
-          'distortion_layers_uint8': uint8_layers,
+          'distortion_total_decoder_float': float_total,
+          'distortion_total_uint8': uint8_total,
+          'distortion_layers_unweighted_decoder_float': float_layers,
+          'distortion_layers_weighted_decoder_float': float_weighted,
+          'distortion_layers_unweighted_uint8': uint8_layers,
+          'distortion_layers_weighted_uint8': uint8_weighted,
           'detector_identifier': self._machine_detector_identifier,
           'detector_gradients_none': (
               self._machine_detector.detector_gradients_are_none()
@@ -857,9 +881,10 @@ class Experiment(base.Experiment):
       wandb_metrics[f'{phase}/seconds_per_log_interval'] = delta_time
       self._wandb_run.log(wandb_metrics, step=int(i))
 
-  def fit_datum(self, inputs, rng):
+  def fit_datum(self, inputs, rng, datum_index=0):
     # Move input to the GPU (or other existing device). Otherwise it gets
     # transferred every microstep!
+    self._current_datum_index = datum_index
     self._current_input_signature = {
         'sha256': hashlib.sha256(np.ascontiguousarray(inputs).tobytes()).hexdigest(),
         'shape': tuple(inputs.shape),
@@ -1212,7 +1237,7 @@ class Experiment(base.Experiment):
       datum_start = time.perf_counter()
       optimization_start = time.perf_counter()
       # Fit inputs of shape [H, W, C].
-      params = self.fit_datum(inputs, rng)
+      params = self.fit_datum(inputs, rng, datum_index=i)
       jax.block_until_ready(params)
       optimization_seconds = time.perf_counter() - optimization_start
 
