@@ -193,16 +193,37 @@ def run_inference(model, weights, records, device, batch_size, visualization_lim
 def evaluate_coco(annotation_file, predictions, image_ids):
   from pycocotools.coco import COCO
   from pycocotools.cocoeval import COCOeval
-  if not predictions:
-    raise RuntimeError("Detector produced no predictions")
   ground_truth = COCO(str(annotation_file))
+  known_ids = set(ground_truth.getImgIds())
+  unknown_ids = sorted(set(image_ids) - known_ids)
+  if unknown_ids:
+    raise InputValidationError(
+        f'Image IDs absent from COCO annotations: {unknown_ids}'
+    )
+  ground_truth_count = len(ground_truth.getAnnIds(imgIds=list(image_ids)))
+  if not predictions:
+    LOGGER.warning(
+        "Detector produced no predictions for %d images; reporting zero AP.",
+        len(image_ids),
+    )
+    return {
+        **{name: 0.0 for name in METRICS},
+        'empty_predictions': True,
+        'official_cocoeval_executed': False,
+        'ground_truth_annotation_count': ground_truth_count,
+    }
   evaluator = COCOeval(ground_truth, ground_truth.loadRes(predictions), "bbox")
   evaluator.params.imgIds = list(image_ids)
   evaluator.evaluate()
   evaluator.accumulate()
   evaluator.summarize()
-  return {name: float(evaluator.stats[index])
-          for index, name in enumerate(METRICS)}
+  return {
+      **{name: float(evaluator.stats[index])
+         for index, name in enumerate(METRICS)},
+      'empty_predictions': False,
+      'official_cocoeval_executed': True,
+      'ground_truth_annotation_count': ground_truth_count,
+  }
 
 def save_visualizations(records, raw, annotation, output_dir, threshold, limit):
   """Draws green ground truth and thresholded red predictions."""

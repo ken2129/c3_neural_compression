@@ -16,6 +16,7 @@
 """Utils for loading and processing datasets."""
 
 import os
+import pathlib
 import shutil
 from typing import Any, Callable
 import urllib
@@ -30,8 +31,14 @@ from torchvision.datasets import utils as dset_utils
 from torchvision.transforms import v2 as tfms
 import tqdm
 
+from c3_neural_compression.evaluation import coco_detection
+
 
 DATASET_ATTRIBUTES = {
+    'coco2017': {
+        'num_channels': 3, 'resolution': None, 'type': 'image',
+        'train_size': 5000, 'test_size': 5000,
+    },
     'clic2020': {
         'num_channels': 3,
         'resolution': None,  # Resolution varies by image
@@ -68,6 +75,31 @@ DATASET_ATTRIBUTES = {
         'test_size': 6 * 600 + 300,  # total number of frames
     },
 }
+
+
+class COCO2017Subset(data.Dataset):
+  """Fixed COCO2017 image subset selected by an image-ID manifest."""
+
+  def __init__(self, root, annotation_file, subset_ids_file, transform=None):
+    if not annotation_file or not subset_ids_file:
+      raise ValueError('COCO2017 requires annotation_file and subset_ids_file.')
+    image_ids = coco_detection.load_subset_ids(pathlib.Path(subset_ids_file))
+    self.records, _ = coco_detection.build_image_records(
+        pathlib.Path(root), pathlib.Path(annotation_file), image_ids
+    )
+    self.transform = transform
+
+  def __len__(self):
+    return len(self.records)
+
+  def __getitem__(self, index):
+    record = self.records[index]
+    image = folder.default_loader(str(record.path))
+    if self.transform is not None:
+      image = self.transform(image)
+    return {'array': image, 'image_id': record.image_id,
+            'file_name': record.file_name, 'original_width': record.width,
+            'original_height': record.height}
 
 
 class Kodak(data.Dataset):
@@ -364,6 +396,8 @@ def load_dataset(
     num_frames: int | None = None,
     spatial_patch_size: tuple[int, int] | None = None,
     video_idx: int | None = None,
+    annotation_file: str | None = None,
+    subset_ids_file: str | None = None,
 ):
   """Pytorch dataset loaders.
 
@@ -418,6 +452,10 @@ def load_dataset(
     ds = CLIC2020(root=root, transform=transform)
     start_idx = 0
     end_idx = ds.num_images
+  elif dataset_name.startswith('coco2017'):
+    ds = COCO2017Subset(root, annotation_file, subset_ids_file, transform)
+    start_idx = 0
+    end_idx = len(ds)
   else:
     raise ValueError(f'Unrecognized dataset {dataset_name}.')
 
