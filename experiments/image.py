@@ -59,6 +59,9 @@ class Experiment(base.Experiment):
   def __init__(self, mode, init_rng, config):
     super().__init__(mode=mode, init_rng=init_rng, config=config)
     self._wandb_run = None
+    self._machine_loss = None
+    self._machine_detector = None
+    self._machine_detector_checksum_before = None
 
   def _init_wandb(self, datum_index):
     """Starts an optional W&B run without storing credentials in config."""
@@ -284,6 +287,131 @@ class Experiment(base.Experiment):
     }
     return loss, metrics
 
+  def _machine_loss_fn(
+      self,
+      params,
+      target,
+      rng,
+      quant_type,
+      soft_round_temp,
+      rd_weight,
+      kumaraswamy_a,
+  ):
+    """Rate/image/machine loss used only by the non-JIT Phase 3 path."""
+    if self._machine_loss is None:
+      raise RuntimeError("Machine feature loss has not been initialized")
+    out = self.forward.apply(
+        params=params,
+        rng=rng,
+        quant_type=quant_type,
+        input_res=target.shape[:-1],
+        soft_round_temp=soft_round_temp,
+        kumaraswamy_a=kumaraswamy_a,
+    )
+    pred_img, _, all_latents, loc, scale = out
+    distortion = psnr_utils.mse_fn(pred_img, target)
+    pred_img_rounded = jnp.round(pred_img * 255.) / 255.
+    distortion_rounded = psnr_utils.mse_fn(pred_img_rounded, target)
+    rate = entropy_models.compute_rate(
+        all_latents, loc, scale, q_step=self.config.model.latents.q_step
+    ).sum()
+    machine_distortion = self._machine_loss(pred_img)
+    num_pixels = self._num_pixels(target.shape[:-1])
+    loss = (
+        self.config.loss.image_weight * distortion
+        + rd_weight * rate / num_pixels
+        + self.config.loss.machine_weight * machine_distortion
+    )
+    metrics = {
+        "loss": loss,
+        "distortion": distortion,
+        "distortion_rounded": distortion_rounded,
+        "machine_distortion": machine_distortion,
+        "rate": rate,
+        "psnr": psnr_utils.psnr_fn(distortion),
+        "psnr_rounded": psnr_utils.psnr_fn(distortion_rounded),
+    }
+    return loss, metrics
+
+  def single_train_step_machine(
+      self,
+      params,
+      opt_state,
+      inputs,
+      rng,
+      quant_type,
+      rd_weight,
+      soft_round_temp=None,
+      use_cosine_schedule=True,
+      learning_rate=None,
+      kumaraswamy_a=None,
+  ):
+    """Runs one deliberately non-JIT step across the JAX/PyTorch boundary."""
+    grads, metrics = jax.grad(self._machine_loss_fn, has_aux=True)(
+        params,
+        target=inputs,
+        rng=rng,
+        quant_type=quant_type,
+        soft_round_temp=soft_round_temp,
+        rd_weight=rd_weight,
+        kumaraswamy_a=kumaraswamy_a,
+    )
+    opt = self.get_opt(
+        use_cosine_schedule=use_cosine_schedule,
+        learning_rate=learning_rate,
+    )
+    if self.config.log_gradient_norms:
+      rest_grads, latent_grads = (
+          experiment_utils.partition_params_by_module_name(grads, key="latent")
+      )
+      synthesis_grads, entropy_grads = (
+          experiment_utils.partition_params_by_module_name(
+              rest_grads, key="autoregressive_entropy_model"
+          )
+      )
+      metrics = metrics | {
+          "latent_grad_norm": optax.global_norm(latent_grads),
+          "synthesis_grad_norm": optax.global_norm(synthesis_grads),
+          "entropy_grad_norm": optax.global_norm(entropy_grads),
+      }
+    updates, opt_state = opt.update(grads, opt_state, params)
+    params = optax.apply_updates(params, updates)
+    return params, opt_state, metrics
+
+  def _initialize_machine_loss(self, inputs):
+    """Loads and freezes the detector, then caches original-image features."""
+    if self.config.loss.machine_weight <= 0:
+      return
+    from c3_neural_compression.machine_loss import faster_rcnn
+    from c3_neural_compression.machine_loss import torch_bridge
+
+    feature_loss, weights = faster_rcnn.create_frozen_fpn_loss(
+        device=self.config.loss.machine.device,
+        layer=self.config.loss.machine.feature_layer,
+    )
+    import torch  # pylint: disable=g-import-not-at-top
+
+    reference = torch.utils.dlpack.from_dlpack(inputs)
+    metadata = feature_loss.cache_reference(reference)
+    self._machine_loss = torch_bridge.make_jax_vjp_loss(feature_loss)
+    self._machine_detector = feature_loss
+    self._machine_detector_checksum_before = (
+        faster_rcnn.detector_parameter_checksum(feature_loss.model)
+    )
+    logging.info("Initialized frozen machine loss: %s, %s", weights, metadata)
+
+  def _evaluate_machine_distortion(self, params, inputs):
+    """Evaluates frozen-detector distortion for one set of C3 parameters."""
+    if self._machine_loss is None:
+      return None
+    reconstruction, _, _, _, _ = self.forward.apply(
+        params=params,
+        rng=None,
+        quant_type="ste",
+        input_res=inputs.shape[:-1],
+    )
+    return self._machine_loss(reconstruction)
+
   # We use jit instead of pmap for simplicity, and assume that the experiment
   # runs on single-device (although the same code will also run on multi-device,
   # using only one of the devices). Note that jit gives faster runtime than pmap
@@ -462,6 +590,24 @@ class Experiment(base.Experiment):
             'cuda_visible_devices': os.environ.get('CUDA_VISIBLE_DEVICES'),
         },
     }
+    if 'machine_distortion' in scalar_metrics:
+      from c3_neural_compression.machine_loss import faster_rcnn
+
+      checksum_after = faster_rcnn.detector_parameter_checksum(
+          self._machine_detector.model
+      )
+      result['machine_loss'] = {
+          'feature_layer': self.config.loss.machine.feature_layer,
+          'weight': self.config.loss.machine_weight,
+          'image_weight': self.config.loss.image_weight,
+          'distortion_quantized': scalar_metrics['machine_distortion'],
+          'detector_gradients_none': (
+              self._machine_detector.detector_gradients_are_none()
+          ),
+          'detector_checksum_before': self._machine_detector_checksum_before,
+          'detector_checksum_after': checksum_after,
+          'network_quantization_selection_uses_machine_loss': False,
+      }
     try:
       result['environment']['nvidia_smi'] = subprocess.run(
           ['nvidia-smi', '--query-gpu=name,driver_version,compute_cap',
@@ -487,6 +633,10 @@ class Experiment(base.Experiment):
         f' psnr={metrics["psnr"]:.3f},'
         f' bpp={(metrics["rate"] / num_pixels):.4f},'
     )
+    if 'machine_distortion' in metrics:
+      logging_message += (
+          f' machine_distortion={metrics["machine_distortion"]:.6e},'
+      )
     # The below is for rd_weight and soft_round_temp.
     for k, v in other_metrics.items():
       logging_message += f' {k}={v:.6e},'
@@ -513,6 +663,12 @@ class Experiment(base.Experiment):
     # Move input to the GPU (or other existing device). Otherwise it gets
     # transferred every microstep!
     inputs = jax.device_put(inputs, jax.devices()[0])
+    self._initialize_machine_loss(inputs)
+    train_step = (
+        self.single_train_step_machine
+        if self.config.loss.machine_weight > 0
+        else self.single_train_step
+    )
 
     if self.config.model.synthesis.b_last_init_input_mean:
       input_ndims = len(inputs.shape[:-1])  # 2 for images.
@@ -579,7 +735,7 @@ class Experiment(base.Experiment):
         # Get parameter for Kumaraswamy noise distribution.
         kumaraswamy_a = kumaraswamy_a_fn(i)
       # Run a single training step
-      params, opt_state, train_metrics = self.single_train_step(
+      params, opt_state, train_metrics = train_step(
           params=params,
           opt_state=opt_state,
           inputs=inputs,
@@ -631,7 +787,7 @@ class Experiment(base.Experiment):
       for i in range(self.config.opt.max_num_ste_steps):
         if self.config.opt.ste_uses_cosine_decay:
           # STE continues to use cosine decay lr schedule
-          params, opt_state, train_metrics = self.single_train_step(
+          params, opt_state, train_metrics = train_step(
               params=params,
               opt_state=opt_state,
               inputs=inputs,
@@ -642,7 +798,7 @@ class Experiment(base.Experiment):
           )
         else:
           # STE uses automatically decaying lr schedule
-          params, opt_state, train_metrics = self.single_train_step(
+          params, opt_state, train_metrics = train_step(
               params=params,
               opt_state=opt_state,
               inputs=inputs,
@@ -847,6 +1003,15 @@ class Experiment(base.Experiment):
           params, inputs
       )
       jax.block_until_ready(quantized_metrics)
+      if self._machine_loss is not None:
+        machine_distortion = self._evaluate_machine_distortion(params, inputs)
+        machine_distortion_quantized = self._evaluate_machine_distortion(
+            quantized_params, inputs
+        )
+        metrics = metrics | {'machine_distortion': machine_distortion}
+        quantized_metrics = quantized_metrics | {
+            'machine_distortion': machine_distortion_quantized,
+        }
       quantization_seconds = time.perf_counter() - quantization_start
       logging.info('Finished quantization step search.')
 

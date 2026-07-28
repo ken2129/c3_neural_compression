@@ -55,6 +55,11 @@ def get_config() -> config_dict.ConfigDict:
   exp.dataset = config_dict.ConfigDict()
   exp.opt = config_dict.ConfigDict()
   exp.loss = config_dict.ConfigDict()
+  exp.loss.image_weight = 1.0
+  exp.loss.machine_weight = 0.0
+  exp.loss.machine = config_dict.ConfigDict()
+  exp.loss.machine.device = "cuda"
+  exp.loss.machine.feature_layer = "0"
   exp.quant = config_dict.ConfigDict()
   exp.eval = config_dict.ConfigDict()
   exp.model = config_dict.ConfigDict()

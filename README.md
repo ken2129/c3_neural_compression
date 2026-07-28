@@ -187,6 +187,29 @@ Gate A shares concrete tensors with DLPack and returns the PyTorch-computed
 image gradient through `jax.custom_vjp`. It intentionally rejects `jax.jit`;
 the JIT/external-call boundary is a separate Gate B decision.
 
+The C3 optimization loop keeps the original JIT path whenever
+`loss.machine_weight` is zero. Two deterministic, two-step GPU integration
+configs exercise the non-JIT path:
+
+```shell
+# image distortion + machine feature distortion + rate
+CUDA_VISIBLE_DEVICES=0 /workspace/.venv-c3-phase3/bin/python \
+  -m c3_neural_compression.experiments.image \
+  --config=c3_neural_compression/configs/kodak_machine_smoke.py
+
+# machine feature distortion + rate (image distortion weight is zero)
+CUDA_VISIBLE_DEVICES=0 /workspace/.venv-c3-phase3/bin/python \
+  -m c3_neural_compression.experiments.image \
+  --config=c3_neural_compression/configs/kodak_machine_only_smoke.py
+```
+
+The configs write reconstructions and JSON metrics under
+`/workspace/outputs/c3_machine_smoke` and
+`/workspace/outputs/c3_machine_only_smoke`. The JSON records the final feature
+distortion, detector freeze/checksum checks, and objective weights. At this
+Gate A stage, network quantization candidates are still selected with the
+original image rate-distortion criterion; the JSON marks this explicitly.
+
 ### RTX 50-series / Blackwell smoke test
 
 The original JAX 0.4.24 environment is retained in `requirements.txt`. The
