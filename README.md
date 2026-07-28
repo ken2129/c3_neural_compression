@@ -220,8 +220,9 @@ layer weights, or the training quantization mode differ.
 After the smoke test, `kodak_machine_pilot.py` runs a one-image weight
 calibration pilot with normalized layer weights, `machine_weight=0.1`, 500
 noise steps, 50 STE steps, W&B logging, and a checkpoint every 50 noise steps.
-On an RTX 5080 this is expected to take roughly 30–40 minutes; it is a pilot,
-not a benchmark configuration.
+On an RTX 5080 the measured steady-state throughput is about 0.25 seconds per
+step, and this pilot is expected to take roughly 3–5 minutes including compile
+and final quantization search. It is not a benchmark configuration.
 
 ```shell
 CUDA_VISIBLE_DEVICES=0 XLA_PYTHON_CLIENT_PREALLOCATE=false \

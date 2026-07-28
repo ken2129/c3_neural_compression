@@ -6,7 +6,7 @@ from c3_neural_compression.configs import kodak
 
 
 def get_config() -> config_dict.ConfigDict:
-  """Returns a resumable 30–40 minute combined-objective pilot."""
+  """Returns a resumable few-minute combined-objective pilot."""
   config = kodak.get_config()
   config.unlock()
   exp = config.experiment_kwargs.config
