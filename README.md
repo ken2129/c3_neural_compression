@@ -155,6 +155,83 @@ subset can be supplied as a JSON list or newline-separated IDs with
 `--subset-ids`. Outputs are `predictions.json`, `metrics.json`, `config.json`,
 and optional overlays. The visualization threshold affects only overlays; COCO
 evaluation receives all candidates returned by the detector.
+
+## Phase 3 JAX/PyTorch gradient bridge
+
+Phase 3 keeps the validated JAX environment and installs Blackwell-capable
+PyTorch in an isolated environment. Build `Dockerfile.phase3`, or create the
+equivalent environment inside the existing container:
+
+```shell
+python -m venv --system-site-packages /workspace/.venv-c3-phase3
+/workspace/.venv-c3-phase3/bin/python -m pip install --upgrade \
+  --index-url https://download.pytorch.org/whl/cu128 \
+  torch==2.7.1 torchvision==0.22.1
+```
+
+Run the non-JIT Gate A bridge from `/workspace`. Detector weights persist
+under `/workspace/datasets/torch`, and metrics are written outside the image:
+
+```shell
+XLA_PYTHON_CLIENT_PREALLOCATE=false \
+TORCH_HOME=/workspace/datasets/torch \
+CUDA_VISIBLE_DEVICES=0 \
+/workspace/.venv-c3-phase3/bin/python \
+  -m c3_neural_compression.experiments.phase3_bridge \
+  --image=/workspace/datasets/kodak/kodim01.png \
+  --feature-layer=0 \
+  --output-dir=/workspace/outputs/c3_phase3_bridge
+```
+
+Gate A shares concrete tensors with DLPack and returns the PyTorch-computed
+image gradient through `jax.custom_vjp`. It intentionally rejects `jax.jit`;
+the JIT/external-call boundary is a separate Gate B decision.
+
+The C3 optimization loop keeps the original JIT path whenever
+`loss.machine_weight` is zero. Two deterministic, two-step GPU integration
+configs exercise the non-JIT path:
+
+```shell
+# image distortion + machine feature distortion + rate
+CUDA_VISIBLE_DEVICES=0 /workspace/.venv-c3-phase3/bin/python \
+  -m c3_neural_compression.experiments.image \
+  --config=c3_neural_compression/configs/kodak_machine_smoke.py
+
+# machine feature distortion + rate (image distortion weight is zero)
+CUDA_VISIBLE_DEVICES=0 /workspace/.venv-c3-phase3/bin/python \
+  -m c3_neural_compression.experiments.image \
+  --config=c3_neural_compression/configs/kodak_machine_only_smoke.py
+```
+
+The configs write reconstructions and JSON metrics under
+`/workspace/outputs/c3_machine_smoke` and
+`/workspace/outputs/c3_machine_only_smoke`. The JSON records the final feature
+distortion, detector freeze/checksum checks, and objective weights. When
+machine loss is enabled, network quantization candidates are selected with the
+same configured rate/image/machine objective and the selected scalar objective
+is recorded in JSON.
+
+`kodak_machine_smoke.py` uses FPN layers `0` through `3` with explicit unit
+weights. For a two-step checkpoint/resume validation, use
+`kodak_machine_checkpoint_smoke.py`; it saves an objective signature with every
+checkpoint and rejects resumes when rate/image/machine weights, feature layers,
+layer weights, or the training quantization mode differ.
+
+After the smoke test, `kodak_machine_pilot.py` runs a one-image weight
+calibration pilot with normalized layer weights, `machine_weight=0.1`, 500
+noise steps, 50 STE steps, W&B logging, and a checkpoint every 50 noise steps.
+On an RTX 5080 the measured steady-state throughput is about 0.25 seconds per
+step, and this pilot is expected to take roughly 3–5 minutes including compile
+and final quantization search. It is not a benchmark configuration.
+
+```shell
+CUDA_VISIBLE_DEVICES=0 XLA_PYTHON_CLIENT_PREALLOCATE=false \
+TORCH_HOME=/workspace/datasets/torch \
+/workspace/.venv-c3-phase3/bin/python \
+  -m c3_neural_compression.experiments.image \
+  --config=c3_neural_compression/configs/kodak_machine_pilot.py
+```
+
 ### RTX 50-series / Blackwell smoke test
 
 The original JAX 0.4.24 environment is retained in `requirements.txt`. The

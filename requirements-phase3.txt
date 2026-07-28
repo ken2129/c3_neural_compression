@@ -1,0 +1,5 @@
+# Phase 3 adds Blackwell-capable PyTorch without changing Phase 1 pins.
+# Install these wheels from https://download.pytorch.org/whl/cu128 in a venv
+# created with --system-site-packages so requirements-blackwell.txt stays active.
+torch==2.7.1
+torchvision==0.22.1

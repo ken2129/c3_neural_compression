@@ -1,0 +1,21 @@
+# syntax=docker/dockerfile:1
+
+# Phase 3 adds Blackwell-capable PyTorch while retaining the validated JAX C3
+# environment from PR #4. Build after c3-machine-compression:latest exists.
+ARG BASE_IMAGE=c3-machine-compression:latest
+FROM ${BASE_IMAGE}
+
+ENV XLA_PYTHON_CLIENT_PREALLOCATE=false \
+    TORCH_HOME=/workspace/datasets/torch \
+    PATH=/opt/c3-phase3/bin:${PATH}
+
+WORKDIR /workspace/c3_neural_compression
+COPY requirements-phase3.txt ./
+
+RUN python -m venv --system-site-packages /opt/c3-phase3 \
+    && /opt/c3-phase3/bin/python -m pip install --upgrade \
+        --index-url https://download.pytorch.org/whl/cu128 \
+        --requirement requirements-phase3.txt
+
+WORKDIR /workspace
+CMD ["bash"]
