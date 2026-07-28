@@ -19,6 +19,7 @@ import collections
 from collections.abc import Mapping
 import functools
 import glob
+import hashlib
 import json
 import os
 import pickle
@@ -62,6 +63,8 @@ class Experiment(base.Experiment):
     self._machine_loss = None
     self._machine_detector = None
     self._machine_detector_checksum_before = None
+    self._machine_detector_identifier = None
+    self._current_input_signature = None
 
   def _init_wandb(self, datum_index):
     """Starts an optional W&B run without storing credentials in config."""
@@ -101,7 +104,7 @@ class Experiment(base.Experiment):
     layer_weights = tuple(self.config.loss.machine.feature_layer_weights)
     if not layer_weights:
       layer_weights = (1.0,) * len(layers)
-    return {
+    signature = {
         'rd_weight': float(self.config.loss.rd_weight),
         'image_weight': float(self.config.loss.image_weight),
         'machine_weight': float(self.config.loss.machine_weight),
@@ -111,6 +114,16 @@ class Experiment(base.Experiment):
         ),
         'noise_quant_type': str(self.config.quant.noise_quant_type),
     }
+    if self.config.loss.machine_weight > 0:
+      import torchvision  # pylint: disable=g-import-not-at-top
+      signature.update({
+          'detector_architecture': 'fasterrcnn_resnet50_fpn',
+          'detector_weights': 'COCO_V1',
+          'torchvision_version': torchvision.__version__,
+          'preprocessing': 'torchvision_detection_weights_transform',
+          'input': getattr(self, '_current_input_signature', None),
+      })
+    return signature
 
   def _save_noise_checkpoint(self, params, opt_state, rng, next_step):
     """Atomically saves state required to resume noise optimization."""
@@ -122,7 +135,7 @@ class Experiment(base.Experiment):
         checkpointing.directory, f'noise_step_{next_step:09d}.pkl'
     )
     payload = {
-        'version': 2,
+        'version': 3,
         'phase': 'noise',
         'next_step': next_step,
         'num_noise_steps': self.config.opt.num_noise_steps,
@@ -154,7 +167,7 @@ class Experiment(base.Experiment):
     path = paths[-1]
     with open(path, 'rb') as file:
       payload = pickle.load(file)  # pylint: disable=consider-using-with
-    if payload.get('version') not in (1, 2) or payload.get('phase') != 'noise':
+    if payload.get('version') not in (1, 2, 3) or payload.get('phase') != 'noise':
       raise ValueError(f'Unsupported checkpoint: {path}')
     if payload.get('num_noise_steps') != self.config.opt.num_noise_steps:
       raise ValueError(
@@ -509,24 +522,29 @@ class Experiment(base.Experiment):
     from c3_neural_compression.machine_loss import faster_rcnn
     from c3_neural_compression.machine_loss import torch_bridge
 
-    feature_loss, weights = faster_rcnn.create_frozen_fpn_loss(
-        device=self.config.loss.machine.device,
-        layer=self.config.loss.machine.feature_layer,
-        layers=(tuple(self.config.loss.machine.feature_layers) or None),
-        layer_weights=(
-            tuple(self.config.loss.machine.feature_layer_weights) or None
-        ),
-    )
     import torch  # pylint: disable=g-import-not-at-top
-
+    if self._machine_detector is None:
+      feature_loss, weights = faster_rcnn.create_frozen_fpn_loss(
+          device=self.config.loss.machine.device,
+          layer=self.config.loss.machine.feature_layer,
+          layers=(tuple(self.config.loss.machine.feature_layers) or None),
+          layer_weights=(
+              tuple(self.config.loss.machine.feature_layer_weights) or None
+          ),
+      )
+      self._machine_detector = feature_loss
+      self._machine_loss = torch_bridge.make_jax_vjp_loss(feature_loss)
+      self._machine_detector_checksum_before = (
+          faster_rcnn.detector_parameter_checksum(feature_loss.model)
+      )
+      self._machine_detector_identifier = str(weights)
+    feature_loss = self._machine_detector
     reference = torch.utils.dlpack.from_dlpack(inputs)
     metadata = feature_loss.cache_reference(reference)
-    self._machine_loss = torch_bridge.make_jax_vjp_loss(feature_loss)
-    self._machine_detector = feature_loss
-    self._machine_detector_checksum_before = (
-        faster_rcnn.detector_parameter_checksum(feature_loss.model)
+    logging.info(
+        "Initialized frozen machine loss reference: %s, %s",
+        self._machine_detector_identifier, metadata
     )
-    logging.info("Initialized frozen machine loss: %s, %s", weights, metadata)
 
   def _evaluate_machine_distortion(self, params, inputs):
     """Evaluates frozen-detector distortion for one set of C3 parameters."""
@@ -538,7 +556,18 @@ class Experiment(base.Experiment):
         quant_type="ste",
         input_res=inputs.shape[:-1],
     )
-    return self._machine_loss(reconstruction)
+    from c3_neural_compression.machine_loss import torch_bridge
+    return torch_bridge.torch_value_only(reconstruction, self._machine_detector)
+
+  def _machine_reconstruction_metrics(self, reconstruction):
+    """Returns total and per-layer value-only metrics for one reconstruction."""
+    import torch  # pylint: disable=g-import-not-at-top
+    torch_image = torch.utils.dlpack.from_dlpack(reconstruction)
+    with torch.no_grad():
+      total, layers = self._machine_detector.loss_components(torch_image)
+    return float(total), {
+        layer: float(value) for layer, value in layers.items()
+    }
 
   def _objective_from_metrics(
       self, metrics, num_pixels, model_rate=0.0, machine_distortion=None
@@ -741,6 +770,19 @@ class Experiment(base.Experiment):
       checksum_after = faster_rcnn.detector_parameter_checksum(
           self._machine_detector.model
       )
+      decoder_float, _, _, _, _ = self.forward.apply(
+          params=quantized_params,
+          rng=None,
+          quant_type='ste',
+          input_res=tuple(inputs.shape[:-1]),
+      )
+      decoder_uint8 = jnp.round(decoder_float * 255.) / 255.
+      float_total, float_layers = self._machine_reconstruction_metrics(
+          decoder_float
+      )
+      uint8_total, uint8_layers = self._machine_reconstruction_metrics(
+          decoder_uint8
+      )
       result['machine_loss'] = {
           'feature_layers': list(self._machine_detector.layers),
           'feature_layer_weights': list(
@@ -748,7 +790,12 @@ class Experiment(base.Experiment):
           ),
           'weight': self.config.loss.machine_weight,
           'image_weight': self.config.loss.image_weight,
-          'distortion_quantized': scalar_metrics['machine_distortion'],
+          'distortion_quantized': float_total,
+          'distortion_decoder_float': float_total,
+          'distortion_uint8': uint8_total,
+          'distortion_layers_decoder_float': float_layers,
+          'distortion_layers_uint8': uint8_layers,
+          'detector_identifier': self._machine_detector_identifier,
           'detector_gradients_none': (
               self._machine_detector.detector_gradients_are_none()
           ),
@@ -813,6 +860,10 @@ class Experiment(base.Experiment):
   def fit_datum(self, inputs, rng):
     # Move input to the GPU (or other existing device). Otherwise it gets
     # transferred every microstep!
+    self._current_input_signature = {
+        'sha256': hashlib.sha256(np.ascontiguousarray(inputs).tobytes()).hexdigest(),
+        'shape': tuple(inputs.shape),
+    }
     inputs = jax.device_put(inputs, jax.devices()[0])
     self._initialize_machine_loss(inputs)
     train_step = (

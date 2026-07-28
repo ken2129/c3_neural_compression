@@ -57,6 +57,13 @@ class TorchBridgeTest(unittest.TestCase):
         gradient, 2 * np.arange(6, dtype=np.float32).reshape(2, 3) / 6
     )
 
+  def test_value_only_matches_loss_without_input_gradient(self):
+    image = jnp.arange(6, dtype=jnp.float32).reshape(2, 3)
+    value = torch_bridge.torch_value_only(
+        image, lambda tensor: tensor.square().mean()
+    )
+    np.testing.assert_allclose(value, np.mean(np.arange(6) ** 2))
+
   def test_bridge_gradient_matches_directional_finite_difference(self):
     loss = torch_bridge.make_jax_vjp_loss(
         lambda tensor: torch.mean((tensor - 0.25).square())
@@ -147,6 +154,9 @@ class TorchBridgeTest(unittest.TestCase):
     loss.backward()
     self.assertTrue(torch.isfinite(reconstruction.grad).all())
     self.assertGreater(torch.linalg.vector_norm(reconstruction.grad).item(), 0)
+    total, layers = feature_loss.loss_components(reconstruction.detach())
+    self.assertAlmostEqual(total.item(), loss.item(), places=6)
+    self.assertEqual(set(layers), {"0", "1"})
 
   def test_multi_layer_config_validation(self):
     with self.assertRaisesRegex(ValueError, "equal length"):

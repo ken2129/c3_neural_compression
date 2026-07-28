@@ -23,6 +23,10 @@ class MachineCheckpointTest(unittest.TestCase):
     experiment = object.__new__(image.Experiment)
     experiment.config = config
     experiment._wandb_run = None
+    experiment._current_input_signature = {
+        'sha256': 'input-a',
+        'shape': (4, 5, 3),
+    }
     return experiment
 
   def test_matching_objective_signature_resumes(self):
@@ -35,7 +39,7 @@ class MachineCheckpointTest(unittest.TestCase):
           1,
       )
       payload = experiment._load_noise_checkpoint()
-      self.assertEqual(payload['version'], 2)
+      self.assertEqual(payload['version'], 3)
       self.assertEqual(payload['next_step'], 1)
       self.assertEqual(
           payload['objective_signature'], experiment._objective_signature()
@@ -48,6 +52,17 @@ class MachineCheckpointTest(unittest.TestCase):
       experiment.config.unlock()
       experiment.config.loss.machine_weight = 2.0
       experiment.config.lock()
+      with self.assertRaisesRegex(ValueError, 'objective signature'):
+        experiment._load_noise_checkpoint()
+
+  def test_changed_input_is_rejected(self):
+    with tempfile.TemporaryDirectory() as directory:
+      experiment = self._experiment(directory)
+      experiment._save_noise_checkpoint({}, {}, None, 1)
+      experiment._current_input_signature = {
+          'sha256': 'input-b',
+          'shape': (4, 5, 3),
+      }
       with self.assertRaisesRegex(ValueError, 'objective signature'):
         experiment._load_noise_checkpoint()
 

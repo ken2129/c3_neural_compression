@@ -109,6 +109,11 @@ class FrozenFPNFeatureLoss:
 
   def __call__(self, reconstruction: Any) -> Any:
     """Returns feature L1 loss while retaining input-image gradients."""
+    total, _ = self.loss_components(reconstruction)
+    return total
+
+  def loss_components(self, reconstruction: Any) -> tuple[Any, dict[str, Any]]:
+    """Returns weighted total and unweighted per-layer feature losses."""
     import torch  # pylint: disable=g-import-not-at-top
 
     self._assert_frozen()
@@ -116,7 +121,7 @@ class FrozenFPNFeatureLoss:
       raise RuntimeError("Call cache_reference before computing feature loss")
     features, transformed_shape = self._extract(reconstruction)
     metadata = (self.metadata,) if len(self.layers) == 1 else self.metadata
-    losses = []
+    losses = {}
     for layer, weight, layer_metadata in zip(
         self.layers, self.layer_weights, metadata
     ):
@@ -131,12 +136,13 @@ class FrozenFPNFeatureLoss:
             f"Reference/reconstruction feature shapes differ for {layer}: "
             f"{layer_metadata.feature_shape_nchw} != {tuple(feature.shape)}"
         )
-      losses.append(
-          weight * torch.mean(
-              torch.abs(feature - self.reference_features[layer])
-          )
+      losses[layer] = torch.mean(
+          torch.abs(feature - self.reference_features[layer])
       )
-    return sum(losses)
+    return sum(
+        weight * losses[layer]
+        for layer, weight in zip(self.layers, self.layer_weights)
+    ), losses
 
   def detector_gradients_are_none(self) -> bool:
     """Returns whether frozen detector parameters accumulated no gradients."""

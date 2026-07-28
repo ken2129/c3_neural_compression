@@ -20,6 +20,17 @@ from typing import Any
 TorchLoss = Callable[[Any], Any]
 
 
+def torch_value_only(image: Any, torch_loss: TorchLoss) -> Any:
+  """Returns a scalar loss as a JAX array without building a backward graph."""
+  _reject_tracer(image)
+  import jax  # pylint: disable=g-import-not-at-top
+  import torch  # pylint: disable=g-import-not-at-top
+
+  with torch.no_grad():
+    value = torch_loss(torch.utils.dlpack.from_dlpack(image))
+  return jax.dlpack.from_dlpack(value.detach())
+
+
 def _reject_tracer(value: Any) -> None:
   """Fails clearly when Gate A is accidentally placed under ``jax.jit``."""
   import jax  # pylint: disable=g-import-not-at-top
