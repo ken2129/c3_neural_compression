@@ -9,6 +9,7 @@ from c3_neural_compression.configs import kodak_machine_only_pilot
 from c3_neural_compression.configs import kodak_machine_only_smoke
 from c3_neural_compression.configs import kodak_machine_pilot
 from c3_neural_compression.configs import kodak_machine_smoke
+from c3_neural_compression.configs import kodak_phase3_regression_smoke
 from c3_neural_compression.experiments import image
 
 
@@ -89,6 +90,16 @@ class MachineLossConfigTest(unittest.TestCase):
         image.checkpointing.directory, machine.checkpointing.directory
     )
     self.assertNotEqual(image.tracking.run_id, machine.tracking.run_id)
+
+  def test_regression_smoke_uses_phase1_schedule_without_machine_loss(self):
+    config = (
+        kodak_phase3_regression_smoke.get_config().experiment_kwargs.config
+    )
+    self.assertEqual(config.opt.num_noise_steps, 100)
+    self.assertEqual(config.opt.max_num_ste_steps, 10)
+    self.assertEqual(config.loss.image_weight, 1.0)
+    self.assertEqual(config.loss.machine_weight, 0.0)
+    self.assertFalse(config.checkpointing.enabled)
 
 
 if __name__ == "__main__":
