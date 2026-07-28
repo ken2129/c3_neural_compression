@@ -60,6 +60,8 @@ def get_config() -> config_dict.ConfigDict:
   exp.loss.machine = config_dict.ConfigDict()
   exp.loss.machine.device = "cuda"
   exp.loss.machine.feature_layer = "0"
+  exp.loss.machine.feature_layers = ()
+  exp.loss.machine.feature_layer_weights = ()
   exp.quant = config_dict.ConfigDict()
   exp.eval = config_dict.ConfigDict()
   exp.model = config_dict.ConfigDict()

@@ -23,6 +23,8 @@ def get_config() -> config_dict.ConfigDict:
   exp.loss.machine_weight = 1.0
   exp.loss.machine.device = "cuda"
   exp.loss.machine.feature_layer = "0"
+  exp.loss.machine.feature_layers = ("0", "1", "2", "3")
+  exp.loss.machine.feature_layer_weights = (1.0, 1.0, 1.0, 1.0)
   exp.checkpointing.enabled = False
   exp.tracking.enabled = False
   config.lock()

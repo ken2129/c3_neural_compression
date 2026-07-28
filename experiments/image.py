@@ -93,6 +93,25 @@ class Experiment(base.Experiment):
       self._wandb_run.finish()
       self._wandb_run = None
 
+  def _objective_signature(self):
+    """Returns checkpoint-critical objective settings."""
+    layers = tuple(self.config.loss.machine.feature_layers)
+    if not layers:
+      layers = (str(self.config.loss.machine.feature_layer),)
+    layer_weights = tuple(self.config.loss.machine.feature_layer_weights)
+    if not layer_weights:
+      layer_weights = (1.0,) * len(layers)
+    return {
+        'rd_weight': float(self.config.loss.rd_weight),
+        'image_weight': float(self.config.loss.image_weight),
+        'machine_weight': float(self.config.loss.machine_weight),
+        'machine_feature_layers': layers,
+        'machine_feature_layer_weights': tuple(
+            float(value) for value in layer_weights
+        ),
+        'noise_quant_type': str(self.config.quant.noise_quant_type),
+    }
+
   def _save_noise_checkpoint(self, params, opt_state, rng, next_step):
     """Atomically saves state required to resume noise optimization."""
     checkpointing = self.config.checkpointing
@@ -103,13 +122,14 @@ class Experiment(base.Experiment):
         checkpointing.directory, f'noise_step_{next_step:09d}.pkl'
     )
     payload = {
-        'version': 1,
+        'version': 2,
         'phase': 'noise',
         'next_step': next_step,
         'num_noise_steps': self.config.opt.num_noise_steps,
         'params': jax.device_get(params),
         'opt_state': jax.device_get(opt_state),
         'rng': jax.device_get(rng),
+        'objective_signature': self._objective_signature(),
     }
     temporary_path = f'{path}.tmp'
     with open(temporary_path, 'wb') as file:
@@ -134,12 +154,25 @@ class Experiment(base.Experiment):
     path = paths[-1]
     with open(path, 'rb') as file:
       payload = pickle.load(file)  # pylint: disable=consider-using-with
-    if payload.get('version') != 1 or payload.get('phase') != 'noise':
+    if payload.get('version') not in (1, 2) or payload.get('phase') != 'noise':
       raise ValueError(f'Unsupported checkpoint: {path}')
     if payload.get('num_noise_steps') != self.config.opt.num_noise_steps:
       raise ValueError(
           'Checkpoint num_noise_steps does not match the current config: '
           f'{path}'
+      )
+    saved_signature = payload.get('objective_signature')
+    expected_signature = self._objective_signature()
+    if saved_signature is None:
+      if self.config.loss.machine_weight > 0:
+        raise ValueError(
+            'Legacy checkpoint has no objective signature and cannot resume '
+            f'a machine-loss run: {path}'
+        )
+    elif saved_signature != expected_signature:
+      raise ValueError(
+          'Checkpoint objective signature does not match current config: '
+          f'{path}; saved={saved_signature}; expected={expected_signature}'
       )
     logging.info('Resuming noise optimization from checkpoint: %s', path)
     return payload
@@ -388,6 +421,10 @@ class Experiment(base.Experiment):
     feature_loss, weights = faster_rcnn.create_frozen_fpn_loss(
         device=self.config.loss.machine.device,
         layer=self.config.loss.machine.feature_layer,
+        layers=(tuple(self.config.loss.machine.feature_layers) or None),
+        layer_weights=(
+            tuple(self.config.loss.machine.feature_layer_weights) or None
+        ),
     )
     import torch  # pylint: disable=g-import-not-at-top
 
@@ -614,7 +651,10 @@ class Experiment(base.Experiment):
           self._machine_detector.model
       )
       result['machine_loss'] = {
-          'feature_layer': self.config.loss.machine.feature_layer,
+          'feature_layers': list(self._machine_detector.layers),
+          'feature_layer_weights': list(
+              self._machine_detector.layer_weights
+          ),
           'weight': self.config.loss.machine_weight,
           'image_weight': self.config.loss.image_weight,
           'distortion_quantized': scalar_metrics['machine_distortion'],

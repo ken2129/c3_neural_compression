@@ -30,7 +30,10 @@ class _ToyBackbone(torch.nn.Module):
     self.scale = torch.nn.Parameter(torch.tensor(2.0))
 
   def forward(self, tensors):
-    return {"0": tensors * self.scale}
+    return {
+        "0": tensors * self.scale,
+        "1": tensors * self.scale * 3.0,
+    }
 
 
 class _ToyDetector(torch.nn.Module):
@@ -125,6 +128,35 @@ class TorchBridgeTest(unittest.TestCase):
     self.assertTrue(bool(jnp.all(jnp.isfinite(gradient))))
     self.assertGreater(float(jnp.linalg.norm(gradient)), 0.0)
     self.assertTrue(feature_loss.detector_gradients_are_none())
+
+  def test_weighted_multi_layer_fpn_loss_and_gradient(self):
+    feature_loss = faster_rcnn.FrozenFPNFeatureLoss(
+        _ToyDetector(),
+        layers=("0", "1"),
+        layer_weights=(2.0, 0.5),
+    )
+    metadata = feature_loss.cache_reference(
+        torch.zeros((2, 3, 3), dtype=torch.float32)
+    )
+    self.assertEqual(tuple(value.layer for value in metadata), ("0", "1"))
+    reconstruction = torch.full(
+        (2, 3, 3), 0.1, dtype=torch.float32, requires_grad=True
+    )
+    loss = feature_loss(reconstruction)
+    self.assertAlmostEqual(loss.item(), 0.7, places=6)
+    loss.backward()
+    self.assertTrue(torch.isfinite(reconstruction.grad).all())
+    self.assertGreater(torch.linalg.vector_norm(reconstruction.grad).item(), 0)
+
+  def test_multi_layer_config_validation(self):
+    with self.assertRaisesRegex(ValueError, "equal length"):
+      faster_rcnn.FrozenFPNFeatureLoss(
+          _ToyDetector(), layers=("0", "1"), layer_weights=(1.0,)
+      )
+    with self.assertRaisesRegex(ValueError, "must be positive"):
+      faster_rcnn.FrozenFPNFeatureLoss(
+          _ToyDetector(), layers=("0", "1"), layer_weights=(0.0, 0.0)
+      )
 
 
 if __name__ == "__main__":

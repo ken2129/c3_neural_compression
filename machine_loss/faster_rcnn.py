@@ -24,11 +24,30 @@ class FrozenFPNFeatureLoss:
   and NMS remain exclusive to the Phase 2 mAP evaluator.
   """
 
-  def __init__(self, model: Any, layer: str = "0"):
+  def __init__(
+      self,
+      model: Any,
+      layer: str = "0",
+      layers: tuple[str, ...] | None = None,
+      layer_weights: tuple[float, ...] | None = None,
+  ):
     self.model = model.eval()
     self.model.requires_grad_(False)
-    self.layer = str(layer)
+    self.layers = tuple(str(value) for value in (layers or (layer,)))
+    if not self.layers:
+      raise ValueError("At least one FPN feature layer is required")
+    if layer_weights is None:
+      layer_weights = (1.0,) * len(self.layers)
+    self.layer_weights = tuple(float(value) for value in layer_weights)
+    if len(self.layer_weights) != len(self.layers):
+      raise ValueError("FPN feature layers and weights must have equal length")
+    if any(value < 0 for value in self.layer_weights):
+      raise ValueError("FPN feature weights must be non-negative")
+    if not any(value > 0 for value in self.layer_weights):
+      raise ValueError("At least one FPN feature weight must be positive")
+    self.layer = self.layers[0]
     self.reference_feature = None
+    self.reference_features = None
     self.metadata = None
     self._assert_frozen()
 
@@ -48,18 +67,21 @@ class FrozenFPNFeatureLoss:
     if not image.is_floating_point():
       raise TypeError(f"Expected floating-point RGB values, got {image.dtype}")
 
-  def _extract(self, image: Any) -> tuple[Any, tuple[int, ...]]:
+  def _extract(self, image: Any) -> tuple[dict[str, Any], tuple[int, ...]]:
     self._validate_image(image)
     chw = image.permute(2, 0, 1)
     image_list, _ = self.model.transform([chw], None)
     features = self.model.backbone(image_list.tensors)
     if not isinstance(features, dict):
       features = {"0": features}
-    if self.layer not in features:
+    missing = tuple(layer for layer in self.layers if layer not in features)
+    if missing:
       raise KeyError(
-          f"Missing FPN layer {self.layer!r}; available={tuple(features)}"
+          f"Missing FPN layers {missing!r}; available={tuple(features)}"
       )
-    return features[self.layer], tuple(image_list.tensors.shape)
+    return {layer: features[layer] for layer in self.layers}, tuple(
+        image_list.tensors.shape
+    )
 
   def cache_reference(self, image: Any) -> FeatureMetadata:
     """Caches the original-image feature without a computation graph."""
@@ -67,14 +89,22 @@ class FrozenFPNFeatureLoss:
 
     self._assert_frozen()
     with torch.no_grad():
-      feature, transformed_shape = self._extract(image)
-      self.reference_feature = feature.detach().clone()
-    self.metadata = FeatureMetadata(
-        layer=self.layer,
-        input_shape_hwc=tuple(image.shape),
-        transformed_shape_nchw=transformed_shape,
-        feature_shape_nchw=tuple(self.reference_feature.shape),
+      features, transformed_shape = self._extract(image)
+      self.reference_features = {
+          layer: feature.detach().clone()
+          for layer, feature in features.items()
+      }
+    self.reference_feature = self.reference_features[self.layer]
+    metadata = tuple(
+        FeatureMetadata(
+            layer=layer,
+            input_shape_hwc=tuple(image.shape),
+            transformed_shape_nchw=transformed_shape,
+            feature_shape_nchw=tuple(self.reference_features[layer].shape),
+        )
+        for layer in self.layers
     )
+    self.metadata = metadata[0] if len(metadata) == 1 else metadata
     return self.metadata
 
   def __call__(self, reconstruction: Any) -> Any:
@@ -84,25 +114,41 @@ class FrozenFPNFeatureLoss:
     self._assert_frozen()
     if self.reference_feature is None:
       raise RuntimeError("Call cache_reference before computing feature loss")
-    feature, transformed_shape = self._extract(reconstruction)
-    if transformed_shape != self.metadata.transformed_shape_nchw:
-      raise ValueError(
-          "Reference/reconstruction transformed shapes differ: "
-          f"{self.metadata.transformed_shape_nchw} != {transformed_shape}"
+    features, transformed_shape = self._extract(reconstruction)
+    metadata = (self.metadata,) if len(self.layers) == 1 else self.metadata
+    losses = []
+    for layer, weight, layer_metadata in zip(
+        self.layers, self.layer_weights, metadata
+    ):
+      feature = features[layer]
+      if transformed_shape != layer_metadata.transformed_shape_nchw:
+        raise ValueError(
+            "Reference/reconstruction transformed shapes differ: "
+            f"{layer_metadata.transformed_shape_nchw} != {transformed_shape}"
+        )
+      if tuple(feature.shape) != layer_metadata.feature_shape_nchw:
+        raise ValueError(
+            f"Reference/reconstruction feature shapes differ for {layer}: "
+            f"{layer_metadata.feature_shape_nchw} != {tuple(feature.shape)}"
+        )
+      losses.append(
+          weight * torch.mean(
+              torch.abs(feature - self.reference_features[layer])
+          )
       )
-    if tuple(feature.shape) != self.metadata.feature_shape_nchw:
-      raise ValueError(
-          "Reference/reconstruction feature shapes differ: "
-          f"{self.metadata.feature_shape_nchw} != {tuple(feature.shape)}"
-      )
-    return torch.mean(torch.abs(feature - self.reference_feature))
+    return sum(losses)
 
   def detector_gradients_are_none(self) -> bool:
     """Returns whether frozen detector parameters accumulated no gradients."""
     return all(parameter.grad is None for parameter in self.model.parameters())
 
 
-def create_frozen_fpn_loss(device: str, layer: str = "0"):
+def create_frozen_fpn_loss(
+    device: str,
+    layer: str = "0",
+    layers: tuple[str, ...] | None = None,
+    layer_weights: tuple[float, ...] | None = None,
+):
   """Loads the official COCO_V1 detector and returns a frozen feature loss."""
   from torchvision.models.detection import (  # pylint: disable=g-import-not-at-top
       FasterRCNN_ResNet50_FPN_Weights,
@@ -111,7 +157,12 @@ def create_frozen_fpn_loss(device: str, layer: str = "0"):
 
   weights = FasterRCNN_ResNet50_FPN_Weights.COCO_V1
   model = fasterrcnn_resnet50_fpn(weights=weights).to(device)
-  return FrozenFPNFeatureLoss(model=model, layer=layer), weights
+  return FrozenFPNFeatureLoss(
+      model=model,
+      layer=layer,
+      layers=layers,
+      layer_weights=layer_weights,
+  ), weights
 
 
 def detector_parameter_checksum(model: Any) -> str:

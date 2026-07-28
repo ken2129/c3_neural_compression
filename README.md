@@ -211,6 +211,12 @@ machine loss is enabled, network quantization candidates are selected with the
 same configured rate/image/machine objective and the selected scalar objective
 is recorded in JSON.
 
+`kodak_machine_smoke.py` uses FPN layers `0` through `3` with explicit unit
+weights. For a two-step checkpoint/resume validation, use
+`kodak_machine_checkpoint_smoke.py`; it saves an objective signature with every
+checkpoint and rejects resumes when rate/image/machine weights, feature layers,
+layer weights, or the training quantization mode differ.
+
 ### RTX 50-series / Blackwell smoke test
 
 The original JAX 0.4.24 environment is retained in `requirements.txt`. The
