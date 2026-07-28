@@ -97,6 +97,12 @@ class Experiment(base.Experiment):
       self._wandb_run.finish()
       self._wandb_run = None
 
+  @staticmethod
+  def _datum_rng(rng, datum_metadata, datum_index):
+    """Derives a chunk-order-independent RNG for one image."""
+    seed_key = datum_metadata.get('image_id', datum_index)
+    return jax.random.fold_in(rng, int(seed_key))
+
   def _objective_signature(self):
     """Returns checkpoint-critical objective settings."""
     layers = tuple(self.config.loss.machine.feature_layers)
@@ -1280,7 +1286,8 @@ class Experiment(base.Experiment):
       datum_start = time.perf_counter()
       optimization_start = time.perf_counter()
       # Fit inputs of shape [H, W, C].
-      params = self.fit_datum(inputs, rng, datum_index=i)
+      datum_rng = self._datum_rng(rng, datum_metadata, i)
+      params = self.fit_datum(inputs, datum_rng, datum_index=i)
       jax.block_until_ready(params)
       optimization_seconds = time.perf_counter() - optimization_start
 
