@@ -23,6 +23,7 @@ def _parser() -> argparse.ArgumentParser:
   parser.add_argument("--device", default="cuda")
   parser.add_argument("--feature-layer", default="0")
   parser.add_argument("--perturbation", type=float, default=1.0 / 255.0)
+  parser.add_argument("--directional-epsilon", type=float, default=3e-3)
   parser.add_argument("--overwrite", action="store_true")
   return parser
 
@@ -61,6 +62,8 @@ def main(argv=None) -> int:
   args = _parser().parse_args(argv)
   if args.perturbation <= 0:
     raise ValueError("--perturbation must be positive")
+  if args.directional_epsilon <= 0:
+    raise ValueError("--directional-epsilon must be positive")
   metrics_path = args.output_dir / "metrics.json"
   if metrics_path.exists() and not args.overwrite:
     raise FileExistsError(f"Refusing to overwrite without --overwrite: {metrics_path}")
@@ -122,7 +125,7 @@ def main(argv=None) -> int:
   gradient_norm = float(jnp.linalg.norm(image_gradient))
   gradient_finite = bool(jnp.all(jnp.isfinite(image_gradient)))
   direction = image_gradient / jnp.linalg.norm(image_gradient)
-  finite_difference_epsilon = 1e-4
+  finite_difference_epsilon = args.directional_epsilon
   loss_plus = jax_loss(perturbed + finite_difference_epsilon * direction)
   loss_minus = jax_loss(perturbed - finite_difference_epsilon * direction)
   jax.block_until_ready((loss_plus, loss_minus))
