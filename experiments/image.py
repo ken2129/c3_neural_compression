@@ -18,6 +18,13 @@
 import collections
 from collections.abc import Mapping
 import functools
+import glob
+import json
+import os
+import pickle
+import platform as python_platform
+import subprocess
+import sys
 import textwrap
 import time
 
@@ -33,6 +40,7 @@ import jax.numpy as jnp
 from jaxline import platform
 import numpy as np
 import optax
+from PIL import Image
 
 from c3_neural_compression.experiments import base
 from c3_neural_compression.model import entropy_models
@@ -47,6 +55,91 @@ FLAGS = flags.FLAGS
 
 class Experiment(base.Experiment):
   """Per data-point compression experiment for images. Assume single-device."""
+
+  def __init__(self, mode, init_rng, config):
+    super().__init__(mode=mode, init_rng=init_rng, config=config)
+    self._wandb_run = None
+
+  def _init_wandb(self, datum_index):
+    """Starts an optional W&B run without storing credentials in config."""
+    if not self.config.tracking.enabled:
+      return
+    import wandb  # pylint: disable=g-import-not-at-top
+
+    os.makedirs(self.config.tracking.directory, exist_ok=True)
+    run_name = self.config.tracking.run_name
+    if run_name and self.config.dataset.num_examples != 1:
+      run_name = f'{run_name}-datum-{datum_index:05d}'
+    run_id = self.config.tracking.run_id
+    if run_id and self.config.dataset.num_examples != 1:
+      run_id = f'{run_id}-datum-{datum_index:05d}'
+    self._wandb_run = wandb.init(
+        project=self.config.tracking.project,
+        entity=self.config.tracking.entity,
+        name=run_name,
+        id=run_id,
+        resume='allow' if run_id else None,
+        mode=self.config.tracking.mode,
+        dir=self.config.tracking.directory,
+        config=self.config.to_dict(),
+        job_type='image-compression',
+    )
+
+  def _finish_wandb(self):
+    if self._wandb_run is not None:
+      self._wandb_run.finish()
+      self._wandb_run = None
+
+  def _save_noise_checkpoint(self, params, opt_state, rng, next_step):
+    """Atomically saves state required to resume noise optimization."""
+    checkpointing = self.config.checkpointing
+    if not checkpointing.enabled:
+      return
+    os.makedirs(checkpointing.directory, exist_ok=True)
+    path = os.path.join(
+        checkpointing.directory, f'noise_step_{next_step:09d}.pkl'
+    )
+    payload = {
+        'version': 1,
+        'phase': 'noise',
+        'next_step': next_step,
+        'num_noise_steps': self.config.opt.num_noise_steps,
+        'params': jax.device_get(params),
+        'opt_state': jax.device_get(opt_state),
+        'rng': jax.device_get(rng),
+    }
+    temporary_path = f'{path}.tmp'
+    with open(temporary_path, 'wb') as file:
+      pickle.dump(payload, file, protocol=pickle.HIGHEST_PROTOCOL)
+    os.replace(temporary_path, path)
+    logging.info('Saved resumable checkpoint: %s', path)
+    if self._wandb_run is not None:
+      self._wandb_run.log(
+          {'checkpoint/noise_step': next_step}, step=next_step
+      )
+
+  def _load_noise_checkpoint(self):
+    """Loads the latest compatible noise checkpoint when resume is enabled."""
+    checkpointing = self.config.checkpointing
+    if not (checkpointing.enabled and checkpointing.resume):
+      return None
+    paths = sorted(glob.glob(os.path.join(
+        checkpointing.directory, 'noise_step_*.pkl'
+    )))
+    if not paths:
+      return None
+    path = paths[-1]
+    with open(path, 'rb') as file:
+      payload = pickle.load(file)  # pylint: disable=consider-using-with
+    if payload.get('version') != 1 or payload.get('phase') != 'noise':
+      raise ValueError(f'Unsupported checkpoint: {path}')
+    if payload.get('num_noise_steps') != self.config.opt.num_noise_steps:
+      raise ValueError(
+          'Checkpoint num_noise_steps does not match the current config: '
+          f'{path}'
+      )
+    logging.info('Resuming noise optimization from checkpoint: %s', path)
+    return payload
 
   def init_params(self, input_res, soft_round_temp=None, input_mean=None):
     forward_init = jax.jit(
@@ -255,7 +348,7 @@ class Experiment(base.Experiment):
     # the function with "ste" as this is equivalent to "round" at test time.
     out = self.forward.apply(params=params, rng=None, quant_type='ste',
                              input_res=inputs.shape[:-1])
-    rec, _, all_latents, loc, scale = out
+    rec, latent_grids, all_latents, loc, scale = out
     # Round rec to integer pixel values for distortion computation.
     # Note that `jnp.round` rounds 0.5 to 0. but n + 0.5 to n + 1 for n >= 1.
     # The difference with standard rounding is only for 0.5 (set of measure 0)
@@ -266,9 +359,10 @@ class Experiment(base.Experiment):
     # Sum rate over all pixels. Ensure that the rate is computed in the space
     # where the bin width of the latents is 1 by passing q_step to the rate
     # function.
-    rate = entropy_models.compute_rate(
+    rates = entropy_models.compute_rate(
         all_latents, loc, scale, q_step=self.config.model.latents.q_step
-    ).sum()
+    )
+    rate = rates.sum()
     # Compute rate distortion loss
     num_pixels = self._num_pixels(inputs.shape[:-1])  # without channel dim
     loss = distortion + self.config.loss.rd_weight * rate / num_pixels
@@ -279,7 +373,111 @@ class Experiment(base.Experiment):
         'psnr': psnr_utils.psnr_fn(distortion),
         'ssim': dm_pix.ssim(rec, inputs),
     }
+    start = 0
+    for grid_index, grid in enumerate(latent_grids):
+      end = start + grid.size
+      metrics[f'rate_grid_{grid_index}'] = rates[start:end].sum()
+      start = end
+    assert start == all_latents.size
     return metrics
+
+  @functools.partial(jax.jit, static_argnums=(0, 2))
+  def reconstruct(self, params, input_res):
+    """Returns the rounded reconstruction for fitted parameters."""
+    rec, _, _, _, _ = self.forward.apply(
+        params=params, rng=None, quant_type='ste', input_res=input_res
+    )
+    return jnp.round(rec * 255.) / 255.
+
+  def _save_datum_outputs(
+      self, datum_index, inputs, quantized_params, metrics, timing,
+      macs_per_pixel
+  ):
+    """Writes persistent baseline artifacts when output_dir is configured."""
+    if not self.config.output_dir:
+      return
+    output_dir = os.path.join(
+        self.config.output_dir, f'datum_{datum_index:05d}'
+    )
+    os.makedirs(output_dir, exist_ok=True)
+    rec = self.reconstruct(quantized_params, tuple(inputs.shape[:-1]))
+    rec = np.asarray(jax.device_get(rec))
+    rec_uint8 = np.clip(np.rint(rec * 255.), 0, 255).astype(np.uint8)
+    Image.fromarray(rec_uint8, mode='RGB').save(
+        os.path.join(output_dir, 'reconstruction.png')
+    )
+    num_pixels = self._num_pixels(inputs.shape[:-1])
+    scalar_metrics = {
+        key: float(jax.device_get(value)) for key, value in metrics.items()
+    }
+    total_bits = (
+        scalar_metrics['rate'] + scalar_metrics['synthesis']
+        + scalar_metrics['entropy']
+    )
+    result = {
+        'datum_index': datum_index,
+        'input_shape': list(inputs.shape),
+        'actual_bitstream_generated': False,
+        'rate_note': (
+            'All rates are entropy estimates; no arithmetic/range-coded '
+            'bitstream is generated by this repository.'
+        ),
+        'psnr_quantized': scalar_metrics['psnr'],
+        'ssim_quantized': scalar_metrics['ssim'],
+        'estimated_bits': {
+            'latents': scalar_metrics['rate'],
+            'synthesis_network': scalar_metrics['synthesis'],
+            'entropy_network': scalar_metrics['entropy'],
+            'total': total_bits,
+        },
+        'estimated_bpp': {
+            'latents': scalar_metrics['rate'] / num_pixels,
+            'synthesis_network': scalar_metrics['synthesis'] / num_pixels,
+            'entropy_network': scalar_metrics['entropy'] / num_pixels,
+            'total': total_bits / num_pixels,
+        },
+        'estimated_latent_grids': [
+            {
+                'grid_index': grid_index,
+                'bits': scalar_metrics[f'rate_grid_{grid_index}'],
+                'bpp': (
+                    scalar_metrics[f'rate_grid_{grid_index}'] / num_pixels
+                ),
+            }
+            for grid_index in range(self.config.model.latents.num_grids)
+        ],
+        'network_quantization': {
+            'q_step_weight': scalar_metrics['q_step_weight'],
+            'q_step_bias': scalar_metrics['q_step_bias'],
+        },
+        'timing_seconds': timing,
+        'macs_per_pixel': {
+            key: float(value) for key, value in macs_per_pixel.items()
+        },
+        'environment': {
+            'python': sys.version,
+            'platform': python_platform.platform(),
+            'jax': jax.__version__,
+            'devices': [str(device) for device in jax.devices()],
+            'cuda_visible_devices': os.environ.get('CUDA_VISIBLE_DEVICES'),
+        },
+    }
+    try:
+      result['environment']['nvidia_smi'] = subprocess.run(
+          ['nvidia-smi', '--query-gpu=name,driver_version,compute_cap',
+           '--format=csv,noheader'],
+          check=True, capture_output=True, text=True
+      ).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+      result['environment']['nvidia_smi'] = None
+    with open(
+        os.path.join(output_dir, 'metrics.json'), 'w', encoding='utf-8'
+    ) as file:
+      json.dump(result, file, indent=2, sort_keys=True)
+    with open(
+        os.path.join(output_dir, 'config.json'), 'w', encoding='utf-8'
+    ) as file:
+      json.dump(self.config.to_dict(), file, indent=2, sort_keys=True)
 
   def _log_train_metrics(self, i, metrics, delta_time, num_pixels,
                          **other_metrics):
@@ -295,6 +493,21 @@ class Experiment(base.Experiment):
     logging_message += f' time={(delta_time):.4f}.'
     logging_message = textwrap.fill(logging_message, 80)
     logging.info(logging_message)
+    if self._wandb_run is not None:
+      phase = 'noise' if i < self.config.opt.num_noise_steps else 'ste'
+      wandb_metrics = {
+          f'{phase}/{key}': float(jax.device_get(value))
+          for key, value in metrics.items()
+      }
+      wandb_metrics.update({
+          f'{phase}/{key}': float(jax.device_get(value))
+          for key, value in other_metrics.items()
+      })
+      wandb_metrics[f'{phase}/bpp'] = float(
+          jax.device_get(metrics['rate'] / num_pixels)
+      )
+      wandb_metrics[f'{phase}/seconds_per_log_interval'] = delta_time
+      self._wandb_run.log(wandb_metrics, step=int(i))
 
   def fit_datum(self, inputs, rng):
     # Move input to the GPU (or other existing device). Otherwise it gets
@@ -312,6 +525,15 @@ class Experiment(base.Experiment):
         soft_round_temp=self.config.quant.soft_round_temp_start,
         input_mean=input_mean,
     )
+
+    noise_start_step = 0
+    checkpoint = self._load_noise_checkpoint()
+    if checkpoint is not None:
+      device = jax.devices()[0]
+      params = jax.device_put(checkpoint['params'], device)
+      opt_state = jax.device_put(checkpoint['opt_state'], device)
+      rng = checkpoint['rng']
+      noise_start_step = checkpoint['next_step']
 
     start = time.time()
 
@@ -341,7 +563,7 @@ class Experiment(base.Experiment):
       )
     else:
       kumaraswamy_a_fn = lambda _: None
-    for i in range(self.config.opt.num_noise_steps):
+    for i in range(noise_start_step, self.config.opt.num_noise_steps):
       # Split `rng` to ensure we use a different noise for noise quantization
       # at each step.
       # It is faster to split this on the CPU than outside of jit on GPU.
@@ -367,6 +589,15 @@ class Experiment(base.Experiment):
           soft_round_temp=soft_round_temp,
           kumaraswamy_a=kumaraswamy_a,
       )
+
+      checkpoint_interval = self.config.checkpointing.save_every_steps
+      if (
+          self.config.checkpointing.enabled
+          and checkpoint_interval > 0
+          and (i + 1) % checkpoint_interval == 0
+      ):
+        jax.block_until_ready(params)
+        self._save_noise_checkpoint(params, opt_state, rng, i + 1)
 
       if i % self.config.opt.noise_log_every == 0:
         end = time.time()
@@ -452,7 +683,7 @@ class Experiment(base.Experiment):
               end - start,
               num_pixels=np.prod(inputs.shape[:-1]),
               rd_weight=rd_weight,
-              soft_round_temp=soft_round_temp,
+              soft_round_temp=self.config.quant.ste_soft_round_temp,
           )
           start = time.time()
 
@@ -592,11 +823,17 @@ class Experiment(base.Experiment):
       logging.info('inputs shape: %s', input_shape)
       logging.info('num_pixels: %s', num_pixels)
 
+      self._init_wandb(i)
+
       # Compute MACs per pixel.
       macs_per_pixel = self._count_macs_per_pixel(input_shape)
 
+      datum_start = time.perf_counter()
+      optimization_start = time.perf_counter()
       # Fit inputs of shape [H, W, C].
       params = self.fit_datum(inputs, rng)
+      jax.block_until_ready(params)
+      optimization_seconds = time.perf_counter() - optimization_start
 
       # Evaluate unquantized model after training. Note that this will *not*
       # include model parameters in rate calculations.
@@ -605,10 +842,40 @@ class Experiment(base.Experiment):
       # Perform search over quantization steps to find best quantized model
       # params (in terms of rate-distortion loss).
       logging.info('Started quantization step search.')
-      _, quantized_metrics = self.quantization_step_search(
+      quantization_start = time.perf_counter()
+      quantized_params, quantized_metrics = self.quantization_step_search(
           params, inputs
       )
+      jax.block_until_ready(quantized_metrics)
+      quantization_seconds = time.perf_counter() - quantization_start
       logging.info('Finished quantization step search.')
+
+      self._save_datum_outputs(
+          datum_index=i,
+          inputs=inputs,
+          quantized_params=quantized_params,
+          metrics=quantized_metrics,
+          timing={
+              'optimization': optimization_seconds,
+              'network_quantization_search': quantization_seconds,
+              'total': time.perf_counter() - datum_start,
+          },
+          macs_per_pixel=macs_per_pixel,
+      )
+      if self._wandb_run is not None:
+        final_metrics = {
+            f'final/{key}': float(jax.device_get(value))
+            for key, value in quantized_metrics.items()
+        }
+        final_metrics['final/bpp_total'] = float(
+            jax.device_get(
+                (quantized_metrics['rate']
+                 + quantized_metrics['synthesis']
+                 + quantized_metrics['entropy']) / num_pixels
+            )
+        )
+        self._wandb_run.log(final_metrics)
+        self._finish_wandb()
 
       # Save metrics
       # Reconstruction metrics
@@ -625,6 +892,12 @@ class Experiment(base.Experiment):
       metrics_per_datum['bpp_latents_quantized'].append(
           quantized_metrics['rate'] / num_pixels
       )
+      for grid_index in range(self.config.model.latents.num_grids):
+        grid_rate = quantized_metrics[f'rate_grid_{grid_index}']
+        metrics_per_datum[f'rate_grid_{grid_index}'].append(grid_rate)
+        metrics_per_datum[f'bpp_grid_{grid_index}'].append(
+            grid_rate / num_pixels
+        )
       for key in ['synthesis', 'entropy']:
         metrics_per_datum[f'rate_{key}'].append(quantized_metrics[key])
         metrics_per_datum[f'bpp_{key}'].append(
@@ -695,4 +968,3 @@ class Experiment(base.Experiment):
 if __name__ == '__main__':
   flags.mark_flag_as_required('config')
   app.run(functools.partial(platform.main, Experiment))
-

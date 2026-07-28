@@ -1,0 +1,10 @@
+# Install this after requirements.txt on NVIDIA Blackwell GPUs.
+jax[cuda12]==0.4.38
+jaxlib==0.4.38
+jax-cuda12-plugin==0.4.38
+jax-cuda12-pjrt==0.4.38
+dm-haiku==0.0.14
+nvidia-cuda-nvcc-cu12==12.9.86
+nvidia-cudnn-cu12==9.24.0.43
+protobuf==4.25.9
+wandb==0.22.3
