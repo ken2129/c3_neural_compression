@@ -104,6 +104,10 @@ class CocoDetectionTest(unittest.TestCase):
     evaluator.accumulate.assert_called_once_with()
     evaluator.summarize.assert_called_once_with()
 
+  def test_empty_predictions_report_zero_ap(self):
+    metrics = coco_detection.evaluate_coco(self.annotation, [], [7])
+    self.assertEqual(metrics, {name: 0.0 for name in coco_detection.METRICS})
+
   def test_detector_config_records_preprocessing(self):
     model = mock.Mock(training=False)
     model.parameters.return_value = [mock.Mock(requires_grad=False)]

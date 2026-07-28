@@ -194,7 +194,11 @@ def evaluate_coco(annotation_file, predictions, image_ids):
   from pycocotools.coco import COCO
   from pycocotools.cocoeval import COCOeval
   if not predictions:
-    raise RuntimeError("Detector produced no predictions")
+    LOGGER.warning(
+        "Detector produced no predictions for %d images; reporting zero AP.",
+        len(image_ids),
+    )
+    return {name: 0.0 for name in METRICS}
   ground_truth = COCO(str(annotation_file))
   evaluator = COCOeval(ground_truth, ground_truth.loadRes(predictions), "bbox")
   evaluator.params.imgIds = list(image_ids)

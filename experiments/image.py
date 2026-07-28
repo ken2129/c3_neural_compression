@@ -702,7 +702,7 @@ class Experiment(base.Experiment):
 
   def _save_datum_outputs(
       self, datum_index, inputs, quantized_params, metrics, timing,
-      macs_per_pixel
+      macs_per_pixel, datum_metadata=None
   ):
     """Writes persistent baseline artifacts when output_dir is configured."""
     if not self.config.output_dir:
@@ -727,6 +727,7 @@ class Experiment(base.Experiment):
     )
     result = {
         'datum_index': datum_index,
+        'datum_metadata': datum_metadata or {},
         'input_shape': list(inputs.shape),
         'actual_bitstream_generated': False,
         'rate_note': (
@@ -1224,6 +1225,13 @@ class Experiment(base.Experiment):
     for i, input_dict in enumerate(self._train_data_iterator):
       # Extract image as array of shape [H, W, C]
       inputs = input_dict['array'].numpy()
+      datum_metadata = {}
+      for key, value in input_dict.items():
+        if key == 'array':
+          continue
+        if hasattr(value, 'item'):
+          value = value.item()
+        datum_metadata[key] = value
       input_shape = inputs.shape
       num_pixels = self._num_pixels(input_res=input_shape[:-1])
       logging.info('inputs shape: %s', input_shape)
@@ -1277,6 +1285,7 @@ class Experiment(base.Experiment):
               'total': time.perf_counter() - datum_start,
           },
           macs_per_pixel=macs_per_pixel,
+          datum_metadata=datum_metadata,
       )
       if self._wandb_run is not None:
         final_metrics = {

@@ -68,6 +68,8 @@ class Experiment(experiment.AbstractExperiment):
         num_frames=config.dataset.num_frames,
         spatial_patch_size=config.dataset.get('spatial_patch_size', None),
         video_idx=config.dataset.video_idx,
+        annotation_file=config.dataset.get('annotation_file', None),
+        subset_ids_file=config.dataset.get('subset_ids_file', None),
     )
 
   def get_opt(
