@@ -4,6 +4,8 @@ import unittest
 from types import SimpleNamespace
 
 from c3_neural_compression.configs import kodak
+from c3_neural_compression.configs import kodak_image_only_pilot
+from c3_neural_compression.configs import kodak_machine_only_pilot
 from c3_neural_compression.configs import kodak_machine_only_smoke
 from c3_neural_compression.configs import kodak_machine_pilot
 from c3_neural_compression.configs import kodak_machine_smoke
@@ -72,6 +74,21 @@ class MachineLossConfigTest(unittest.TestCase):
     self.assertTrue(config.checkpointing.enabled)
     self.assertEqual(config.checkpointing.save_every_steps, 50)
     self.assertTrue(config.tracking.enabled)
+
+  def test_comparison_pilots_share_schedule_but_isolate_objectives(self):
+    image = kodak_image_only_pilot.get_config().experiment_kwargs.config
+    machine = kodak_machine_only_pilot.get_config().experiment_kwargs.config
+    self.assertEqual(image.opt.num_noise_steps, machine.opt.num_noise_steps)
+    self.assertEqual(image.opt.max_num_ste_steps, machine.opt.max_num_ste_steps)
+    self.assertEqual((image.loss.image_weight, image.loss.machine_weight), (1, 0))
+    self.assertEqual(
+        (machine.loss.image_weight, machine.loss.machine_weight), (0, 0.1)
+    )
+    self.assertNotEqual(image.output_dir, machine.output_dir)
+    self.assertNotEqual(
+        image.checkpointing.directory, machine.checkpointing.directory
+    )
+    self.assertNotEqual(image.tracking.run_id, machine.tracking.run_id)
 
 
 if __name__ == "__main__":
