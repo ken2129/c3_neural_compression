@@ -21,10 +21,11 @@ RUN apt-get update \
     && apt-get install --yes --no-install-recommends \
         ca-certificates \
         ffmpeg \
+        git \
         nodejs \
         npm \
-        git \
         p7zip-full \
+        tmux \
         wget \
     && rm -rf /var/lib/apt/lists/* \
     && npm install --global "@openai/codex@${CODEX_VERSION}" \
@@ -35,7 +36,7 @@ RUN apt-get update \
 # c3_neural_compression package from its parent directory.
 WORKDIR /workspace/c3_neural_compression
 
-COPY requirements.txt ./
+COPY requirements.txt requirements-blackwell.txt ./
 # requirements.txt currently combines torch 2.7 with torchvision 0.17.
 # Install the matching CPU-only pair (torch is only a data loader here), then
 # install the remaining project pins unchanged.
@@ -48,6 +49,14 @@ RUN python -m pip install --upgrade pip setuptools wheel \
         torchvision==0.17.0 \
     && python -m pip install --requirement /tmp/requirements-without-torch.txt \
     && rm /tmp/requirements-without-torch.txt
+
+# Keep official pins reproducible while allowing Blackwell use.
+ARG C3_JAX_PROFILE=blackwell
+RUN if [ "${C3_JAX_PROFILE}" = "blackwell" ]; then \
+      python -m pip install --upgrade --requirement requirements-blackwell.txt; \
+    elif [ "${C3_JAX_PROFILE}" != "official" ]; then \
+      echo "C3_JAX_PROFILE must be 'official' or 'blackwell'"; exit 1; \
+    fi
 
 COPY . ./
 

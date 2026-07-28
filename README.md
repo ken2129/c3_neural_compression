@@ -155,6 +155,47 @@ subset can be supplied as a JSON list or newline-separated IDs with
 `--subset-ids`. Outputs are `predictions.json`, `metrics.json`, `config.json`,
 and optional overlays. The visualization threshold affects only overlays; COCO
 evaluation receives all candidates returned by the detector.
+### RTX 50-series / Blackwell smoke test
+
+The original JAX 0.4.24 environment is retained in `requirements.txt`. The
+Docker image installs the separately pinned `requirements-blackwell.txt` by
+default; build with `--build-arg C3_JAX_PROFILE=official` to retain only the
+original environment.
+
+From `/workspace`, run the short, non-benchmark Kodak pipeline check with:
+
+```shell
+CUDA_VISIBLE_DEVICES=0 python -m c3_neural_compression.experiments.image \
+  --config=c3_neural_compression/configs/kodak_smoke.py
+```
+
+It uses one image and writes its reconstruction, config, and metrics under
+`/workspace/outputs/c3_baseline_smoke`. The reported rates are entropy
+estimates for latents and quantized network parameters. This repository does
+not generate an arithmetic/range-coded bitstream, so these values are not
+actual file-size bpp measurements.
+
+After the smoke test succeeds, run the same image with the official optimization
+step counts using:
+
+```shell
+CUDA_VISIBLE_DEVICES=0 python -m c3_neural_compression.experiments.image \
+  --config=c3_neural_compression/configs/kodak_baseline.py
+```
+
+This writes to `/workspace/outputs/c3_baseline_official` and can take several
+hours on a single GPU.
+
+The official config logs live metrics to the `c3-neural-compression` W&B
+project and saves a resumable noise-optimization checkpoint every 5,000 steps.
+Authenticate without placing the API key in source control:
+
+```shell
+wandb login
+```
+
+Re-running the same command automatically resumes from the latest checkpoint
+under `/workspace/outputs/c3_baseline_official/checkpoints`.
 
 ## Citing this work
 
