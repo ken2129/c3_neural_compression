@@ -109,6 +109,52 @@ python3 -m c3_neural_compression.experiments.video --config=c3_neural_compressio
 
 Note that for the UVG experiment, the value of `exp.dataset.root_dir` must match the value of the `ROOT` variable used for `download_uvg.sh`.
 
+
+## COCO object detection evaluation
+
+For a GPU environment isolated from the C3/JAX dependencies, either build
+`Dockerfile.detector` or create a dedicated virtual environment:
+
+```shell
+python -m venv /workspace/.venv-detector
+/workspace/.venv-detector/bin/python -m pip install \
+  --index-url https://download.pytorch.org/whl/cu121 \
+  torch==2.2.0 torchvision==0.17.0
+/workspace/.venv-detector/bin/python -m pip install \
+  -r c3_neural_compression/requirements-detector.txt
+```
+
+The commands below should be run with `/workspace/.venv-detector/bin/python`
+when the host C3 environment contains CPU-only PyTorch.
+
+The independent evaluator in `evaluation/coco_detection.py` accepts original
+COCO validation images or reconstructed images with the same COCO `file_name`
+layout. It rejects missing files, duplicate image IDs/file mappings, and size
+mismatches before loading detector weights.
+
+```shell
+
+# Validation only: does not load weights or run inference.
+python -m c3_neural_compression.evaluation.coco_detection \
+  --image-root=/workspace/datasets/coco/val2017 \
+  --annotation-file=/workspace/datasets/coco/annotations/instances_val2017.json \
+  --output-dir=/workspace/outputs/detector_eval/original \
+  --validate-only
+
+# Actual evaluation (do not run until data, weights, pycocotools, and CUDA are ready).
+python -m c3_neural_compression.evaluation.coco_detection \
+  --image-root=/workspace/datasets/coco/val2017 \
+  --annotation-file=/workspace/datasets/coco/annotations/instances_val2017.json \
+  --output-dir=/workspace/outputs/detector_eval/original \
+  --device=cuda --batch-size=1 \
+  --visualization-limit=10 --visualization-score-threshold=0.5
+```
+
+For reconstructions, change only `--image-root` and `--output-dir`. A fixed
+subset can be supplied as a JSON list or newline-separated IDs with
+`--subset-ids`. Outputs are `predictions.json`, `metrics.json`, `config.json`,
+and optional overlays. The visualization threshold affects only overlays; COCO
+evaluation receives all candidates returned by the detector.
 ### RTX 50-series / Blackwell smoke test
 
 The original JAX 0.4.24 environment is retained in `requirements.txt`. The
@@ -152,6 +198,7 @@ Re-running the same command automatically resumes from the latest checkpoint
 under `/workspace/outputs/c3_baseline_official/checkpoints`.
 
 ## Citing this work
+
 If you use this code in your work, we ask you to please cite our work:
 
 ```latex
