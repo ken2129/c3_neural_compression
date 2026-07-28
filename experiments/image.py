@@ -412,6 +412,23 @@ class Experiment(base.Experiment):
     )
     return self._machine_loss(reconstruction)
 
+  def _objective_from_metrics(
+      self, metrics, num_pixels, model_rate=0.0, machine_distortion=None
+  ):
+    """Returns the configured rate/image/machine scalar objective."""
+    total_rate = metrics['rate'] + model_rate
+    if self.config.loss.machine_weight <= 0:
+      return metrics['distortion'] + self.config.loss.rd_weight * (
+          total_rate / num_pixels
+      )
+    if machine_distortion is None:
+      raise ValueError('machine_distortion is required when machine loss is on')
+    return (
+        self.config.loss.image_weight * metrics['distortion']
+        + self.config.loss.rd_weight * total_rate / num_pixels
+        + self.config.loss.machine_weight * machine_distortion
+    )
+
   # We use jit instead of pmap for simplicity, and assume that the experiment
   # runs on single-device (although the same code will also run on multi-device,
   # using only one of the devices). Note that jit gives faster runtime than pmap
@@ -606,7 +623,10 @@ class Experiment(base.Experiment):
           ),
           'detector_checksum_before': self._machine_detector_checksum_before,
           'detector_checksum_after': checksum_after,
-          'network_quantization_selection_uses_machine_loss': False,
+          'network_quantization_selection_uses_machine_loss': True,
+          'network_quantization_selection_objective': scalar_metrics[
+              'selection_objective'
+          ],
       }
     try:
       result['environment']['nvidia_smi'] = subprocess.run(
@@ -778,7 +798,18 @@ class Experiment(base.Experiment):
       assert 'ste' in quant_type
       best_params = params
       best_opt_state = opt_state
-      best_loss = self.eval(params, inputs)['loss']  # no randomness used
+      if self._machine_loss is None:
+        best_loss = self.eval(params, inputs)['loss']  # no randomness used
+      else:
+        initial_metrics = self.eval(params, inputs)
+        initial_machine_distortion = self._evaluate_machine_distortion(
+            params, inputs
+        )
+        best_loss = self._objective_from_metrics(
+            initial_metrics,
+            self._num_pixels(inputs.shape[:-1]),
+            machine_distortion=initial_machine_distortion,
+        )
       logging.info('Switched to STE!')
       logging.info('Best loss before STE: %.10e', best_loss)
       steps_not_improved = 0
@@ -922,7 +953,6 @@ class Experiment(base.Experiment):
         metrics = self.eval(quantized_params, inputs, blocked_rates=False)
         # Total rate corresponds to rate of entropy coded latents (first term)
         # and rate of synthesis and entropy model MLPs (second term)
-        total_rate = metrics['rate'] + model_rates['total']
         # Note that the loss here is slightly different from the one we use to
         # optimize the params. On top of the distortion and the rate of the
         # latents (which is what is included in the standard loss), we also
@@ -931,9 +961,16 @@ class Experiment(base.Experiment):
         # parameters of the networks during training). However, this is not how
         # it was implemented in COOL-CHIC, but might be an interesting direction
         # for future work.
-        loss = (
-            metrics['distortion']
-            + self.config.loss.rd_weight * total_rate / num_pixels
+        machine_distortion = None
+        if self._machine_loss is not None:
+          machine_distortion = self._evaluate_machine_distortion(
+              quantized_params, inputs
+          )
+        loss = self._objective_from_metrics(
+            metrics,
+            num_pixels,
+            model_rate=model_rates['total'],
+            machine_distortion=machine_distortion,
         )
         if loss < best_loss:
           best_loss = loss
@@ -943,13 +980,19 @@ class Experiment(base.Experiment):
           best_metrics = best_metrics | {
               'q_step_weight': q_step_weight,
               'q_step_bias': q_step_bias,
+              'selection_objective': loss,
           }
+          if machine_distortion is not None:
+            best_metrics = best_metrics | {
+                'machine_distortion': machine_distortion,
+            }
     if best_metrics is None:
       best_quantized_params = params
       best_metrics = {k: float('inf') for k in metrics | model_rates}
       best_metrics = best_metrics | {
           'q_step_weight': float('inf'),
           'q_step_bias': float('inf'),
+          'selection_objective': float('inf'),
       }
       logging.warn(
           'Optimization appears to be unstable. Check hyperparameters.'
@@ -1005,13 +1048,14 @@ class Experiment(base.Experiment):
       jax.block_until_ready(quantized_metrics)
       if self._machine_loss is not None:
         machine_distortion = self._evaluate_machine_distortion(params, inputs)
-        machine_distortion_quantized = self._evaluate_machine_distortion(
-            quantized_params, inputs
-        )
         metrics = metrics | {'machine_distortion': machine_distortion}
-        quantized_metrics = quantized_metrics | {
-            'machine_distortion': machine_distortion_quantized,
-        }
+        if 'machine_distortion' not in quantized_metrics:
+          machine_distortion_quantized = self._evaluate_machine_distortion(
+              quantized_params, inputs
+          )
+          quantized_metrics = quantized_metrics | {
+              'machine_distortion': machine_distortion_quantized,
+          }
       quantization_seconds = time.perf_counter() - quantization_start
       logging.info('Finished quantization step search.')
 

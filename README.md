@@ -206,9 +206,10 @@ CUDA_VISIBLE_DEVICES=0 /workspace/.venv-c3-phase3/bin/python \
 The configs write reconstructions and JSON metrics under
 `/workspace/outputs/c3_machine_smoke` and
 `/workspace/outputs/c3_machine_only_smoke`. The JSON records the final feature
-distortion, detector freeze/checksum checks, and objective weights. At this
-Gate A stage, network quantization candidates are still selected with the
-original image rate-distortion criterion; the JSON marks this explicitly.
+distortion, detector freeze/checksum checks, and objective weights. When
+machine loss is enabled, network quantization candidates are selected with the
+same configured rate/image/machine objective and the selected scalar objective
+is recorded in JSON.
 
 ### RTX 50-series / Blackwell smoke test
 
