@@ -155,6 +155,38 @@ subset can be supplied as a JSON list or newline-separated IDs with
 `--subset-ids`. Outputs are `predictions.json`, `metrics.json`, `config.json`,
 and optional overlays. The visualization threshold affects only overlays; COCO
 evaluation receives all candidates returned by the detector.
+
+## Phase 3 JAX/PyTorch gradient bridge
+
+Phase 3 keeps the validated JAX environment and installs Blackwell-capable
+PyTorch in an isolated environment. Build `Dockerfile.phase3`, or create the
+equivalent environment inside the existing container:
+
+```shell
+python -m venv --system-site-packages /workspace/.venv-c3-phase3
+/workspace/.venv-c3-phase3/bin/python -m pip install --upgrade \
+  --index-url https://download.pytorch.org/whl/cu128 \
+  torch==2.7.1 torchvision==0.22.1
+```
+
+Run the non-JIT Gate A bridge from `/workspace`. Detector weights persist
+under `/workspace/datasets/torch`, and metrics are written outside the image:
+
+```shell
+XLA_PYTHON_CLIENT_PREALLOCATE=false \
+TORCH_HOME=/workspace/datasets/torch \
+CUDA_VISIBLE_DEVICES=0 \
+/workspace/.venv-c3-phase3/bin/python \
+  -m c3_neural_compression.experiments.phase3_bridge \
+  --image=/workspace/datasets/kodak/kodim01.png \
+  --feature-layer=0 \
+  --output-dir=/workspace/outputs/c3_phase3_bridge
+```
+
+Gate A shares concrete tensors with DLPack and returns the PyTorch-computed
+image gradient through `jax.custom_vjp`. It intentionally rejects `jax.jit`;
+the JIT/external-call boundary is a separate Gate B decision.
+
 ### RTX 50-series / Blackwell smoke test
 
 The original JAX 0.4.24 environment is retained in `requirements.txt`. The
