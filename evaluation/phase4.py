@@ -23,7 +23,8 @@ def _read_json(path: Path):
     ) from error
 
 
-def prepare_c3_outputs(c3_output_root: Path, annotation_file: Path,
+def prepare_c3_outputs(c3_output_roots: Sequence[Path] | Path,
+                       annotation_file: Path,
                        subset_ids_file: Path, image_path_map_file: Path):
   """Discovers C3 outputs by image ID, validates them, and aggregates rate."""
   subset_ids = coco_detection.load_subset_ids(subset_ids_file)
@@ -36,29 +37,46 @@ def prepare_c3_outputs(c3_output_root: Path, annotation_file: Path,
         f'Subset IDs absent from annotations: {unknown}'
     )
   by_image_id = {}
-  for metrics_path in sorted(c3_output_root.glob('datum_*/metrics.json')):
-    metrics = _read_json(metrics_path)
-    metadata = metrics.get('datum_metadata', {})
-    image_id = metadata.get('image_id')
-    if not isinstance(image_id, int):
-      raise coco_detection.InputValidationError(
-          f'Missing integer image ID in {metrics_path}'
-      )
-    if image_id in by_image_id:
-      raise coco_detection.InputValidationError(
-          f'Duplicate C3 output for image ID {image_id}'
-      )
-    by_image_id[image_id] = (metrics_path.parent, metrics)
+  roots = ([c3_output_roots] if isinstance(c3_output_roots, Path)
+           else list(c3_output_roots))
+  if not roots:
+    raise coco_detection.InputValidationError('No C3 output roots supplied')
+  for root in roots:
+    for metrics_path in sorted(root.glob('datum_*/metrics.json')):
+      metrics = _read_json(metrics_path)
+      metadata = metrics.get('datum_metadata', {})
+      image_id = metadata.get('image_id')
+      if not isinstance(image_id, int):
+        raise coco_detection.InputValidationError(
+            f'Missing integer image ID in {metrics_path}'
+        )
+      if image_id in by_image_id:
+        raise coco_detection.InputValidationError(
+            f'Duplicate C3 output for image ID {image_id}'
+        )
+      by_image_id[image_id] = (metrics_path.parent, metrics)
   if missing := sorted(set(subset_ids) - set(by_image_id)):
     raise coco_detection.InputValidationError(
         f'Missing C3 outputs for image IDs: {missing}'
     )
   rows = []
   path_rows = []
+  expected_signature = None
   for image_id in subset_ids:
     datum_dir, metrics = by_image_id[image_id]
     metadata = metrics.get('datum_metadata', {})
     expected = images[image_id]
+    signature = metrics.get('experiment_signature')
+    if not isinstance(signature, dict) or not signature.get('sha256'):
+      raise coco_detection.InputValidationError(
+          f'Missing experiment signature for image ID {image_id}'
+      )
+    if expected_signature is None:
+      expected_signature = signature
+    elif signature != expected_signature:
+      raise coco_detection.InputValidationError(
+          f'Experiment signature mismatch for image ID {image_id}'
+      )
     if metadata.get('file_name') != expected['file_name']:
       raise coco_detection.InputValidationError(
           f'File name mismatch for image ID {image_id}'
@@ -125,6 +143,8 @@ def prepare_c3_outputs(c3_output_root: Path, annotation_file: Path,
   coco_detection.write_json(image_path_map_file, {'images': path_rows})
   return {
       'rate_definition': 'entropy_estimated',
+      'experiment_signature': expected_signature,
+      'c3_output_roots': [str(root.resolve()) for root in roots],
       'dataset_bpp_definition': 'sum(estimated_bits) / sum(pixels)',
       'image_count': len(rows),
       'total_pixels': total_pixels,
@@ -141,7 +161,10 @@ def prepare_c3_outputs(c3_output_root: Path, annotation_file: Path,
 
 def _parser():
   parser = argparse.ArgumentParser(description=__doc__)
-  parser.add_argument('--c3-output-root', type=Path, required=True)
+  parser.add_argument(
+      '--c3-output-root', type=Path, action='append', required=True,
+      help='Repeat for every chunk/retry output root to aggregate.',
+  )
   parser.add_argument('--annotation-file', type=Path, required=True)
   parser.add_argument('--subset-ids', type=Path, required=True)
   parser.add_argument('--image-path-map', type=Path, required=True)

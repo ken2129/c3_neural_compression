@@ -725,9 +725,44 @@ class Experiment(base.Experiment):
         scalar_metrics['rate'] + scalar_metrics['synthesis']
         + scalar_metrics['entropy']
     )
+    signature_fields = {
+        'rd_weight': self.config.loss.rd_weight,
+        'image_weight': self.config.loss.image_weight,
+        'machine_weight': self.config.loss.machine_weight,
+        'machine_feature_layers': list(self.config.loss.machine.feature_layers),
+        'machine_feature_layer_weights': list(
+            self.config.loss.machine.feature_layer_weights
+        ),
+        'num_noise_steps': self.config.opt.num_noise_steps,
+        'max_num_ste_steps': self.config.opt.max_num_ste_steps,
+        'optimization': self.config.opt.to_dict(),
+        'quantization': self.config.quant.to_dict(),
+        'model': self.config.model.to_dict(),
+        'random_seed': self.config.random_seed,
+        'seed_rule': self.config.seed_rule,
+        'detector': {
+            'architecture': 'fasterrcnn_resnet50_fpn',
+            'weights': 'FasterRCNN_ResNet50_FPN_Weights.COCO_V1',
+        },
+    }
+    try:
+      code_commit = subprocess.run(
+          ['git', 'rev-parse', 'HEAD'], check=True, capture_output=True,
+          text=True, cwd=os.path.dirname(os.path.dirname(__file__)),
+      ).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+      code_commit = None
+    signature_fields['code_commit'] = code_commit
+    signature_json = json.dumps(
+        signature_fields, sort_keys=True, separators=(',', ':')
+    )
     result = {
         'datum_index': datum_index,
         'datum_metadata': datum_metadata or {},
+        'experiment_signature': {
+            'sha256': hashlib.sha256(signature_json.encode('utf-8')).hexdigest(),
+            'fields': signature_fields,
+        },
         'input_shape': list(inputs.shape),
         'actual_bitstream_generated': False,
         'rate_note': (

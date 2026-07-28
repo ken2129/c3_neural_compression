@@ -38,6 +38,10 @@ class Phase4Test(unittest.TestCase):
     (directory / 'metrics.json').write_text(json.dumps({
         'datum_index': index,
         'datum_metadata': {'image_id': image_id, 'file_name': file_name},
+        'experiment_signature': {
+            'sha256': 'same-signature',
+            'fields': {'rd_weight': 0.001, 'output_dir_excluded': True},
+        },
         'estimated_bits': {
             'latents': total_bits / 2,
             'synthesis_network': total_bits / 4,
@@ -81,6 +85,44 @@ class Phase4Test(unittest.TestCase):
     self.assertEqual([row['image_id'] for row in result['images']], [9])
     mapping = json.loads(self.image_path_map.read_text(encoding='utf-8'))
     self.assertEqual(mapping['images'][0]['image_id'], 9)
+
+  def test_aggregates_multiple_chunk_roots_with_same_datum_index(self):
+    chunk_0 = self.root / 'chunk_0'
+    chunk_1 = self.root / 'chunk_1'
+    self.c3_root = chunk_0
+    self._write_datum(0, 7, '000000000007.jpg', (4, 3), 12.0)
+    self.c3_root = chunk_1
+    self._write_datum(0, 9, '000000000009.jpg', (2, 5), 20.0)
+    result = phase4.prepare_c3_outputs(
+        [chunk_0, chunk_1], self.annotation, self.subset,
+        self.image_path_map
+    )
+    self.assertEqual([row['image_id'] for row in result['images']], [7, 9])
+
+  def test_rejects_mixed_experiment_signatures(self):
+    path = self.c3_root / 'datum_00001' / 'metrics.json'
+    metrics = json.loads(path.read_text(encoding='utf-8'))
+    metrics['experiment_signature']['fields']['rd_weight'] = 0.01
+    metrics['experiment_signature']['sha256'] = 'different-signature'
+    path.write_text(json.dumps(metrics), encoding='utf-8')
+    with self.assertRaisesRegex(
+        coco_detection.InputValidationError, 'signature mismatch'
+    ):
+      phase4.prepare_c3_outputs(
+          self.c3_root, self.annotation, self.subset, self.image_path_map
+      )
+
+  def test_run_specific_output_paths_do_not_affect_signature(self):
+    first = self.c3_root / 'datum_00000' / 'metrics.json'
+    second = self.c3_root / 'datum_00001' / 'metrics.json'
+    for path, output_dir in ((first, '/output/chunk0'), (second, '/output/chunk1')):
+      metrics = json.loads(path.read_text(encoding='utf-8'))
+      metrics['run_specific_output_dir'] = output_dir
+      path.write_text(json.dumps(metrics), encoding='utf-8')
+    result = phase4.prepare_c3_outputs(
+        self.c3_root, self.annotation, self.subset, self.image_path_map
+    )
+    self.assertEqual(result['experiment_signature']['sha256'], 'same-signature')
 
   def _set_bits(self, **updates):
     path = self.c3_root / 'datum_00000' / 'metrics.json'
