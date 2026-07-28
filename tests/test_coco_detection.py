@@ -87,6 +87,8 @@ class CocoDetectionTest(unittest.TestCase):
   def test_metric_names_match_coco_stats_order(self):
     ground_truth = mock.Mock()
     ground_truth.loadRes.return_value = mock.Mock()
+    ground_truth.getImgIds.return_value = [7]
+    ground_truth.getAnnIds.return_value = [1, 2]
     evaluator = mock.Mock()
     evaluator.stats = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
     evaluator.params = mock.Mock()
@@ -98,15 +100,46 @@ class CocoDetectionTest(unittest.TestCase):
     }):
       metrics = coco_detection.evaluate_coco(
           self.annotation, [{"score": 0.1}], [7])
-    self.assertEqual(metrics, dict(zip(coco_detection.METRICS, evaluator.stats)))
+    self.assertEqual(
+        {name: metrics[name] for name in coco_detection.METRICS},
+        dict(zip(coco_detection.METRICS, evaluator.stats)),
+    )
+    self.assertFalse(metrics['empty_predictions'])
+    self.assertTrue(metrics['official_cocoeval_executed'])
+    self.assertEqual(metrics['ground_truth_annotation_count'], 2)
     self.assertEqual(evaluator.params.imgIds, [7])
     evaluator.evaluate.assert_called_once_with()
     evaluator.accumulate.assert_called_once_with()
     evaluator.summarize.assert_called_once_with()
 
   def test_empty_predictions_report_zero_ap(self):
-    metrics = coco_detection.evaluate_coco(self.annotation, [], [7])
-    self.assertEqual(metrics, {name: 0.0 for name in coco_detection.METRICS})
+    ground_truth = mock.Mock()
+    ground_truth.getImgIds.return_value = [7]
+    ground_truth.getAnnIds.return_value = [1, 2, 3]
+    coco_module = mock.Mock(COCO=mock.Mock(return_value=ground_truth))
+    with mock.patch.dict('sys.modules', {'pycocotools.coco': coco_module}):
+      metrics = coco_detection.evaluate_coco(self.annotation, [], [7])
+    self.assertEqual(
+        {name: metrics[name] for name in coco_detection.METRICS},
+        {name: 0.0 for name in coco_detection.METRICS},
+    )
+    self.assertTrue(metrics['empty_predictions'])
+    self.assertFalse(metrics['official_cocoeval_executed'])
+    self.assertEqual(metrics['ground_truth_annotation_count'], 3)
+
+  def test_empty_predictions_still_reject_missing_annotations(self):
+    with self.assertRaises(FileNotFoundError):
+      coco_detection.evaluate_coco(self.root / 'missing.json', [], [7])
+
+  def test_empty_predictions_reject_unknown_image_id(self):
+    ground_truth = mock.Mock()
+    ground_truth.getImgIds.return_value = [7]
+    coco_module = mock.Mock(COCO=mock.Mock(return_value=ground_truth))
+    with mock.patch.dict('sys.modules', {'pycocotools.coco': coco_module}):
+      with self.assertRaisesRegex(
+          coco_detection.InputValidationError, 'absent from COCO annotations'
+      ):
+        coco_detection.evaluate_coco(self.annotation, [], [9])
 
   def test_detector_config_records_preprocessing(self):
     model = mock.Mock(training=False)

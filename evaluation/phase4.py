@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 from pathlib import Path
 from typing import Sequence
@@ -27,6 +28,8 @@ def prepare_c3_outputs(c3_output_root: Path, annotation_file: Path,
                        subset_ids_file: Path, reconstruction_root: Path):
   """Validates per-datum artifacts, links PNGs by COCO name, aggregates rate."""
   subset_ids = coco_detection.load_subset_ids(subset_ids_file)
+  if not subset_ids:
+    raise coco_detection.InputValidationError('Subset manifest is empty')
   annotation = _read_json(annotation_file)
   images = {item['id']: item for item in annotation.get('images', [])}
   if unknown := sorted(set(subset_ids) - set(images)):
@@ -73,22 +76,42 @@ def prepare_c3_outputs(c3_output_root: Path, annotation_file: Path,
     temporary.unlink(missing_ok=True)
     temporary.symlink_to(reconstruction.resolve())
     os.replace(temporary, target)
-    bits = metrics.get('estimated_bits', {})
+    raw_bits = metrics.get('estimated_bits', {})
+    bit_keys = ('latents', 'synthesis_network', 'entropy_network', 'total')
+    try:
+      bits = {key: float(raw_bits[key]) for key in bit_keys}
+    except (KeyError, TypeError, ValueError) as error:
+      raise coco_detection.InputValidationError(
+          f'Invalid estimated_bits for image ID {image_id}: {raw_bits}'
+      ) from error
+    if not all(math.isfinite(value) for value in bits.values()):
+      raise coco_detection.InputValidationError(
+          f'Non-finite estimated_bits for image ID {image_id}: {bits}'
+      )
+    if not all(value >= 0 for value in bits.values()):
+      raise coco_detection.InputValidationError(
+          f'Negative estimated_bits for image ID {image_id}: {bits}'
+      )
+    component_total = (
+        bits['latents'] + bits['synthesis_network'] + bits['entropy_network']
+    )
+    if not math.isclose(bits['total'], component_total,
+                        rel_tol=1e-6, abs_tol=1e-3):
+      raise coco_detection.InputValidationError(
+          f'Rate breakdown mismatch for image ID {image_id}: total='
+          f'{bits["total"]}, components={component_total}'
+      )
     pixels = expected['width'] * expected['height']
     rows.append({
         'datum_index': datum_index,
         'image_id': image_id,
         'file_name': expected['file_name'],
         'pixels': pixels,
-        'estimated_bits': {
-            key: float(bits[key])
-            for key in ('latents', 'synthesis_network', 'entropy_network', 'total')
-        },
+        'estimated_bits': bits,
         'estimated_bpp': float(bits['total']) / pixels,
         'psnr': float(metrics['psnr_quantized']),
     })
   total_pixels = sum(row['pixels'] for row in rows)
-  bit_keys = ('latents', 'synthesis_network', 'entropy_network', 'total')
   total_bits = {
       key: sum(row['estimated_bits'][key] for row in rows) for key in bit_keys
   }

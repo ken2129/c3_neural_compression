@@ -71,6 +71,51 @@ class Phase4Test(unittest.TestCase):
           self.c3_root, self.annotation, self.subset, self.reconstructions
       )
 
+  def _set_bits(self, **updates):
+    path = self.c3_root / 'datum_00000' / 'metrics.json'
+    metrics = json.loads(path.read_text(encoding='utf-8'))
+    metrics['estimated_bits'].update(updates)
+    path.write_text(json.dumps(metrics), encoding='utf-8')
+
+  def test_rejects_nonfinite_rate(self):
+    for value in (float('nan'), float('inf')):
+      with self.subTest(value=value):
+        self._set_bits(total=value)
+        with self.assertRaisesRegex(
+            coco_detection.InputValidationError, 'Non-finite estimated_bits'
+        ):
+          phase4.prepare_c3_outputs(
+              self.c3_root, self.annotation, self.subset, self.reconstructions
+          )
+        self._set_bits(total=12.0)
+
+  def test_rejects_negative_rate(self):
+    self._set_bits(latents=-1.0)
+    with self.assertRaisesRegex(
+        coco_detection.InputValidationError, 'Negative estimated_bits'
+    ):
+      phase4.prepare_c3_outputs(
+          self.c3_root, self.annotation, self.subset, self.reconstructions
+      )
+
+  def test_rejects_rate_breakdown_mismatch(self):
+    self._set_bits(total=13.0)
+    with self.assertRaisesRegex(
+        coco_detection.InputValidationError, 'Rate breakdown mismatch'
+    ):
+      phase4.prepare_c3_outputs(
+          self.c3_root, self.annotation, self.subset, self.reconstructions
+      )
+
+  def test_rejects_empty_manifest(self):
+    self.subset.write_text('[]', encoding='utf-8')
+    with self.assertRaisesRegex(
+        coco_detection.InputValidationError, 'manifest is empty'
+    ):
+      phase4.prepare_c3_outputs(
+          self.c3_root, self.annotation, self.subset, self.reconstructions
+      )
+
 
 if __name__ == '__main__':
   unittest.main()
