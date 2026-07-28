@@ -74,8 +74,31 @@ def load_subset_ids(path: Path | None):
     raise InputValidationError(f"Duplicate image IDs in subset: {duplicates}")
   return image_ids
 
-def build_image_records(image_root: Path, annotation_file: Path,
-                        subset_ids: Sequence[int] | None = None):
+def load_image_path_map(path: Path | None):
+  """Loads an explicit COCO image-ID to image-path mapping."""
+  if path is None:
+    return None
+  value = _read_json(path)
+  rows = value.get('images') if isinstance(value, dict) else None
+  if not isinstance(rows, list):
+    raise InputValidationError('Image path map must contain an images list')
+  mapping = {}
+  for row in rows:
+    if not isinstance(row, dict) or not isinstance(row.get('image_id'), int):
+      raise InputValidationError('Every image path row needs an integer image_id')
+    image_id = row['image_id']
+    if image_id in mapping:
+      raise InputValidationError(f'Duplicate image ID in path map: {image_id}')
+    raw_path = row.get('path')
+    if not isinstance(raw_path, str) or not raw_path:
+      raise InputValidationError(f'Image ID {image_id} has invalid mapped path')
+    mapping[image_id] = Path(raw_path)
+  return mapping
+
+
+def build_image_records(image_root: Path | None, annotation_file: Path,
+                        subset_ids: Sequence[int] | None = None,
+                        image_paths: dict[int, Path] | None = None):
   """Checks IDs, paths, file uniqueness, readability, and exact dimensions."""
   annotation = _read_json(annotation_file)
   images = annotation.get("images") if isinstance(annotation, dict) else None
@@ -90,6 +113,13 @@ def build_image_records(image_root: Path, annotation_file: Path,
   selected = list(subset_ids) if subset_ids is not None else ids
   if unknown := sorted(set(selected) - set(by_id)):
     raise InputValidationError(f"Subset IDs absent from annotations: {unknown}")
+  if image_paths is not None:
+    if missing := sorted(set(selected) - set(image_paths)):
+      raise InputValidationError(f'Image IDs absent from path map: {missing}')
+    if extra := sorted(set(image_paths) - set(selected)):
+      raise InputValidationError(f'Unselected image IDs in path map: {extra}')
+  elif image_root is None:
+    raise InputValidationError('Either image_root or image path map is required')
   records, paths = [], {}
   for image_id in selected:
     item = by_id[image_id]
@@ -99,7 +129,11 @@ def build_image_records(image_root: Path, annotation_file: Path,
       raise InputValidationError(f"Image {image_id} has invalid file_name")
     if not isinstance(width, int) or not isinstance(height, int):
       raise InputValidationError(f"Image {image_id} has invalid dimensions")
-    path, resolved = image_root / file_name, (image_root / file_name).resolve()
+    path = (
+        image_paths[image_id]
+        if image_paths is not None else image_root / file_name
+    )
+    resolved = path.resolve()
     if resolved in paths:
       raise InputValidationError(
           f"Image IDs {paths[resolved]} and {image_id} map to one file: {path}")
@@ -278,7 +312,9 @@ def write_json(path, value):
 
 def _parser():
   parser = argparse.ArgumentParser(description=__doc__)
-  parser.add_argument("--image-root", type=Path, required=True)
+  source = parser.add_mutually_exclusive_group(required=True)
+  source.add_argument("--image-root", type=Path)
+  source.add_argument("--image-path-map", type=Path)
   parser.add_argument("--annotation-file", type=Path, required=True)
   parser.add_argument("--output-dir", type=Path, required=True)
   parser.add_argument("--subset-ids", type=Path)
@@ -302,7 +338,8 @@ def main(argv: Sequence[str] | None = None):
   if args.visualization_limit < 0:
     raise InputValidationError("--visualization-limit must be non-negative")
   records, annotation = build_image_records(
-      args.image_root, args.annotation_file, load_subset_ids(args.subset_ids))
+      args.image_root, args.annotation_file, load_subset_ids(args.subset_ids),
+      load_image_path_map(args.image_path_map))
   LOGGER.info("Validated %d images", len(records))
   if not records:
     raise InputValidationError("No images selected for evaluation")
@@ -331,7 +368,10 @@ def main(argv: Sequence[str] | None = None):
   config = {
       "created_at_utc": dt.datetime.now(dt.timezone.utc).isoformat(),
       "detector": detector_config(model, weights),
-      "image_root": str(args.image_root.resolve()),
+      "image_root": str(args.image_root.resolve()) if args.image_root else None,
+      "image_path_map": (
+          str(args.image_path_map.resolve()) if args.image_path_map else None
+      ),
       "annotation_file": str(args.annotation_file.resolve()),
       "subset_ids_file": str(args.subset_ids.resolve()) if args.subset_ids else None,
       "device": args.device, "batch_size": args.batch_size,

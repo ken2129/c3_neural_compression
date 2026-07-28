@@ -55,6 +55,21 @@ class CocoDetectionTest(unittest.TestCase):
     path.write_text("[7, 7]", encoding="utf-8")
     with self.assertRaisesRegex(coco_detection.InputValidationError, "Duplicate"):
       coco_detection.load_subset_ids(path)
+
+  def test_explicit_path_map_supports_png_paths(self):
+    png_path = self.root / 'reconstruction.png'
+    Image.new('RGB', (8, 6)).save(png_path)
+    records, _ = coco_detection.build_image_records(
+        None, self.annotation, [7], {7: png_path}
+    )
+    self.assertEqual(records[0].path, png_path)
+
+  def test_path_map_requires_exact_selected_ids(self):
+    with self.assertRaisesRegex(
+        coco_detection.InputValidationError, 'absent from path map'
+    ):
+      coco_detection.build_image_records(None, self.annotation, [7], {})
+
   def test_unthresholded_xywh_result(self):
     result = coco_detection.prediction_to_coco(7, {
         "boxes": FakeTensor([[1., 2., 5., 8.]]),

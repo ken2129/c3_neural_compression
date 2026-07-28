@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import json
 import math
-import os
 from pathlib import Path
 from typing import Sequence
 
@@ -25,8 +24,8 @@ def _read_json(path: Path):
 
 
 def prepare_c3_outputs(c3_output_root: Path, annotation_file: Path,
-                       subset_ids_file: Path, reconstruction_root: Path):
-  """Validates per-datum artifacts, links PNGs by COCO name, aggregates rate."""
+                       subset_ids_file: Path, image_path_map_file: Path):
+  """Discovers C3 outputs by image ID, validates them, and aggregates rate."""
   subset_ids = coco_detection.load_subset_ids(subset_ids_file)
   if not subset_ids:
     raise coco_detection.InputValidationError('Subset manifest is empty')
@@ -36,22 +35,30 @@ def prepare_c3_outputs(c3_output_root: Path, annotation_file: Path,
     raise coco_detection.InputValidationError(
         f'Subset IDs absent from annotations: {unknown}'
     )
-  reconstruction_root.mkdir(parents=True, exist_ok=True)
+  by_image_id = {}
+  for metrics_path in sorted(c3_output_root.glob('datum_*/metrics.json')):
+    metrics = _read_json(metrics_path)
+    metadata = metrics.get('datum_metadata', {})
+    image_id = metadata.get('image_id')
+    if not isinstance(image_id, int):
+      raise coco_detection.InputValidationError(
+          f'Missing integer image ID in {metrics_path}'
+      )
+    if image_id in by_image_id:
+      raise coco_detection.InputValidationError(
+          f'Duplicate C3 output for image ID {image_id}'
+      )
+    by_image_id[image_id] = (metrics_path.parent, metrics)
+  if missing := sorted(set(subset_ids) - set(by_image_id)):
+    raise coco_detection.InputValidationError(
+        f'Missing C3 outputs for image IDs: {missing}'
+    )
   rows = []
-  for datum_index, image_id in enumerate(subset_ids):
-    datum_dir = c3_output_root / f'datum_{datum_index:05d}'
-    metrics = _read_json(datum_dir / 'metrics.json')
+  path_rows = []
+  for image_id in subset_ids:
+    datum_dir, metrics = by_image_id[image_id]
     metadata = metrics.get('datum_metadata', {})
     expected = images[image_id]
-    if metrics.get('datum_index') != datum_index:
-      raise coco_detection.InputValidationError(
-          f'Datum index mismatch in {datum_dir}'
-      )
-    if metadata.get('image_id') != image_id:
-      raise coco_detection.InputValidationError(
-          f'Image ID mismatch in {datum_dir}: expected {image_id}, '
-          f'got {metadata.get("image_id")}'
-      )
     if metadata.get('file_name') != expected['file_name']:
       raise coco_detection.InputValidationError(
           f'File name mismatch for image ID {image_id}'
@@ -71,11 +78,10 @@ def prepare_c3_outputs(c3_output_root: Path, annotation_file: Path,
           f'Size mismatch for image ID {image_id}: expected={expected_size}, '
           f'actual={size}'
       )
-    target = reconstruction_root / expected['file_name']
-    temporary = target.with_suffix(target.suffix + '.tmp')
-    temporary.unlink(missing_ok=True)
-    temporary.symlink_to(reconstruction.resolve())
-    os.replace(temporary, target)
+    path_rows.append({
+        'image_id': image_id,
+        'path': str(reconstruction.resolve()),
+    })
     raw_bits = metrics.get('estimated_bits', {})
     bit_keys = ('latents', 'synthesis_network', 'entropy_network', 'total')
     try:
@@ -103,7 +109,7 @@ def prepare_c3_outputs(c3_output_root: Path, annotation_file: Path,
       )
     pixels = expected['width'] * expected['height']
     rows.append({
-        'datum_index': datum_index,
+        'datum_index': metrics.get('datum_index'),
         'image_id': image_id,
         'file_name': expected['file_name'],
         'pixels': pixels,
@@ -115,6 +121,8 @@ def prepare_c3_outputs(c3_output_root: Path, annotation_file: Path,
   total_bits = {
       key: sum(row['estimated_bits'][key] for row in rows) for key in bit_keys
   }
+  image_path_map_file.parent.mkdir(parents=True, exist_ok=True)
+  coco_detection.write_json(image_path_map_file, {'images': path_rows})
   return {
       'rate_definition': 'entropy_estimated',
       'dataset_bpp_definition': 'sum(estimated_bits) / sum(pixels)',
@@ -136,7 +144,7 @@ def _parser():
   parser.add_argument('--c3-output-root', type=Path, required=True)
   parser.add_argument('--annotation-file', type=Path, required=True)
   parser.add_argument('--subset-ids', type=Path, required=True)
-  parser.add_argument('--reconstruction-root', type=Path, required=True)
+  parser.add_argument('--image-path-map', type=Path, required=True)
   parser.add_argument('--summary-file', type=Path, required=True)
   return parser
 
@@ -145,7 +153,7 @@ def main(argv: Sequence[str] | None = None):
   args = _parser().parse_args(argv)
   summary = prepare_c3_outputs(
       args.c3_output_root, args.annotation_file, args.subset_ids,
-      args.reconstruction_root
+      args.image_path_map
   )
   args.summary_file.parent.mkdir(parents=True, exist_ok=True)
   coco_detection.write_json(args.summary_file, summary)
