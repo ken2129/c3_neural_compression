@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 from c3_neural_compression.configs import kodak
 from c3_neural_compression.configs import kodak_machine_only_smoke
+from c3_neural_compression.configs import kodak_machine_pilot
 from c3_neural_compression.configs import kodak_machine_smoke
 from c3_neural_compression.experiments import image
 
@@ -61,6 +62,16 @@ class MachineLossConfigTest(unittest.TestCase):
       experiment._objective_from_metrics(
           {'distortion': 2.0, 'rate': 4.0}, num_pixels=2
       )
+
+  def test_pilot_has_persistent_tracking_and_checkpoints(self):
+    config = kodak_machine_pilot.get_config().experiment_kwargs.config
+    self.assertEqual(config.opt.num_noise_steps, 500)
+    self.assertEqual(config.opt.max_num_ste_steps, 50)
+    self.assertEqual(config.loss.machine_weight, 0.1)
+    self.assertAlmostEqual(sum(config.loss.machine.feature_layer_weights), 1.0)
+    self.assertTrue(config.checkpointing.enabled)
+    self.assertEqual(config.checkpointing.save_every_steps, 50)
+    self.assertTrue(config.tracking.enabled)
 
 
 if __name__ == "__main__":

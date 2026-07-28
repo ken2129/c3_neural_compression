@@ -6,8 +6,9 @@ This module deliberately separates two concerns:
   input buffer shared through DLPack.
 * ``jax.custom_vjp`` supplies that image gradient to JAX autodiff.
 
-It does not make arbitrary PyTorch code JIT-compatible. Gate B must choose an
-explicit execution boundary before this is used in the C3 optimization loop.
+It does not make arbitrary PyTorch code JIT-compatible. The C3 Gate B path
+JITs its JAX base gradient and parameter VJP separately, with this concrete
+PyTorch image-gradient computation between those two compiled regions.
 """
 
 from __future__ import annotations
