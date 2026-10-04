@@ -53,7 +53,10 @@ def get_config() -> config_dict.ConfigDict:
   config.experiment_kwargs = config_dict.ConfigDict()
   exp = config.experiment_kwargs.config = config_dict.ConfigDict()
   exp.random_seed = config.random_seed
-  exp.seed_rule = 'fixed jaxline random_seed shared across objective conditions'
+  exp.seed_rule = (
+      'jaxline random_seed folded with COCO image_id; fallback datum_index; '
+      'shared across objective conditions'
+  )
   exp.dataset = config_dict.ConfigDict()
   exp.opt = config_dict.ConfigDict()
   exp.loss = config_dict.ConfigDict()

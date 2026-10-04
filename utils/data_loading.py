@@ -16,6 +16,8 @@
 """Utils for loading and processing datasets."""
 
 import os
+import hashlib
+import io
 import pathlib
 import shutil
 from typing import Any, Callable
@@ -94,12 +96,20 @@ class COCO2017Subset(data.Dataset):
 
   def __getitem__(self, index):
     record = self.records[index]
-    image = folder.default_loader(str(record.path))
+    # Hash the exact bytes decoded, not a second read that can change while
+    # optimization is running. This provenance is copied into datum metrics.
+    encoded = record.path.read_bytes()
+    original_file_sha256 = hashlib.sha256(encoded).hexdigest()
+    with Image.open(io.BytesIO(encoded)) as source:
+      if source.size != (record.width, record.height):
+        raise ValueError(f'COCO image changed dimensions: {record.image_id}')
+      image = source.convert('RGB')
     if self.transform is not None:
       image = self.transform(image)
     return {'array': image, 'image_id': record.image_id,
             'file_name': record.file_name, 'original_width': record.width,
-            'original_height': record.height}
+            'original_height': record.height,
+            'original_file_sha256': original_file_sha256}
 
 
 class Kodak(data.Dataset):

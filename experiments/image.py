@@ -43,6 +43,7 @@ import numpy as np
 import optax
 from PIL import Image
 
+from c3_neural_compression.evaluation import comparison_attempt
 from c3_neural_compression.experiments import base
 from c3_neural_compression.model import entropy_models
 from c3_neural_compression.utils import experiment as experiment_utils
@@ -66,6 +67,7 @@ class Experiment(base.Experiment):
     self._machine_detector_identifier = None
     self._current_input_signature = None
     self._current_datum_index = 0
+    self._comparison_attempt = None
 
   def _init_wandb(self, datum_index):
     """Starts an optional W&B run without storing credentials in config."""
@@ -96,6 +98,12 @@ class Experiment(base.Experiment):
     if self._wandb_run is not None:
       self._wandb_run.finish()
       self._wandb_run = None
+
+  @staticmethod
+  def _datum_rng(rng, datum_metadata, datum_index):
+    """Derives a chunk-order-independent RNG for one image."""
+    seed_key = datum_metadata.get('image_id', datum_index)
+    return jax.random.fold_in(rng, int(seed_key))
 
   def _objective_signature(self):
     """Returns checkpoint-critical objective settings."""
@@ -705,6 +713,10 @@ class Experiment(base.Experiment):
       macs_per_pixel, datum_metadata=None
   ):
     """Writes persistent baseline artifacts when output_dir is configured."""
+    attempt = getattr(self, '_comparison_attempt', None)
+    if (self.config.get('comparison_guard', {}).get('enabled', False)
+        and attempt is None):
+      raise ValueError('Comparison outputs require an active guarded attempt')
     if not self.config.output_dir:
       return
     output_dir = os.path.join(
@@ -809,6 +821,8 @@ class Experiment(base.Experiment):
             'cuda_visible_devices': os.environ.get('CUDA_VISIBLE_DEVICES'),
         },
     }
+    if attempt is not None:
+      result['attempt_id'] = attempt.attempt_id
     if 'machine_distortion' in scalar_metrics:
       from c3_neural_compression.machine_loss import faster_rcnn
 
@@ -882,6 +896,8 @@ class Experiment(base.Experiment):
         os.path.join(output_dir, 'config.json'), 'w', encoding='utf-8'
     ) as file:
       json.dump(self.config.to_dict(), file, indent=2, sort_keys=True)
+    if attempt is not None:
+      attempt.record_output(datum_index, (datum_metadata or {}).get('image_id'))
 
   def _log_train_metrics(self, i, metrics, delta_time, num_pixels,
                          **other_metrics):
@@ -1250,6 +1266,28 @@ class Experiment(base.Experiment):
   #
 
   def step(self, *, global_step, rng, writer):
+    """Runs an optional fresh-attempt preflight before entering any training."""
+    if not self.config.get('comparison_guard', {}).get('enabled', False):
+      return self._step_impl(global_step=global_step, rng=rng, writer=writer)
+    attempt = comparison_attempt.ComparisonAttempt.from_config(self.config)
+    self._comparison_attempt = attempt
+    try:
+      result = self._step_impl(global_step=global_step, rng=rng, writer=writer)
+      attempt.complete()
+      return result
+    except BaseException as error:
+      # This includes user interrupts. A hard process kill leaves "running",
+      # which is also ineligible for aggregation. Preserve the original error
+      # if disk failure prevents recording the failure ledger.
+      try:
+        attempt.fail(error)
+      except Exception:  # pylint: disable=broad-except
+        logging.exception('Could not persist failed comparison attempt status')
+      raise
+    finally:
+      self._comparison_attempt = None
+
+  def _step_impl(self, *, global_step, rng, writer):
     # rng has shape [num_devices, 2].
     # We only use single-device so just use the first device's rng.
     rng = rng[0]  # [2]
@@ -1280,7 +1318,8 @@ class Experiment(base.Experiment):
       datum_start = time.perf_counter()
       optimization_start = time.perf_counter()
       # Fit inputs of shape [H, W, C].
-      params = self.fit_datum(inputs, rng, datum_index=i)
+      datum_rng = self._datum_rng(rng, datum_metadata, i)
+      params = self.fit_datum(inputs, datum_rng, datum_index=i)
       jax.block_until_ready(params)
       optimization_seconds = time.perf_counter() - optimization_start
 

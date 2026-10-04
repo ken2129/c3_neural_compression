@@ -1,0 +1,10 @@
+{
+  "manifest": "/absolute/path/to/frozen_manifest.json",
+  "condition": "c3_image",
+  "device": "cuda",
+  "detector": {
+    "checkpoint": "/absolute/path/to/model_final_280758.pkl",
+    "sha256": "REPLACE_WITH_VERIFIED_64_CHARACTER_SHA256"
+  },
+  "c3_output_roots": ["/absolute/path/to/pilot_image_rd1e3"]
+}
