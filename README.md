@@ -39,6 +39,10 @@ C3 builds on top of [COOL-CHIC](https://arxiv.org/abs/2212.05458) with official
 
 The rate-distortion values and MACs per pixel for C3 and other compression baselines can be found in the files under the `baselines` directory.
 
+## Research records
+
+研究の計画・結果・考察・決定事項は [研究記録](docs/research/README.md) にまとめています。
+
 ## Setup
 
 We recommend installing this package into a Python virtual environment.
