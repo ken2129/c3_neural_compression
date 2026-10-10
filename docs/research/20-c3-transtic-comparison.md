@@ -22,7 +22,7 @@
 
 詳細は固定commitの[比較手順](https://github.com/ken2129/c3_neural_compression/blob/01d1fb3fde6d75f42ba7c6affe9014293be37710/docs/issue20_comparison.md)と[CPU検証記録](https://github.com/ken2129/c3_neural_compression/blob/01d1fb3fde6d75f42ba7c6affe9014293be37710/docs/issue20_validation.md)を参照。初期smokeと後の校正実行条件を区別する。
 
-## 結果（観測・確認範囲）
+## 結果（GitHub出典の履歴・確認範囲）
 
 ### 2026-10-09の引き継ぎ時点
 
@@ -42,6 +42,8 @@ combined λ=.003は中断、TransTIC det3/det4は未実施だった。移行先�
 したがって最小版だけでは、元artifactの完全validate・復元・再評価はできない。
 
 これは転送に関する記録であり、現在の実験プロセスの生存確認ではない。最新runの進捗と全10条件の集計結果は、実行側の記録で別途確認する。本Markdown作成では評価JSON本体の数値を再集計していない。
+
+現在の実行状態はこの履歴から推定しない。最新runの成果物を確認したうえで、次の結果記録を追記する。
 
 ## 解釈
 

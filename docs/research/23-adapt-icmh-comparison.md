@@ -19,15 +19,17 @@
 - 公開checkpointのhash、公式source commit、依存version、実行資源、時間測定範囲を記録する。
 - 時間比較の測定中はGPU実験を重ねない。異なる実行環境の時間を同一条件として混ぜない。
 
-## 結果（観測・未確認）
+## 結果（GitHub出典の履歴・確認範囲）
 
-[Issue #23](https://github.com/ken2129/c3_neural_compression/issues/23)の2026-10-10更新時点:
+[Issue #23](https://github.com/ken2129/c3_neural_compression/issues/23)の2026-10-10 16:38 JST更新時点の履歴:
 - 公開Detection重み4ファイルのasset存在は確認済み。
 - 以前のクラウド側の取得はtimeoutとなり、重み本体の取得、strict load、推論、共通評価成功は未確認。
 - 実施方針の記録は、環境構築・実験開始・完全validateの完了報告ではない。
 - このMarkdown追加で新しい実験や重み取得は行っていない。
 
 #20最小パッケージの制約も引き継ぐ。7条件の評価JSONの再利用と、元artifactの完全validateは区別する。後者に必要なartifactは最小版に含まれない。
+
+現在の実行状態はこの履歴から推定しない。最新runの成果物を確認したうえで、次の結果記録を追記する。
 
 ## 解釈
 

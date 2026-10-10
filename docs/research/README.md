@@ -8,8 +8,8 @@ Issue は過去の議論・作業依頼への参照として使い、今後の�
 
 ## 索引
 
-- [通常C3・combined・TransTICの比較](20-c3-transtic-comparison.md): 校正20画像。全10条件の集計は未確認
-- [Adapt-ICMHを加えた比較](23-adapt-icmh-comparison.md): 実施方針を決定。重みload・評価の成功は未確認
+- [通常C3・combined・TransTICの比較](20-c3-transtic-comparison.md): 固定条件・GitHub上の履歴・再利用時の検証規則
+- [Adapt-ICMHを加えた比較](23-adapt-icmh-comparison.md): 実施方針と評価gate。現在の実行状態は成果物で別途確認
 - [別の検出器への効果の転移](26-cross-detector-transfer.md): YOLOv8m・20画像×3レートの計画を具体化。実行未着手
 
 ## 記録の約束
