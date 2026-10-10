@@ -17,7 +17,7 @@
 - C3の特徴損失用torchvision Faster R-CNN R50-FPN COCO_V1と、#20/#23共通評価用Detectron2 R50-FPN 3xを区別する。この2つを同一checkpointとは扱わない。
 - DINO-SwinTは将来の候補に留め、今回の選択には含めない。
 
-- #20と同じ固定20画像、λ=.0003/.001/.003の3レートを使う。
+- #20と同じ固定20画像、C3のrate–distortion係数λ=.0003/.001/.003の3レート（特徴損失係数ではない）を使う。
 - 通常C3／combinedの各20画像×3レート、計120復元と元画像20枚を対象にする。同じλでも方式間のbppは一致するとは限らない。
 - YOLOv8mの公開COCO checkpoint `yolov8m.pt`を使い、評価中は固定する。
 - 主比較はA（特徴損失用torchvision Faster R-CNN R50-FPN COCO_V1）とB（YOLOv8m）。共通Detectron2評価器は既存比較の参照として区別する。
@@ -32,13 +32,14 @@
 
 ## 結果（未実施）
 
-- YOLOv8mの公開重みは候補として利用可能だが、今回の評価環境への取得・load・推論は未確認。
+- 選択したYOLOv8mの公開重みは存在するが、今回の評価環境への取得・load・推論は未確認。
 - cross-detector AP、改善量、転移率の実測結果はまだない。
 - #20の最小パッケージは評価JSON中心で、入力画像、C3最適化artifact/checkpoint、float32復元を含まない。[最新の回収範囲](https://github.com/ken2129/c3_neural_compression/issues/20#issuecomment-6095005535)を参照。
 - 既存の同一復元RGBの所在と完全性は未確認。元データ側に残っているかを調べ、必要な最小ファイルを特定する。再評価可能な画像を取得済みとは扱わない。
 
 ## 解釈・評価方法
 
+主指標は共通COCOevalによる集合全体のbox AP@[.50:.95]とする。bppはentropy-estimated bitsを用い、`sum(estimated bits) / sum(original H×W)`で集計する。actual bitstream bppと混ぜず、画像別AP・bppの単純平均を主指標にしない。
 各検出器の内部で、近いbppにおける「combined − 通常C3」のAP差、および元画像からのAP低下を比較する。
 検出器間のAP絶対値の差自体は転移の根拠にしない。
 画像ID、注釈、復元hash・精度、クラス対応、前処理、座標系、共通COCOevalを固定・記録する。
@@ -51,8 +52,10 @@ YOLOはimgsz=640、conf=.001、NMS iou=.7を出発点とし、固定versionで�
 
 1. 既存復元の所在・hash・画像集合・rateを確認し、評価用の固定入力を準備できるか判断する。
 2. 利用可能な復元、必要な追加回収、評価器設定と計算予算を整理して実行条件を確定する。
-3. 実験開始が承認されてから、同一入力を用いて検出器別のAP差を測る。
-4. 結果を見て、今回選んだYOLOv8mにも改善が残るかを判断する。
+3. A・Bのcheckpoint hash、ライブラリversion、各検出器固有の前処理・後処理を固定する。YOLOのnative前処理を確認し、Aへ同じresizeを無理に適用しない。
+4. 実験開始が承認されたら固定subsetの1画像・1レートで、元画像／通常C3／combinedをsmoke評価する。RGB値、hash、letterbox、元座標へのbbox逆変換、COCO category対応、予測JSONを検証する。
+5. smoke成功後に20画像・全3レートへ進み、同一入力による検出器別AP差を測る。空検出は除外せず、失敗や欠損で20画像が揃わなければ未完了とする。
+6. 結果を見て、今回選んだYOLOv8mにも改善が残るかを判断する。
 
 ## 出典・変更履歴
 
