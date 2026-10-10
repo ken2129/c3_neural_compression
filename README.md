@@ -39,6 +39,10 @@ C3 builds on top of [COOL-CHIC](https://arxiv.org/abs/2212.05458) with official
 
 The rate-distortion values and MACs per pixel for C3 and other compression baselines can be found in the files under the `baselines` directory.
 
+## Research and experiment policy
+
+研究・実験の準備、GPU実行の役割分担、安全境界、データ・成果物の保管は[全体方針](docs/experiment_policy.md)にまとめています。個別の作業はIssue／PRで管理し、その時点の経過は以下の研究日記に残します。
+
 ## Research diary
 
 研究の経過は、記録時点ごとに1本のMarkdownとして残します。構成は「目的／実施したこと／結果／考察／決定事項／未完了・次の作業」で揃え、次回は別の日時のファイルを追加し、過去の記録を残します。
