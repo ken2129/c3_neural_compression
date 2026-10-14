@@ -1,0 +1,90 @@
+{
+  "scope": "same20_calibration_rate_correction_not_heldout",
+  "input_protocol": "detector_input_v1",
+  "pairs": [
+    {
+      "target_bpp": 0.15,
+      "image_measured_bpp": 0.177081970330239,
+      "combined_measured_bpp": 0.14466573081889192,
+      "relative_rate_difference": 0.18305782034666915,
+      "rate_within_tolerance": false,
+      "both_targets_within_tolerance": false,
+      "combined_minus_image_AP_points": 6.435701273842824,
+      "interpretation": "measured comparison; no exact-rate or statistical superiority claim"
+    },
+    {
+      "target_bpp": 0.3,
+      "image_measured_bpp": 0.28747736467672064,
+      "combined_measured_bpp": 0.28587566073593174,
+      "relative_rate_difference": 0.005571582801275776,
+      "rate_within_tolerance": true,
+      "both_targets_within_tolerance": true,
+      "combined_minus_image_AP_points": 0.2960623844663317,
+      "interpretation": "measured comparison; no exact-rate or statistical superiority claim"
+    }
+  ],
+  "primary_rate_definition": "mean(total_estimated_bits / detector_resized_nonpadding_pixels)",
+  "no_AP_interpolation": true,
+  "no_paper_reproduction_claim": true,
+  "pipeline_validation": "Exact full manifest and evaluator metadata equality across four measured runs",
+  "all_rate_tolerances_passed": false,
+  "points": [
+    {
+      "name": "measure_image_150",
+      "method": "c3_image",
+      "lambda": 0.003615825613264322,
+      "target_bpp": 0.15,
+      "bpp": 0.177081970330239,
+      "box_AP_percent": 39.725801019009296,
+      "box_AP50_percent": 57.185994690853335,
+      "relative_target_error": 0.1805464688682601,
+      "target_within_tolerance": false,
+      "image_count": 20,
+      "reused_prior_condition": false
+    },
+    {
+      "name": "measure_image_300",
+      "method": "c3_image",
+      "lambda": 0.0012944519535388896,
+      "target_bpp": 0.3,
+      "bpp": 0.28747736467672064,
+      "box_AP_percent": 44.49607903912322,
+      "box_AP50_percent": 62.25007173526673,
+      "relative_target_error": 0.041742117744264506,
+      "target_within_tolerance": true,
+      "image_count": 20,
+      "reused_prior_condition": false
+    },
+    {
+      "name": "measure_combined_150",
+      "method": "c3_combined",
+      "lambda": 0.08204323269953812,
+      "target_bpp": 0.15,
+      "bpp": 0.14466573081889192,
+      "box_AP_percent": 46.16150229285212,
+      "box_AP50_percent": 65.68056518135307,
+      "relative_target_error": 0.035561794540720504,
+      "target_within_tolerance": true,
+      "image_count": 20,
+      "reused_prior_condition": false
+    },
+    {
+      "name": "measure_combined_300",
+      "method": "c3_combined",
+      "lambda": 0.030996315958971565,
+      "target_bpp": 0.3,
+      "bpp": 0.28587566073593174,
+      "box_AP_percent": 44.79214142358955,
+      "box_AP50_percent": 65.49274764981898,
+      "relative_target_error": 0.047081130880227515,
+      "target_within_tolerance": true,
+      "image_count": 20,
+      "reused_prior_condition": true
+    }
+  ],
+  "actual_pair_count": 2,
+  "AP_used_for_lambda_selection": false,
+  "new_encoded_observations": 60,
+  "reused_encoded_observations": 20,
+  "validation": "All corrected runs and seven distinct new/previous conditions share exact full manifest and evaluator metadata; rate recomputed from all per-image rows on CPU."
+}

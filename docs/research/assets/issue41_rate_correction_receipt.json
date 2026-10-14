@@ -1,0 +1,37 @@
+{
+  "status": "complete",
+  "fixed_commit": "0c3a60c703bd41956b6558d527470350bcc7dd5d",
+  "started_at_unix": 1791982306.32485,
+  "finished_at_unix": 1791988555.7793305,
+  "gpu_seconds_completed": 10550.096336340532,
+  "result_bytes": 8577997152,
+  "all_rate_tolerances_passed": false,
+  "peak_gpu_total_MiB_sampled": {
+    "0": 4180,
+    "1": 2409
+  },
+  "new_encoded_observations": 60,
+  "reused_encoded_observations": 20,
+  "validation": {
+    "corrected_conditions": 4,
+    "distinct_conditions_with_previous_round": 7,
+    "same_image_count": 20,
+    "exact_manifest_and_evaluator_equality_passed": true,
+    "rate_rows_recalculated_on_CPU": 140
+  },
+  "memory_measurement": "Total GPU memory sampled every5seconds; not a guaranteed absolute or per-process peak",
+  "detailed_evidence": "Detailed metadata, input IDs/hashes, model identifiers, predictions, configs and runtime wrappers are retained in the local experiment archive.",
+  "slack_last_http_status": 200,
+  "artifacts_sha256": {
+    "docs/research/2026-10-14_2335_JST.md": "033e0798a89c0a8483433800a6299bf3f8c0b596bd54c815dfaf53f0d3a5c81a",
+    "docs/research/assets/issue41_rate_correction_comparison.csv": "7a9c1fe8a3fcc1d39bffb1767aef5d2b3687ed1a6cc6aef14beb91a68048e506",
+    "docs/research/assets/issue41_rate_correction_comparison.json": "dd575590a4be6aae9cee8240eaf5db3089e6a6d07e433ee01beabb56a6ed5658",
+    "docs/research/assets/issue41_rate_correction_comparison.pdf": "a2e975d62a2759b1d39eac6dbd7774a51a24726e70ff21ce60daf883e8e545b6",
+    "docs/research/assets/issue41_rate_correction_comparison.png": "ba02e38ce73ee694be42d751af854c582b099d000b06378422324116107768c4",
+    "docs/research/assets/issue41_rate_correction_plan.json": "a9d3aefb1ad0be8dc4736415dcd9284a56c96d01c00277b1089265273063b7a1",
+    "docs/research/assets/issue41_seven_points.csv": "e5a859937543cf33570293cd4fe20ec96a236d5029834b4ffc38c64771481b98",
+    "docs/research/assets/issue41_seven_points.json": "6b6a46b02c365d1dea7b8ea27e6d95eca1667b11b411cb0db4d0e229cc6209c5",
+    "docs/research/assets/issue41_seven_points.pdf": "12c94921c7f8496f5494f0a73416034e2a75e41afdb49b3a533378999f284bce",
+    "docs/research/assets/issue41_seven_points.png": "e0d29500c6816f29f12191d0e37d715bca0c3bb9fb9499dce376b765135d7fd7"
+  }
+}
