@@ -1,0 +1,15 @@
+method,point,estimated_bpp,box_ap_percent,box_ap50_percent,old_environment,run_dir
+c3_image,0.003,0.40167326197295294,38.49477650552311,53.70647728514643,True,/workspace/c3_neural_compression/var/issue20_minimal_download_20261010/completed/c3_image_rd3e3
+c3_image,0.001,0.6849748306620326,44.41731494409875,65.49875365890811,True,/workspace/c3_neural_compression/var/issue20_minimal_download_20261010/completed/c3_image_rd1e3
+c3_image,0.0003,1.0316445728935955,46.52499703643754,66.67261854777574,True,/workspace/c3_neural_compression/var/issue20_minimal_download_20261010/completed/c3_image_rd3e4
+c3_combined,0.003,1.1175964101170877,44.88396324876917,67.8327011353998,False,/workspace/c3_neural_compression/var/issue20_resume_20261010_retry1/results/c3_combined_rd3e3_eval
+c3_combined,0.001,1.3262505737857284,45.03958413062775,66.25340055636208,True,/workspace/c3_neural_compression/var/issue20_minimal_download_20261010/completed/c3_combined_rd1e3
+c3_combined,0.0003,1.4002924398794447,43.64927634609656,60.95024048749374,True,/workspace/c3_neural_compression/var/issue20_minimal_download_20261010/completed/c3_combined_rd3e4
+transtic,1,0.3509439430065209,47.4208221187449,66.45969434507276,False,/workspace/c3_neural_compression/var/issue20_resume_20261010_retry1/results/transtic_det1_eval
+transtic,2,0.5124043891762846,48.28354720174762,71.58550628372127,False,/workspace/c3_neural_compression/var/issue20_resume_20261010_retry1/results/transtic_det2_eval
+transtic,3,0.6731327901511209,49.49483304280065,71.43132962720166,False,/workspace/c3_neural_compression/var/issue20_resume_20261010_retry1/results/transtic_det3_eval
+transtic,4,1.0312329636386084,50.382321565875685,69.4807433698805,False,/workspace/c3_neural_compression/var/issue20_resume_20261010_retry1/results/transtic_det4_eval
+adapt_icmh,1,0.30146944000611137,48.51396344207103,66.22240846168037,False,/workspace/c3_neural_compression/var/issue23_calibration20_20261010/results/adapt_icmh_level1_eval
+adapt_icmh,2,0.41396856189118286,50.01032537379394,72.98184748163237,False,/workspace/c3_neural_compression/var/issue23_calibration20_20261010/results/adapt_icmh_level2_eval
+adapt_icmh,3,0.614880642560504,50.01252594462658,71.01940046752374,False,/workspace/c3_neural_compression/var/issue23_calibration20_20261010/results/adapt_icmh_level3_eval
+adapt_icmh,4,0.8673561294706593,52.70273985539803,72.88575822500604,False,/workspace/c3_neural_compression/var/issue23_calibration20_20261010/results/adapt_icmh_level4_eval

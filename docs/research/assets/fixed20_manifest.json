@@ -1,0 +1,229 @@
+{
+  "schema_version": 1,
+  "image_ids": [
+    474039,
+    125778,
+    58539,
+    492968,
+    296284,
+    544565,
+    124636,
+    373315,
+    166259,
+    142324,
+    275198,
+    256868,
+    344029,
+    368684,
+    407943,
+    137246,
+    207585,
+    302107,
+    520301,
+    192716
+  ],
+  "annotation_file": "/workspace/c3_neural_compression/var/issue20_smoke1_20261004T131852Z_a08f5577/assets/annotations/instances_val2017.json",
+  "annotation_sha256": "e8c7f7908f1d7278341fae127d0da654f102f11bd7b21d8aeefa635b8c810b6f",
+  "images": [
+    {
+      "image_id": 474039,
+      "file_name": "000000474039.jpg",
+      "original_hw": [
+        401,
+        640
+      ],
+      "path": "/workspace/c3_neural_compression/var/issue20_calibration20_20261007T042622Z_9bb41c0f/assets/images/000000474039.jpg",
+      "sha256": "45d245d4918364641df0d198cc0e66452fe23dfaaccd972bc7a1b1e5d880e951"
+    },
+    {
+      "image_id": 125778,
+      "file_name": "000000125778.jpg",
+      "original_hw": [
+        480,
+        640
+      ],
+      "path": "/workspace/c3_neural_compression/var/issue20_calibration20_20261007T042622Z_9bb41c0f/assets/images/000000125778.jpg",
+      "sha256": "1b93c291b14ba4d8a559fcb08240d8d204e69f1b2e4c41ee41f13935646340dd"
+    },
+    {
+      "image_id": 58539,
+      "file_name": "000000058539.jpg",
+      "original_hw": [
+        421,
+        640
+      ],
+      "path": "/workspace/c3_neural_compression/var/issue20_calibration20_20261007T042622Z_9bb41c0f/assets/images/000000058539.jpg",
+      "sha256": "217377804c1aa61a53a209a38c5951b38de33d50d612a0ab299b3ff8912cde10"
+    },
+    {
+      "image_id": 492968,
+      "file_name": "000000492968.jpg",
+      "original_hw": [
+        425,
+        640
+      ],
+      "path": "/workspace/c3_neural_compression/var/issue20_calibration20_20261007T042622Z_9bb41c0f/assets/images/000000492968.jpg",
+      "sha256": "d42bab612d9126b59a8fca904c81ec3e48246c55360c871862859cae7a48d0de"
+    },
+    {
+      "image_id": 296284,
+      "file_name": "000000296284.jpg",
+      "original_hw": [
+        360,
+        270
+      ],
+      "path": "/workspace/c3_neural_compression/var/issue20_calibration20_20261007T042622Z_9bb41c0f/assets/images/000000296284.jpg",
+      "sha256": "4445fd3eecd1ef707592f04cbf45a429e3e2a9fd4586b02458bc30c03ef1be74"
+    },
+    {
+      "image_id": 544565,
+      "file_name": "000000544565.jpg",
+      "original_hw": [
+        640,
+        640
+      ],
+      "path": "/workspace/c3_neural_compression/var/issue20_calibration20_20261007T042622Z_9bb41c0f/assets/images/000000544565.jpg",
+      "sha256": "2ac6b4e9e1b53277db20fab701366dbfa6271d5f0749fade0c3b8cf115d085bf"
+    },
+    {
+      "image_id": 124636,
+      "file_name": "000000124636.jpg",
+      "original_hw": [
+        480,
+        640
+      ],
+      "path": "/workspace/c3_neural_compression/var/issue20_calibration20_20261007T042622Z_9bb41c0f/assets/images/000000124636.jpg",
+      "sha256": "55b77b7f71837b167505931989f68f88bd728ae64e2ff920de881b1cd288b44a"
+    },
+    {
+      "image_id": 373315,
+      "file_name": "000000373315.jpg",
+      "original_hw": [
+        640,
+        477
+      ],
+      "path": "/workspace/c3_neural_compression/var/issue20_calibration20_20261007T042622Z_9bb41c0f/assets/images/000000373315.jpg",
+      "sha256": "f4cca49cbd47c286906d3893035be665a551a4cd19ddaef61d20cc17cdd17a26"
+    },
+    {
+      "image_id": 166259,
+      "file_name": "000000166259.jpg",
+      "original_hw": [
+        427,
+        640
+      ],
+      "path": "/workspace/c3_neural_compression/var/issue20_calibration20_20261007T042622Z_9bb41c0f/assets/images/000000166259.jpg",
+      "sha256": "ae0cf5374adfa2c78f50e5fc58b51a18e8db2285f00912c2eca6a2af204857d1"
+    },
+    {
+      "image_id": 142324,
+      "file_name": "000000142324.jpg",
+      "original_hw": [
+        480,
+        640
+      ],
+      "path": "/workspace/c3_neural_compression/var/issue20_calibration20_20261007T042622Z_9bb41c0f/assets/images/000000142324.jpg",
+      "sha256": "6d28aca076f309360f392b53b4e9a85ec7ec3ee524cba7f8dac52e50d85dcc36"
+    },
+    {
+      "image_id": 275198,
+      "file_name": "000000275198.jpg",
+      "original_hw": [
+        480,
+        640
+      ],
+      "path": "/workspace/c3_neural_compression/var/issue20_calibration20_20261007T042622Z_9bb41c0f/assets/images/000000275198.jpg",
+      "sha256": "c34482da7ff6fc53d5e78dc433cc673ab601757761e07948f15450cc8214a483"
+    },
+    {
+      "image_id": 256868,
+      "file_name": "000000256868.jpg",
+      "original_hw": [
+        428,
+        640
+      ],
+      "path": "/workspace/c3_neural_compression/var/issue20_calibration20_20261007T042622Z_9bb41c0f/assets/images/000000256868.jpg",
+      "sha256": "ab716aabb5a40999712cd54718432222846c96c1d97729566e8c05ec4bff9e0b"
+    },
+    {
+      "image_id": 344029,
+      "file_name": "000000344029.jpg",
+      "original_hw": [
+        480,
+        640
+      ],
+      "path": "/workspace/c3_neural_compression/var/issue20_calibration20_20261007T042622Z_9bb41c0f/assets/images/000000344029.jpg",
+      "sha256": "2f0cd75fa54770e7af99879d114ca0e40980c041f1f9f36d09ebf6ea1e7317a2"
+    },
+    {
+      "image_id": 368684,
+      "file_name": "000000368684.jpg",
+      "original_hw": [
+        480,
+        640
+      ],
+      "path": "/workspace/c3_neural_compression/var/issue20_calibration20_20261007T042622Z_9bb41c0f/assets/images/000000368684.jpg",
+      "sha256": "2e8ea0f8f880adc4665ec9e310220bfbe26c45daffca122a8ebff434d63cb3ab"
+    },
+    {
+      "image_id": 407943,
+      "file_name": "000000407943.jpg",
+      "original_hw": [
+        427,
+        640
+      ],
+      "path": "/workspace/c3_neural_compression/var/issue20_calibration20_20261007T042622Z_9bb41c0f/assets/images/000000407943.jpg",
+      "sha256": "fd81b7cb10762771dd4e45ce75fa8fba56835ac9aa681930f5b4e23df8024696"
+    },
+    {
+      "image_id": 137246,
+      "file_name": "000000137246.jpg",
+      "original_hw": [
+        333,
+        500
+      ],
+      "path": "/workspace/c3_neural_compression/var/issue20_calibration20_20261007T042622Z_9bb41c0f/assets/images/000000137246.jpg",
+      "sha256": "05716a975c4fb2acbba9d4e45ae767c20a37cf9d8ea45fdf7f6ddbf85919403e"
+    },
+    {
+      "image_id": 207585,
+      "file_name": "000000207585.jpg",
+      "original_hw": [
+        480,
+        640
+      ],
+      "path": "/workspace/c3_neural_compression/var/issue20_calibration20_20261007T042622Z_9bb41c0f/assets/images/000000207585.jpg",
+      "sha256": "6530da6b150e680ff646bdf792199fdda377385c6554bad2d0efbcf9db9daeb1"
+    },
+    {
+      "image_id": 302107,
+      "file_name": "000000302107.jpg",
+      "original_hw": [
+        640,
+        427
+      ],
+      "path": "/workspace/c3_neural_compression/var/issue20_calibration20_20261007T042622Z_9bb41c0f/assets/images/000000302107.jpg",
+      "sha256": "70cd955351742b105e1870c5d71516f7a422e71b49117bded96faca225690a1b"
+    },
+    {
+      "image_id": 520301,
+      "file_name": "000000520301.jpg",
+      "original_hw": [
+        640,
+        480
+      ],
+      "path": "/workspace/c3_neural_compression/var/issue20_calibration20_20261007T042622Z_9bb41c0f/assets/images/000000520301.jpg",
+      "sha256": "e04e39ceb5c3266e7492b0f3b0762ebf8dd5e762f479525bfaea412a64b49152"
+    },
+    {
+      "image_id": 192716,
+      "file_name": "000000192716.jpg",
+      "original_hw": [
+        640,
+        518
+      ],
+      "path": "/workspace/c3_neural_compression/var/issue20_calibration20_20261007T042622Z_9bb41c0f/assets/images/000000192716.jpg",
+      "sha256": "9a3223f94d7aaf079d3831b10c07ee5a84f36071c55c633394dd5c93a67c9c07"
+    }
+  ]
+}
