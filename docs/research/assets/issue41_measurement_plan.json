@@ -1,0 +1,46 @@
+{
+  "scope": "fixed20 calibration only",
+  "selected": [
+    {
+      "objective": "image",
+      "target_bpp": 0.15,
+      "lambda": 0.0021374950350378733,
+      "selection": "bpp linear in log-lambda within measured bracket",
+      "AP_used": false
+    },
+    {
+      "objective": "image",
+      "target_bpp": 0.3,
+      "lambda": 0.00044354104522333906,
+      "selection": "bpp linear in log-lambda within measured bracket",
+      "AP_used": false
+    },
+    {
+      "objective": "combined",
+      "target_bpp": 0.15,
+      "lambda": 0.095949540990876,
+      "selection": "bpp linear in log-lambda within measured bracket",
+      "AP_used": false
+    },
+    {
+      "objective": "combined",
+      "target_bpp": 0.3,
+      "lambda": 0.030996315958971565,
+      "selection": "bpp linear in log-lambda within measured bracket",
+      "AP_used": false
+    }
+  ],
+  "max_codec_conditions": 4,
+  "images_per_condition": 20,
+  "total_encoded_observations": 80,
+  "estimated_gpu_seconds_from_single_image_maxima": 18526.672113202512,
+  "max_gpu_seconds": 27900,
+  "max_result_bytes": 17179869184,
+  "predicted_result_bytes": 13189583280,
+  "normal_wall_seconds_per_image_reference": 195.98545754514635,
+  "combined_wall_seconds_per_image_reference": 267.18134528491646,
+  "authorization": "User directed autonomous completion without repeated confirmations; limits fixed from measured costs, no step/seed/model/loss expansion",
+  "target_tolerance": 0.1,
+  "pair_tolerance": 0.1,
+  "new_trials_or_adjustments_after_measurement": false
+}
