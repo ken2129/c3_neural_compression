@@ -1,0 +1,39 @@
+{
+  "fixed_commit": "0c3a60c703bd41956b6558d527470350bcc7dd5d",
+  "new_codec_conditions": 3,
+  "new_encoded_observations": 60,
+  "images_per_condition": 20,
+  "max_gpu_seconds": 16200,
+  "max_result_bytes": 12884901888,
+  "target_tolerance": 0.1,
+  "pair_tolerance": 0.1,
+  "max_attempts_per_condition": 1,
+  "AP_used_for_selection": false,
+  "selected": [
+    {
+      "objective": "image",
+      "target_bpp": 0.15,
+      "lambda": 0.003615825613264322,
+      "selection": "rate-only log-lambda extrapolation from measured fixed20 means"
+    },
+    {
+      "objective": "image",
+      "target_bpp": 0.3,
+      "lambda": 0.0012944519535388896,
+      "selection": "rate-only log-lambda interpolation from measured fixed20 means"
+    },
+    {
+      "objective": "combined",
+      "target_bpp": 0.15,
+      "lambda": 0.08204323269953812,
+      "selection": "rate-only log-lambda interpolation from measured fixed20 means"
+    },
+    {
+      "objective": "combined",
+      "target_bpp": 0.3,
+      "lambda": 0.030996315958971565,
+      "selection": "reuse completed prior high-rate condition, target tolerance passed",
+      "reused": true
+    }
+  ]
+}
