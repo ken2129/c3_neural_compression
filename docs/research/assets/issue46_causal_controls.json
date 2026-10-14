@@ -994,6 +994,19 @@
     "Historical versus controlled gap residual cannot be interpreted as statistical variability; historical internal kernel state was not serialized.",
     "No single global optimizer optimum or universal detector/proxy mechanism is proven.",
     "ROI pixel substitutions are diagnostics, not codec points.",
-    "No independent image set, large benchmark or paper reproduction."
-  ]
+    "No independent image set, large benchmark or paper reproduction.",
+    "Original-library replay gate is not yet complete: prior controlled runner omitted a historical library-search prefix. Prior same-runner factorial/state contrasts remain conditional effects; do not assign historical residual solely to deterministic flags."
+  ],
+  "noise_LR_decay_probe": {
+    "scope": "single primary case, fresh current-library runner; original saved trajectory not exactly reproduced",
+    "control_decay_steps": 500,
+    "treatment_decay_steps": 1000,
+    "noise_steps": 500,
+    "same_original_jaxline_RNG_verified": true,
+    "control_AP": 70.0,
+    "treatment_AP": 65.18151815181518,
+    "control_objective": 0.025973284617066383,
+    "treatment_objective": 0.027551496401429176,
+    "interpretation": "early-decay rescue not supported in this control; original-library/order replay ongoing; no full20 cause claim"
+  }
 }
