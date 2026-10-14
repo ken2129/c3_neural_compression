@@ -50,6 +50,8 @@ The rate-distortion values and MACs per pixel for C3 and other compression basel
 - [2026-10-10 17:32 JST: 比較方針・YOLOv8m転移計画・記録形式の整理](docs/research/2026-10-10_1732_JST.md)
 - [2026-10-14 11:02 JST: 4方式校正・#35初期診断・#36同一bpp帯比較の結果](docs/research/2026-10-14_1102_JST.md)
 
+- [2026-10-14 11:53 JST: 4方式の図・数値追加とIssue終了状況](docs/research/2026-10-14_1153_JST.md)
+
 ## Setup
 
 We recommend installing this package into a Python virtual environment.

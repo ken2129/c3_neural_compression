@@ -1,0 +1,18 @@
+{
+  "detectron2_installed_code": {
+    "old": {
+      "python_source_sha256": "0d8a7a424adfd6be8dcacdc5177c45431af2095fadb0e1b96fae78d9890c2ac6",
+      "python_source_file_count": 215,
+      "python_source_hash_format": "sha256(sorted relative_posix_path + NUL + file_sha256_hex + LF)",
+      "compiled_extension_sha256": "385d9d2cb5545cc79dcc164290b0ea78c677759221dadc8ca4e0f247af76a20b",
+      "compiled_extension_size_bytes": 17755928
+    },
+    "new": {
+      "python_source_sha256": "0d8a7a424adfd6be8dcacdc5177c45431af2095fadb0e1b96fae78d9890c2ac6",
+      "python_source_file_count": 215,
+      "python_source_hash_format": "sha256(sorted relative_posix_path + NUL + file_sha256_hex + LF)",
+      "compiled_extension_sha256": "52a88f516cc6df4300ea8dbc43cdfc433154f92e0e07b9eb0b381f8280a88899",
+      "compiled_extension_size_bytes": 17755856
+    }
+  }
+}
