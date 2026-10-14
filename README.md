@@ -48,6 +48,7 @@ The rate-distortion values and MACs per pixel for C3 and other compression basel
 研究の経過は、記録時点ごとに1本のMarkdownとして残します。構成は「目的／実施したこと／結果／考察／決定事項／未完了・次の作業」で揃え、次回は別の日時のファイルを追加し、過去の記録を残します。
 
 - [2026-10-10 17:32 JST: 比較方針・YOLOv8m転移計画・記録形式の整理](docs/research/2026-10-10_1732_JST.md)
+- [2026-10-14 11:02 JST: 4方式校正・#35初期診断・#36同一bpp帯比較の結果](docs/research/2026-10-14_1102_JST.md)
 
 ## Setup
 
