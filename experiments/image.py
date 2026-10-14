@@ -123,6 +123,8 @@ class Experiment(base.Experiment):
         ),
         'noise_quant_type': str(self.config.quant.noise_quant_type),
     }
+    if self.config.dataset.get('input_protocol', 'original_rgb') != 'original_rgb':
+      signature['codec_input_protocol'] = self.config.dataset.input_protocol
     signature['input'] = getattr(self, '_current_input_signature', None)
     if self.config.loss.machine_weight > 0:
       import torchvision  # pylint: disable=g-import-not-at-top
@@ -765,6 +767,8 @@ class Experiment(base.Experiment):
     except (OSError, subprocess.SubprocessError):
       code_commit = None
     signature_fields['code_commit'] = code_commit
+    if self.config.dataset.get('input_protocol', 'original_rgb') != 'original_rgb':
+      signature_fields['codec_input_protocol'] = self.config.dataset.input_protocol
     signature_json = json.dumps(
         signature_fields, sort_keys=True, separators=(',', ':')
     )

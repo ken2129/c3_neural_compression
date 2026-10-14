@@ -29,7 +29,8 @@ def environment():
           'c3_tracked_diff_sha256': __import__('hashlib').sha256(git('diff', 'HEAD').encode()).hexdigest()}
 
 
-def run_images(manifest, condition, reconstruct, detector, output_dir, evaluate):
+def run_images(manifest, condition, reconstruct, detector, output_dir, evaluate,
+               input_protocol='original_rgb'):
   """Dependency-injected inference loop; tests use mocks, never label them AP.
 
   reconstruct(image_row) returns (CHW float RGB, rate/dimensions dict).
@@ -63,7 +64,8 @@ def run_images(manifest, condition, reconstruct, detector, output_dir, evaluate)
       common.write_json(output_dir / 'per_image.json', rows)
       common.write_json(output_dir / 'status.json', {'status': 'failed', 'image_id': image['image_id']})
       raise
-  summary = common.aggregate(manifest, rows, condition)
+  from c3_neural_compression.evaluation import detector_input_protocol as protocol
+  summary = protocol.rate_summary(manifest, rows, condition, input_protocol)
   # Pass ALL manifest IDs even when some images have no detections.
   metrics = evaluate(manifest['annotation_file'], predictions, manifest['image_ids'])
   common.write_json(output_dir / 'rate_summary.json', summary)
@@ -74,6 +76,8 @@ def run_images(manifest, condition, reconstruct, detector, output_dir, evaluate)
 
 def run(config, output_dir, validate_only=False):
   from c3_neural_compression.evaluation import shared_detector
+  from c3_neural_compression.evaluation import detector_input_protocol as protocol
+  input_protocol = protocol.validate_protocol(config.get('input_protocol', 'original_rgb'))
   manifest = common.read_json(config['manifest'])
   common.validate_assets(manifest)
   condition = config['condition']
@@ -87,8 +91,11 @@ def run(config, output_dir, validate_only=False):
     raise ValueError('Common detector SHA256 mismatch')
   c3, signature, codec = None, None, None
   if condition.startswith('c3_'):
-    c3, signature = common.discover_c3(manifest, config['c3_output_roots'], condition)
+    c3, signature = common.discover_c3(
+        manifest, config['c3_output_roots'], condition, input_protocol=input_protocol)
   else:
+    if input_protocol != protocol.ORIGINAL:
+      raise ValueError('C3 input protocol cannot be selected for TransTIC')
     tt = config['transtic']
     if common.sha256(tt['checkpoint']) != tt['sha256']:
       raise ValueError('TransTIC checkpoint SHA256 mismatch')
@@ -101,6 +108,8 @@ def run(config, output_dir, validate_only=False):
     raise ValueError('Use a new empty output directory for each run/attempt')
   common.write_json(output_dir / 'config.json', config)
   common.write_json(output_dir / 'manifest.json', manifest)
+  if input_protocol != protocol.ORIGINAL:
+    common.write_json(output_dir / 'protocol.json', protocol.config_metadata(config))
   common.write_json(output_dir / 'environment.json', environment())
   common.write_json(output_dir / 'status.json', {'status': 'initializing'})
   try:
@@ -119,15 +128,21 @@ def run(config, output_dir, validate_only=False):
       common.write_json(output_dir / 'c3_experiment_signature.json', signature)
       def reconstruct(image):
         item = c3[image['image_id']]
-        rgb = shared_detector.resize_original_rgb(item['path'])
-        return rgb, {'original_hw': image['original_hw'],
-                     'codec_hw': image['original_hw'],
+        if input_protocol == protocol.DETECTOR_INPUT:
+          rgb = protocol.load_reconstruction(item['path'], image['original_hw'])
+        else:
+          rgb = shared_detector.resize_original_rgb(item['path'])
+        row = {'original_hw': image['original_hw'],
+                     'codec_hw': list(rgb.shape[-2:]) if input_protocol == protocol.DETECTOR_INPUT else image['original_hw'],
                      'detector_hw': list(rgb.shape[-2:]),
                      'estimated_bits': item['metrics']['estimated_bits'],
                      'reconstruction_sha256': common.sha256(item['path']),
                      'c3_timing_seconds': item['metrics'].get('timing_seconds'),
                      'reconstruction_precision': 'native C3 rounded/clipped uint8 PNG'}
-    return run_images(manifest, condition, reconstruct, detector, output_dir, shared_detector.evaluate_coco)
+        if input_protocol != protocol.ORIGINAL:
+          row['codec_input_protocol'] = input_protocol
+        return rgb, row
+    return run_images(manifest, condition, reconstruct, detector, output_dir, shared_detector.evaluate_coco, input_protocol=input_protocol)
   except Exception as error:
     common.write_json(output_dir / 'status.json', {'status': 'failed', 'error': f'{type(error).__name__}: {error}'})
     raise

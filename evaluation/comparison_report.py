@@ -8,6 +8,7 @@ from c3_neural_compression.evaluation import comparison as common
 def collect(run_dirs):
   rows, reference_manifest, reference_detector = [], None, None
   seen = set()
+  reference_rate_definition = None
   for directory in map(Path, run_dirs):
     if directory.resolve() in seen:
       raise ValueError('Duplicate run directory')
@@ -21,7 +22,14 @@ def collect(run_dirs):
     elif manifest != reference_manifest or detector != reference_detector:
       raise ValueError('Runs must use identical manifest and detector metadata')
     config = common.read_json(directory / 'config.json')
-    summary = common.aggregate(manifest, common.read_json(directory / 'per_image.json'), config['condition'])
+    from c3_neural_compression.evaluation import detector_input_protocol as protocol
+    summary = protocol.rate_summary(manifest, common.read_json(directory / 'per_image.json'),
+                                    config['condition'], config.get('input_protocol', 'original_rgb'))
+    rate_definition = summary['dataset_bpp_definition']
+    if reference_rate_definition is None:
+      reference_rate_definition = rate_definition
+    elif rate_definition != reference_rate_definition:
+      raise ValueError('Runs must use identical primary rate definitions')
     saved = common.read_json(directory / 'rate_summary.json')
     if summary != saved:
       raise ValueError(f'Stale rate summary: {directory}')
