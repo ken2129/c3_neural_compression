@@ -1,0 +1,999 @@
+{
+  "issue": 46,
+  "code_commit": "0c3a60c703bd41956b6558d527470350bcc7dd5d",
+  "scope": "same fixed20 exploratory images; causal conditional contrasts, not independent performance evaluation",
+  "original_seven_points": [
+    {
+      "method": "c3_combined",
+      "lambda": 0.095949540990876,
+      "bpp": 0.12814324773529776,
+      "box_AP_percent": 44.24012610456409,
+      "box_AP50_percent": 62.62727459142828,
+      "image_count": 20,
+      "measurement_round": "initial80",
+      "interpretation": "same fixed20 exploratory measurement; not an independent or matched-rate test"
+    },
+    {
+      "method": "c3_combined",
+      "lambda": 0.08204323269953812,
+      "bpp": 0.14466573081889192,
+      "box_AP_percent": 46.16150229285212,
+      "box_AP50_percent": 65.68056518135307,
+      "image_count": 20,
+      "measurement_round": "rate_correction",
+      "interpretation": "same fixed20 exploratory measurement; not an independent or matched-rate test"
+    },
+    {
+      "method": "c3_combined",
+      "lambda": 0.030996315958971565,
+      "bpp": 0.28587566073593174,
+      "box_AP_percent": 44.79214142358955,
+      "box_AP50_percent": 65.49274764981898,
+      "image_count": 20,
+      "measurement_round": "initial80",
+      "interpretation": "same fixed20 exploratory measurement; not an independent or matched-rate test"
+    },
+    {
+      "method": "c3_image",
+      "lambda": 0.003615825613264322,
+      "bpp": 0.177081970330239,
+      "box_AP_percent": 39.725801019009296,
+      "box_AP50_percent": 57.185994690853335,
+      "image_count": 20,
+      "measurement_round": "rate_correction",
+      "interpretation": "same fixed20 exploratory measurement; not an independent or matched-rate test"
+    },
+    {
+      "method": "c3_image",
+      "lambda": 0.0021374950350378733,
+      "bpp": 0.22676238679422184,
+      "box_AP_percent": 41.473343274014915,
+      "box_AP50_percent": 59.667106505170274,
+      "image_count": 20,
+      "measurement_round": "initial80",
+      "interpretation": "same fixed20 exploratory measurement; not an independent or matched-rate test"
+    },
+    {
+      "method": "c3_image",
+      "lambda": 0.0012944519535388896,
+      "bpp": 0.28747736467672064,
+      "box_AP_percent": 44.49607903912322,
+      "box_AP50_percent": 62.25007173526673,
+      "image_count": 20,
+      "measurement_round": "rate_correction",
+      "interpretation": "same fixed20 exploratory measurement; not an independent or matched-rate test"
+    },
+    {
+      "method": "c3_image",
+      "lambda": 0.00044354104522333906,
+      "bpp": 0.45639867491883246,
+      "box_AP_percent": 46.018509541750355,
+      "box_AP50_percent": 66.73148177241451,
+      "image_count": 20,
+      "measurement_round": "initial80",
+      "interpretation": "same fixed20 exploratory measurement; not an independent or matched-rate test"
+    }
+  ],
+  "controlled_and_state_treatments": [
+    {
+      "arm": "low_control",
+      "image_count": 20,
+      "lambda": 0.095949540990876,
+      "bpp": 0.12807916709825695,
+      "MSE": 0.0056876375747378916,
+      "feature": 0.1639351762831211,
+      "objective": 0.03437029263004661,
+      "box_ap": 44.49377471384635,
+      "box_ap50": 62.76272893017296,
+      "box_ap75": 47.533270689862654,
+      "box_ap_small": 16.917462628615805,
+      "box_ap_medium": 47.55893771867141,
+      "box_ap_large": 74.25093477127031
+    },
+    {
+      "arm": "middle_control",
+      "image_count": 20,
+      "lambda": 0.08204323269953812,
+      "bpp": 0.14466645292542232,
+      "MSE": 0.005450877267867327,
+      "feature": 0.15661680996417998,
+      "objective": 0.032981461472809316,
+      "box_ap": 46.16613237890482,
+      "box_ap50": 65.69662084097308,
+      "box_ap75": 47.41730262056412,
+      "box_ap_small": 18.54455560940709,
+      "box_ap_medium": 51.147085114204316,
+      "box_ap_large": 74.77610316609308
+    },
+    {
+      "arm": "high_control",
+      "image_count": 20,
+      "lambda": 0.030996315958971565,
+      "bpp": 0.28587593212810536,
+      "MSE": 0.004857019963674247,
+      "feature": 0.1309508875012398,
+      "objective": 0.026813209522515535,
+      "box_ap": 45.03959971530715,
+      "box_ap50": 65.59692189669931,
+      "box_ap75": 50.05160379996154,
+      "box_ap_small": 19.95647111551814,
+      "box_ap_medium": 45.89023884648804,
+      "box_ap_large": 74.93397122570845
+    },
+    {
+      "arm": "middle_params_and_optimizer_high_lambda",
+      "image_count": 20,
+      "lambda": 0.030996315958971565,
+      "bpp": 0.1462397717491169,
+      "MSE": 0.005435415962710977,
+      "feature": 0.156166660040617,
+      "objective": 0.025584976747632028,
+      "box_ap": 46.09097733850096,
+      "box_ap50": 65.61698585931653,
+      "box_ap75": 47.207620588282396,
+      "box_ap_small": 17.743860636063605,
+      "box_ap_medium": 51.45437685435331,
+      "box_ap_large": 75.1878080041593
+    },
+    {
+      "arm": "middle_params_only_high_lambda",
+      "image_count": 20,
+      "lambda": 0.030996315958971565,
+      "bpp": 0.14561114009936688,
+      "MSE": 0.005437561043072492,
+      "feature": 0.15634596049785615,
+      "objective": 0.025585565902292728,
+      "box_ap": 46.02319994810871,
+      "box_ap50": 65.48014002383378,
+      "box_ap75": 47.17696250398639,
+      "box_ap_small": 17.441107283805305,
+      "box_ap_medium": 50.19172481623736,
+      "box_ap_large": 75.29453659651679
+    }
+  ],
+  "state_treatment_paired_counts": {
+    "middle_params_and_optimizer_high_lambda": {
+      "bpp_decreased_count": 20,
+      "MSE_decreased_count": 1,
+      "feature_decreased_count": 0,
+      "objective_decreased_count": 16
+    },
+    "middle_params_only_high_lambda": {
+      "bpp_decreased_count": 20,
+      "MSE_decreased_count": 1,
+      "feature_decreased_count": 0,
+      "objective_decreased_count": 16
+    }
+  },
+  "true_decoder_network_PNG_factorial": [
+    {
+      "condition": "middle",
+      "network": "pre_network",
+      "precision": "decoder_float",
+      "AP": 45.79808885408518,
+      "AP50": 65.0057407388492,
+      "AP75": 46.70870930581044
+    },
+    {
+      "condition": "middle",
+      "network": "pre_network",
+      "precision": "raw_JAX_rounded",
+      "AP": 45.907772703631096,
+      "AP50": 65.13833266605658,
+      "AP75": 47.20378019156169
+    },
+    {
+      "condition": "middle",
+      "network": "pre_network",
+      "precision": "raw_PNG_CPU",
+      "AP": 45.965305483936156,
+      "AP50": 65.13833266605658,
+      "AP75": 47.20378019156169
+    },
+    {
+      "condition": "middle",
+      "network": "pre_network",
+      "precision": "original_JAX_rounded",
+      "AP": 45.965305483936156,
+      "AP50": 65.13833266605658,
+      "AP75": 47.20378019156169
+    },
+    {
+      "condition": "middle",
+      "network": "post_network",
+      "precision": "decoder_float",
+      "AP": 45.649646063046525,
+      "AP50": 65.29153682018266,
+      "AP75": 46.556435190991465
+    },
+    {
+      "condition": "middle",
+      "network": "post_network",
+      "precision": "raw_JAX_rounded",
+      "AP": 46.166090725286246,
+      "AP50": 65.69729403424856,
+      "AP75": 47.41715425143232
+    },
+    {
+      "condition": "middle",
+      "network": "post_network",
+      "precision": "raw_PNG_CPU",
+      "AP": 46.16613237890482,
+      "AP50": 65.69662084097308,
+      "AP75": 47.41730262056412
+    },
+    {
+      "condition": "middle",
+      "network": "post_network",
+      "precision": "original_JAX_rounded",
+      "AP": 46.060581283254706,
+      "AP50": 65.42159333822282,
+      "AP75": 47.43960214781415
+    },
+    {
+      "condition": "high",
+      "network": "pre_network",
+      "precision": "decoder_float",
+      "AP": 44.7929508122616,
+      "AP50": 65.4937031577787,
+      "AP75": 48.86966167277766
+    },
+    {
+      "condition": "high",
+      "network": "pre_network",
+      "precision": "raw_JAX_rounded",
+      "AP": 45.387059835458906,
+      "AP50": 65.51767711834799,
+      "AP75": 49.13432243965442
+    },
+    {
+      "condition": "high",
+      "network": "pre_network",
+      "precision": "raw_PNG_CPU",
+      "AP": 45.38657052282784,
+      "AP50": 65.52132613189798,
+      "AP75": 49.13176647044915
+    },
+    {
+      "condition": "high",
+      "network": "pre_network",
+      "precision": "original_JAX_rounded",
+      "AP": 45.38657052282784,
+      "AP50": 65.52132613189798,
+      "AP75": 49.13176647044915
+    },
+    {
+      "condition": "high",
+      "network": "post_network",
+      "precision": "decoder_float",
+      "AP": 44.79462414666766,
+      "AP50": 65.52008563052544,
+      "AP75": 48.999302471570886
+    },
+    {
+      "condition": "high",
+      "network": "post_network",
+      "precision": "raw_JAX_rounded",
+      "AP": 45.03783965653434,
+      "AP50": 65.59109928914705,
+      "AP75": 50.05160379996154
+    },
+    {
+      "condition": "high",
+      "network": "post_network",
+      "precision": "raw_PNG_CPU",
+      "AP": 45.03959971530715,
+      "AP50": 65.59692189669931,
+      "AP75": 50.05160379996154
+    },
+    {
+      "condition": "high",
+      "network": "post_network",
+      "precision": "original_JAX_rounded",
+      "AP": 45.036601787952044,
+      "AP50": 65.5909117567346,
+      "AP75": 50.049047830756265
+    }
+  ],
+  "category_factorial": {
+    "summary": {
+      "decoder_generation_contribution_points": -1.0051380418235865,
+      "network_given_decoder_float_points": 0.15011612544471428,
+      "PNG_given_unquantized_network_points": 0.4264030807152789,
+      "network_PNG_interaction_points": -0.6979138279340766,
+      "PNG_after_network_points": -0.27151074721879787,
+      "final_contribution_points": -1.1265326635976702,
+      "categories_with_GT": 37,
+      "interpretation": "signed COCO macro-category contribution; true decoder float and actual PNG causal factorial; interaction prohibits unique additive attribution"
+    },
+    "rows": [
+      {
+        "category": "baseball bat",
+        "decoder_generation_contribution_points": -1.1936936936936935,
+        "network_given_decoder_float_points": 0.0,
+        "PNG_given_unquantized_network_points": 0.0,
+        "network_PNG_interaction_points": 0.472972972972973,
+        "PNG_after_network_points": 0.4729729729729729,
+        "final_contribution_points": -0.7207207207207206
+      },
+      {
+        "category": "baseball glove",
+        "decoder_generation_contribution_points": -0.8108108108108109,
+        "network_given_decoder_float_points": 0.0,
+        "PNG_given_unquantized_network_points": 0.0,
+        "network_PNG_interaction_points": 0.0,
+        "PNG_after_network_points": 0.0,
+        "final_contribution_points": -0.8108108108108109
+      },
+      {
+        "category": "bed",
+        "decoder_generation_contribution_points": 0.0,
+        "network_given_decoder_float_points": 0.0,
+        "PNG_given_unquantized_network_points": 0.0,
+        "network_PNG_interaction_points": 0.0,
+        "PNG_after_network_points": 0.0,
+        "final_contribution_points": 0.0
+      },
+      {
+        "category": "bench",
+        "decoder_generation_contribution_points": -0.06832494427136244,
+        "network_given_decoder_float_points": 0.02455982807268712,
+        "PNG_given_unquantized_network_points": -0.0030470577937089377,
+        "network_PNG_interaction_points": -0.019015879819607277,
+        "PNG_after_network_points": -0.022062937613316215,
+        "final_contribution_points": -0.06582805381199154
+      },
+      {
+        "category": "bicycle",
+        "decoder_generation_contribution_points": -0.2729462135402729,
+        "network_given_decoder_float_points": 0.2729462135402729,
+        "PNG_given_unquantized_network_points": 0.2729462135402729,
+        "network_PNG_interaction_points": -0.5458924270805458,
+        "PNG_after_network_points": -0.2729462135402729,
+        "final_contribution_points": -0.2729462135402729
+      },
+      {
+        "category": "bird",
+        "decoder_generation_contribution_points": 0.014866351500014955,
+        "network_given_decoder_float_points": -0.22299527250022277,
+        "PNG_given_unquantized_network_points": -0.029732703000029524,
+        "network_PNG_interaction_points": 0.05203223025005157,
+        "PNG_after_network_points": 0.022299527250022044,
+        "final_contribution_points": -0.18582939375018578
+      },
+      {
+        "category": "book",
+        "decoder_generation_contribution_points": 0.011372758897511374,
+        "network_given_decoder_float_points": 0.0,
+        "PNG_given_unquantized_network_points": 0.0,
+        "network_PNG_interaction_points": 0.0,
+        "PNG_after_network_points": 0.0,
+        "final_contribution_points": 0.011372758897511374
+      },
+      {
+        "category": "bottle",
+        "decoder_generation_contribution_points": 0.2174497966577174,
+        "network_given_decoder_float_points": -0.09061716982509044,
+        "PNG_given_unquantized_network_points": -0.026394531345026256,
+        "network_PNG_interaction_points": 0.018731602890018517,
+        "PNG_after_network_points": -0.007662928455007753,
+        "final_contribution_points": 0.11916969837761922
+      },
+      {
+        "category": "bowl",
+        "decoder_generation_contribution_points": 0.11021684289010995,
+        "network_given_decoder_float_points": -0.008233671600008263,
+        "PNG_given_unquantized_network_points": -0.021748536600021656,
+        "network_PNG_interaction_points": 0.008233671600008263,
+        "PNG_after_network_points": -0.013514865000013393,
+        "final_contribution_points": 0.0884683062900883
+      },
+      {
+        "category": "bus",
+        "decoder_generation_contribution_points": 0.0,
+        "network_given_decoder_float_points": 0.0,
+        "PNG_given_unquantized_network_points": 0.0,
+        "network_PNG_interaction_points": 0.0,
+        "PNG_after_network_points": 0.0,
+        "final_contribution_points": 0.0
+      },
+      {
+        "category": "car",
+        "decoder_generation_contribution_points": 0.015284505987234655,
+        "network_given_decoder_float_points": 0.05172642213193723,
+        "PNG_given_unquantized_network_points": 0.009945955564227334,
+        "network_PNG_interaction_points": -0.04344490462686583,
+        "PNG_after_network_points": -0.03349894906263849,
+        "final_contribution_points": 0.0335119790565334
+      },
+      {
+        "category": "chair",
+        "decoder_generation_contribution_points": -0.10971367407010957,
+        "network_given_decoder_float_points": 0.08161626973508157,
+        "PNG_given_unquantized_network_points": 0.028097404335027998,
+        "network_PNG_interaction_points": -0.028097404335027998,
+        "PNG_after_network_points": 0.0,
+        "final_contribution_points": -0.028097404335028
+      },
+      {
+        "category": "couch",
+        "decoder_generation_contribution_points": 0.5405405405405398,
+        "network_given_decoder_float_points": 0.0,
+        "PNG_given_unquantized_network_points": 0.0,
+        "network_PNG_interaction_points": 0.0,
+        "PNG_after_network_points": 0.0,
+        "final_contribution_points": 0.5405405405405398
+      },
+      {
+        "category": "cow",
+        "decoder_generation_contribution_points": 0.045491035590045484,
+        "network_given_decoder_float_points": 0.0,
+        "PNG_given_unquantized_network_points": 0.0,
+        "network_PNG_interaction_points": -0.13379716350013382,
+        "PNG_after_network_points": -0.13379716350013382,
+        "final_contribution_points": -0.08830612791008834
+      },
+      {
+        "category": "cup",
+        "decoder_generation_contribution_points": 0.2848663244702849,
+        "network_given_decoder_float_points": -0.06454004473806452,
+        "PNG_given_unquantized_network_points": 0.0005108618970005585,
+        "network_PNG_interaction_points": 0.049440079143049376,
+        "PNG_after_network_points": 0.049950941040049934,
+        "final_contribution_points": 0.27027722077227034
+      },
+      {
+        "category": "dining table",
+        "decoder_generation_contribution_points": -0.030150104407530184,
+        "network_given_decoder_float_points": 0.03747290876003755,
+        "PNG_given_unquantized_network_points": 0.016253297570559877,
+        "network_PNG_interaction_points": -0.015200264339308791,
+        "PNG_after_network_points": 0.0010530332312510843,
+        "final_contribution_points": 0.008375837583758455
+      },
+      {
+        "category": "dog",
+        "decoder_generation_contribution_points": 0.0,
+        "network_given_decoder_float_points": 0.0,
+        "PNG_given_unquantized_network_points": 0.0,
+        "network_PNG_interaction_points": 0.0,
+        "PNG_after_network_points": 0.0,
+        "final_contribution_points": 0.0
+      },
+      {
+        "category": "donut",
+        "decoder_generation_contribution_points": -0.15916234480590905,
+        "network_given_decoder_float_points": -0.08146156165958152,
+        "PNG_given_unquantized_network_points": -0.13692334484413707,
+        "network_PNG_interaction_points": 0.11628427470011607,
+        "PNG_after_network_points": -0.02063907014402097,
+        "final_contribution_points": -0.26126297660951153
+      },
+      {
+        "category": "fork",
+        "decoder_generation_contribution_points": 0.035322451164035255,
+        "network_given_decoder_float_points": 0.0,
+        "PNG_given_unquantized_network_points": 0.03532245116403535,
+        "network_PNG_interaction_points": 0.05565962001605567,
+        "PNG_after_network_points": 0.09098207118009102,
+        "final_contribution_points": 0.12630452234412629
+      },
+      {
+        "category": "handbag",
+        "decoder_generation_contribution_points": 0.8108108108108109,
+        "network_given_decoder_float_points": 0.0,
+        "PNG_given_unquantized_network_points": 0.0,
+        "network_PNG_interaction_points": 0.0,
+        "PNG_after_network_points": 0.0,
+        "final_contribution_points": 0.8108108108108109
+      },
+      {
+        "category": "hot dog",
+        "decoder_generation_contribution_points": 0.0,
+        "network_given_decoder_float_points": 0.0,
+        "PNG_given_unquantized_network_points": 0.0,
+        "network_PNG_interaction_points": 0.0,
+        "PNG_after_network_points": 0.0,
+        "final_contribution_points": 0.0
+      },
+      {
+        "category": "knife",
+        "decoder_generation_contribution_points": 0.25399161537775405,
+        "network_given_decoder_float_points": 0.0,
+        "PNG_given_unquantized_network_points": 0.0,
+        "network_PNG_interaction_points": 0.0,
+        "PNG_after_network_points": 0.0,
+        "final_contribution_points": 0.25399161537775405
+      },
+      {
+        "category": "laptop",
+        "decoder_generation_contribution_points": 0.0,
+        "network_given_decoder_float_points": 0.0,
+        "PNG_given_unquantized_network_points": 0.0,
+        "network_PNG_interaction_points": 0.0,
+        "PNG_after_network_points": 0.0,
+        "final_contribution_points": 0.0
+      },
+      {
+        "category": "motorcycle",
+        "decoder_generation_contribution_points": 0.44229519477044243,
+        "network_given_decoder_float_points": 0.0,
+        "PNG_given_unquantized_network_points": 0.13647310677013624,
+        "network_PNG_interaction_points": -0.13647310677013624,
+        "PNG_after_network_points": 0.0,
+        "final_contribution_points": 0.44229519477044243
+      },
+      {
+        "category": "orange",
+        "decoder_generation_contribution_points": 0.0,
+        "network_given_decoder_float_points": 0.0,
+        "PNG_given_unquantized_network_points": 0.0,
+        "network_PNG_interaction_points": 0.0,
+        "PNG_after_network_points": 0.0,
+        "final_contribution_points": 0.0
+      },
+      {
+        "category": "person",
+        "decoder_generation_contribution_points": -0.02774608760378322,
+        "network_given_decoder_float_points": 0.001891907262517322,
+        "PNG_given_unquantized_network_points": 0.04461968515884194,
+        "network_PNG_interaction_points": -0.007215888883681264,
+        "PNG_after_network_points": 0.037403796275160675,
+        "final_contribution_points": 0.011549615933894778
+      },
+      {
+        "category": "potted plant",
+        "decoder_generation_contribution_points": 0.03032735706003013,
+        "network_given_decoder_float_points": 0.0,
+        "PNG_given_unquantized_network_points": 0.0,
+        "network_PNG_interaction_points": 0.0,
+        "PNG_after_network_points": 0.0,
+        "final_contribution_points": 0.03032735706003013
+      },
+      {
+        "category": "skateboard",
+        "decoder_generation_contribution_points": -0.06020872357506033,
+        "network_given_decoder_float_points": 0.20203371688520202,
+        "PNG_given_unquantized_network_points": 0.0,
+        "network_PNG_interaction_points": -0.20203371688520202,
+        "PNG_after_network_points": -0.20203371688520202,
+        "final_contribution_points": -0.06020872357506033
+      },
+      {
+        "category": "snowboard",
+        "decoder_generation_contribution_points": 0.0,
+        "network_given_decoder_float_points": 0.0,
+        "PNG_given_unquantized_network_points": 0.0,
+        "network_PNG_interaction_points": 0.0,
+        "PNG_after_network_points": 0.0,
+        "final_contribution_points": 0.0
+      },
+      {
+        "category": "spoon",
+        "decoder_generation_contribution_points": -0.21229149942021217,
+        "network_given_decoder_float_points": 0.16412452056016405,
+        "PNG_given_unquantized_network_points": -0.12933725805012944,
+        "network_PNG_interaction_points": -0.002973270300002967,
+        "PNG_after_network_points": -0.1323105283501324,
+        "final_contribution_points": -0.18047750721018052
+      },
+      {
+        "category": "stop sign",
+        "decoder_generation_contribution_points": 0.2702702702702699,
+        "network_given_decoder_float_points": -0.2702702702702699,
+        "PNG_given_unquantized_network_points": 0.0,
+        "network_PNG_interaction_points": 0.0,
+        "PNG_after_network_points": 0.0,
+        "final_contribution_points": 0.0
+      },
+      {
+        "category": "teddy bear",
+        "decoder_generation_contribution_points": -0.13456171872013498,
+        "network_given_decoder_float_points": 0.06230487913656267,
+        "PNG_given_unquantized_network_points": -0.047943983587547784,
+        "network_PNG_interaction_points": -0.009015380302509174,
+        "PNG_after_network_points": -0.05695936389005697,
+        "final_contribution_points": -0.12921620347362928
+      },
+      {
+        "category": "tie",
+        "decoder_generation_contribution_points": -0.08919810900008925,
+        "network_given_decoder_float_points": -0.015928233750016133,
+        "PNG_given_unquantized_network_points": 0.0,
+        "network_PNG_interaction_points": -0.011946175312511811,
+        "PNG_after_network_points": -0.011946175312511811,
+        "final_contribution_points": -0.11707251806261719
+      },
+      {
+        "category": "truck",
+        "decoder_generation_contribution_points": 0.0,
+        "network_given_decoder_float_points": 0.0,
+        "PNG_given_unquantized_network_points": 0.0,
+        "network_PNG_interaction_points": 0.0,
+        "PNG_after_network_points": 0.0,
+        "final_contribution_points": 0.0
+      },
+      {
+        "category": "tv",
+        "decoder_generation_contribution_points": -0.6734457229506737,
+        "network_given_decoder_float_points": 0.0,
+        "PNG_given_unquantized_network_points": 0.2256712157702258,
+        "network_PNG_interaction_points": -0.18018018018018017,
+        "PNG_after_network_points": 0.045491035590045636,
+        "final_contribution_points": -0.6279546873606281
+      },
+      {
+        "category": "umbrella",
+        "decoder_generation_contribution_points": -0.2763176080007762,
+        "network_given_decoder_float_points": 0.03581304076353578,
+        "PNG_given_unquantized_network_points": 0.036526625635536436,
+        "network_PNG_interaction_points": -0.12081883864062085,
+        "PNG_after_network_points": -0.08429221300508441,
+        "final_contribution_points": -0.32479678024232483
+      },
+      {
+        "category": "vase",
+        "decoder_generation_contribution_points": 0.030327357060030417,
+        "network_given_decoder_float_points": -0.030327357060030417,
+        "PNG_given_unquantized_network_points": 0.015163678530015164,
+        "network_PNG_interaction_points": -0.015163678530015164,
+        "PNG_after_network_points": 0.0,
+        "final_contribution_points": 0.0
+      }
+    ]
+  },
+  "initial_state_category_recovery": {
+    "categories_with_GT": 37,
+    "rows": [
+      {
+        "category": "baseball bat",
+        "middle_AP": 49.99999999999999,
+        "high_AP": 23.333333333333332,
+        "warm_high_AP": 49.99999999999999,
+        "high_minus_middle_macro_contribution": -0.7207207207207206,
+        "initial_state_macro_effect": 0.7207207207207206
+      },
+      {
+        "category": "baseball glove",
+        "middle_AP": 89.99999999999999,
+        "high_AP": 59.999999999999986,
+        "warm_high_AP": 89.99999999999999,
+        "high_minus_middle_macro_contribution": -0.8108108108108109,
+        "initial_state_macro_effect": 0.8108108108108109
+      },
+      {
+        "category": "bed",
+        "middle_AP": 10.0,
+        "high_AP": 10.0,
+        "warm_high_AP": 10.0,
+        "high_minus_middle_macro_contribution": 0.0,
+        "initial_state_macro_effect": 0.0
+      },
+      {
+        "category": "bench",
+        "middle_AP": 7.302477616182671,
+        "high_AP": 4.866839625138984,
+        "warm_high_AP": 7.934582743988685,
+        "high_minus_middle_macro_contribution": -0.06582805381199154,
+        "initial_state_macro_effect": 0.08291197618512705
+      },
+      {
+        "category": "bicycle",
+        "middle_AP": 25.247524752475243,
+        "high_AP": 15.148514851485146,
+        "warm_high_AP": 25.247524752475243,
+        "high_minus_middle_macro_contribution": -0.2729462135402729,
+        "initial_state_macro_effect": 0.2729462135402729
+      },
+      {
+        "category": "bird",
+        "middle_AP": 72.67326732673267,
+        "high_AP": 65.7975797579758,
+        "warm_high_AP": 73.49834983498349,
+        "high_minus_middle_macro_contribution": -0.18582939375018578,
+        "initial_state_macro_effect": 0.20812892100020783
+      },
+      {
+        "category": "book",
+        "middle_AP": 0.0,
+        "high_AP": 0.42079207920792083,
+        "warm_high_AP": 0.0,
+        "high_minus_middle_macro_contribution": 0.011372758897511374,
+        "initial_state_macro_effect": -0.011372758897511374
+      },
+      {
+        "category": "bottle",
+        "middle_AP": 17.786421499292786,
+        "high_AP": 22.195700339264697,
+        "warm_high_AP": 17.786421499292786,
+        "high_minus_middle_macro_contribution": 0.11916969837761922,
+        "initial_state_macro_effect": -0.11916969837761922
+      },
+      {
+        "category": "bowl",
+        "middle_AP": 47.947794779477945,
+        "high_AP": 51.22112211221121,
+        "warm_high_AP": 47.44774477447745,
+        "high_minus_middle_macro_contribution": 0.0884683062900883,
+        "initial_state_macro_effect": -0.10198317129010169
+      },
+      {
+        "category": "bus",
+        "middle_AP": 80.0990099009901,
+        "high_AP": 80.0990099009901,
+        "warm_high_AP": 80.0990099009901,
+        "high_minus_middle_macro_contribution": 0.0,
+        "initial_state_macro_effect": 0.0
+      },
+      {
+        "category": "car",
+        "middle_AP": 38.75967596759676,
+        "high_AP": 39.9996191926885,
+        "warm_high_AP": 38.27333804809053,
+        "high_minus_middle_macro_contribution": 0.0335119790565334,
+        "initial_state_macro_effect": -0.046656247151296466
+      },
+      {
+        "category": "chair",
+        "middle_AP": 34.554455445544555,
+        "high_AP": 33.51485148514852,
+        "warm_high_AP": 34.554455445544555,
+        "high_minus_middle_macro_contribution": -0.028097404335028,
+        "initial_state_macro_effect": 0.028097404335028
+      },
+      {
+        "category": "couch",
+        "middle_AP": 80.0,
+        "high_AP": 99.99999999999997,
+        "warm_high_AP": 80.0,
+        "high_minus_middle_macro_contribution": 0.5405405405405398,
+        "initial_state_macro_effect": -0.5405405405405398
+      },
+      {
+        "category": "cow",
+        "middle_AP": 89.9009900990099,
+        "high_AP": 86.63366336633663,
+        "warm_high_AP": 89.9009900990099,
+        "high_minus_middle_macro_contribution": -0.08830612791008834,
+        "initial_state_macro_effect": 0.08830612791008834
+      },
+      {
+        "category": "cup",
+        "middle_AP": 38.26282628262826,
+        "high_AP": 48.26308345120226,
+        "warm_high_AP": 38.26282628262826,
+        "high_minus_middle_macro_contribution": 0.27027722077227034,
+        "initial_state_macro_effect": -0.27027722077227034
+      },
+      {
+        "category": "dining table",
+        "middle_AP": 40.83058305830583,
+        "high_AP": 41.14048904890489,
+        "warm_high_AP": 37.93289328932893,
+        "high_minus_middle_macro_contribution": 0.008375837583758455,
+        "initial_state_macro_effect": -0.08669177728583673
+      },
+      {
+        "category": "dog",
+        "middle_AP": 99.99999999999997,
+        "high_AP": 99.99999999999997,
+        "warm_high_AP": 99.99999999999997,
+        "high_minus_middle_macro_contribution": 0.0,
+        "initial_state_macro_effect": 0.0
+      },
+      {
+        "category": "donut",
+        "middle_AP": 50.881188118811885,
+        "high_AP": 41.21445798425996,
+        "warm_high_AP": 47.01870187018702,
+        "high_minus_middle_macro_contribution": -0.26126297660951153,
+        "initial_state_macro_effect": 0.15687145637640715
+      },
+      {
+        "category": "fork",
+        "middle_AP": 6.732673267326733,
+        "high_AP": 11.405940594059405,
+        "warm_high_AP": 6.732673267326733,
+        "high_minus_middle_macro_contribution": 0.12630452234412629,
+        "initial_state_macro_effect": -0.12630452234412629
+      },
+      {
+        "category": "handbag",
+        "middle_AP": 0.0,
+        "high_AP": 30.0,
+        "warm_high_AP": 0.0,
+        "high_minus_middle_macro_contribution": 0.8108108108108109,
+        "initial_state_macro_effect": -0.8108108108108109
+      },
+      {
+        "category": "hot dog",
+        "middle_AP": 80.0,
+        "high_AP": 80.0,
+        "warm_high_AP": 80.0,
+        "high_minus_middle_macro_contribution": 0.0,
+        "initial_state_macro_effect": 0.0
+      },
+      {
+        "category": "knife",
+        "middle_AP": 21.320132013201317,
+        "high_AP": 30.717821782178216,
+        "warm_high_AP": 21.320132013201317,
+        "high_minus_middle_macro_contribution": 0.25399161537775405,
+        "initial_state_macro_effect": -0.25399161537775405
+      },
+      {
+        "category": "laptop",
+        "middle_AP": 89.99999999999999,
+        "high_AP": 89.99999999999999,
+        "warm_high_AP": 89.99999999999999,
+        "high_minus_middle_macro_contribution": 0.0,
+        "initial_state_macro_effect": 0.0
+      },
+      {
+        "category": "motorcycle",
+        "middle_AP": 35.34653465346533,
+        "high_AP": 51.711456859971705,
+        "warm_high_AP": 35.34653465346533,
+        "high_minus_middle_macro_contribution": 0.44229519477044243,
+        "initial_state_macro_effect": -0.44229519477044243
+      },
+      {
+        "category": "orange",
+        "middle_AP": 0.0,
+        "high_AP": 0.0,
+        "warm_high_AP": 0.0,
+        "high_minus_middle_macro_contribution": 0.0,
+        "initial_state_macro_effect": 0.0
+      },
+      {
+        "category": "person",
+        "middle_AP": 52.5676641562427,
+        "high_AP": 52.994999945796806,
+        "warm_high_AP": 53.52668114792638,
+        "high_minus_middle_macro_contribution": 0.011549615933894778,
+        "initial_state_macro_effect": 0.01436976221971827
+      },
+      {
+        "category": "potted plant",
+        "middle_AP": 46.66666666666667,
+        "high_AP": 47.788778877887786,
+        "warm_high_AP": 46.66666666666667,
+        "high_minus_middle_macro_contribution": 0.03032735706003013,
+        "initial_state_macro_effect": -0.03032735706003013
+      },
+      {
+        "category": "skateboard",
+        "middle_AP": 52.62376237623763,
+        "high_AP": 50.396039603960396,
+        "warm_high_AP": 52.62376237623763,
+        "high_minus_middle_macro_contribution": -0.06020872357506033,
+        "initial_state_macro_effect": 0.06020872357506033
+      },
+      {
+        "category": "snowboard",
+        "middle_AP": 80.0,
+        "high_AP": 80.0,
+        "warm_high_AP": 80.0,
+        "high_minus_middle_macro_contribution": 0.0,
+        "initial_state_macro_effect": 0.0
+      },
+      {
+        "category": "spoon",
+        "middle_AP": 26.67766776677668,
+        "high_AP": 20.0,
+        "warm_high_AP": 26.67766776677668,
+        "high_minus_middle_macro_contribution": -0.18047750721018052,
+        "initial_state_macro_effect": 0.18047750721018052
+      },
+      {
+        "category": "stop sign",
+        "middle_AP": 89.99999999999999,
+        "high_AP": 89.99999999999999,
+        "warm_high_AP": 89.99999999999999,
+        "high_minus_middle_macro_contribution": 0.0,
+        "initial_state_macro_effect": 0.0
+      },
+      {
+        "category": "teddy bear",
+        "middle_AP": 64.38142385667138,
+        "high_AP": 59.60042432814709,
+        "warm_high_AP": 65.54160773220178,
+        "high_minus_middle_macro_contribution": -0.12921620347362928,
+        "initial_state_macro_effect": 0.16057252443391057
+      },
+      {
+        "category": "tie",
+        "middle_AP": 30.594059405940595,
+        "high_AP": 26.26237623762376,
+        "warm_high_AP": 30.594059405940595,
+        "high_minus_middle_macro_contribution": -0.11707251806261719,
+        "initial_state_macro_effect": 0.11707251806261719
+      },
+      {
+        "category": "truck",
+        "middle_AP": 0.0,
+        "high_AP": 0.0,
+        "warm_high_AP": 0.0,
+        "high_minus_middle_macro_contribution": 0.0,
+        "initial_state_macro_effect": 0.0
+      },
+      {
+        "category": "tv",
+        "middle_AP": 85.04950495049505,
+        "high_AP": 61.81518151815181,
+        "warm_high_AP": 85.04950495049505,
+        "high_minus_middle_macro_contribution": -0.6279546873606281,
+        "initial_state_macro_effect": 0.6279546873606281
+      },
+      {
+        "category": "umbrella",
+        "middle_AP": 46.462046204620464,
+        "high_AP": 34.444565335654445,
+        "warm_high_AP": 47.85148514851485,
+        "high_minus_middle_macro_contribution": -0.32479678024232483,
+        "initial_state_macro_effect": 0.3623491841313622
+      },
+      {
+        "category": "vase",
+        "middle_AP": 25.478547854785482,
+        "high_AP": 25.478547854785482,
+        "warm_high_AP": 25.478547854785482,
+        "high_minus_middle_macro_contribution": 0.0,
+        "initial_state_macro_effect": 0.0
+      }
+    ]
+  },
+  "noise500_before_STE": [
+    {
+      "condition": "middle",
+      "representation": "hard latent plus source JAX image-rounded float, before STE/network quantization",
+      "AP": 45.92157170104868,
+      "AP50": 65.17446105435269
+    },
+    {
+      "condition": "high",
+      "representation": "hard latent plus source JAX image-rounded float, before STE/network quantization",
+      "AP": 45.36370498226868,
+      "AP50": 64.07124725632757
+    }
+  ],
+  "historical_ROI_intervention": {
+    "historical_full20_AP_gap": -1.3693608692625716,
+    "restoration_by_high_bat_swap": 1.5318311585328885,
+    "restoration_by_high_glove_swap": 0.5552931454459085,
+    "restoration_by_union": 2.0877831856902844,
+    "background_AP_change": -6.201665836869097e-05,
+    "reverse_middle_bat_AP_change": -0.8988939434484067,
+    "reverse_middle_glove_AP_change": -0.5444774848027762,
+    "generated_region_causality": true,
+    "generator_hypothesis_unresolved": true,
+    "patched_images_not_codec_points": true
+  },
+  "selection_intervention": {
+    "cells": 40,
+    "identical_PNG_and_predictions": 40,
+    "all_six_pooled_AP_metrics_exact": true
+  },
+  "backward_temperature_primary_case": {
+    "original": 0.0001,
+    "treatment": 0.1,
+    "hard_forward_exact": true,
+    "high_AP_before": 54.08140814081408,
+    "high_AP_after": 54.08140814081408,
+    "scope": "single fixed primary case only; sparse gradient observation does not establish AP cause"
+  },
+  "precision_correction": "Old reconstruct float was already jnp.round(rec*255)/255. Use true decoder float factorial. Identical uint8 bytes do not guarantee identical normalized float predictions.",
+  "cost": {
+    "completed_or_failed_attempts": 38,
+    "GPU_target_process_hours": 1.7353562614282902,
+    "diagnostic_GiB": 3.1276661362499,
+    "time_upper_limit": null
+  },
+  "limitations": [
+    "Changing initialization also changes achieved rate; no matched-rate improvement claim.",
+    "Historical versus controlled gap residual cannot be interpreted as statistical variability; historical internal kernel state was not serialized.",
+    "No single global optimizer optimum or universal detector/proxy mechanism is proven.",
+    "ROI pixel substitutions are diagnostics, not codec points.",
+    "No independent image set, large benchmark or paper reproduction."
+  ]
+}
