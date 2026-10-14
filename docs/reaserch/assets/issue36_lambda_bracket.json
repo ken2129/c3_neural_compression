@@ -1,0 +1,26 @@
+[
+  {
+    "lambda": 0.003,
+    "bpp": 1.086186123132111,
+    "source": "/workspace/c3_neural_compression/var/issue20_resume_20261010_retry1/results/c3_combined_rd3e3_opt/pilot_combined_rd3e3/datum_00000/metrics.json",
+    "reused": true
+  },
+  {
+    "lambda": 0.01,
+    "bpp": 0.6832868333469305,
+    "source": "/workspace/c3_neural_compression/var/issue36_same_rate_20261010/results/bracket_combined_01",
+    "reused": false
+  },
+  {
+    "lambda": 0.03,
+    "bpp": 0.36645817173983986,
+    "source": "/workspace/c3_neural_compression/var/issue36_same_rate_20261010/results/bracket_combined_03",
+    "reused": false
+  },
+  {
+    "lambda": 0.1,
+    "bpp": 0.1584687078385579,
+    "source": "/workspace/c3_neural_compression/var/issue36_same_rate_20261010/results/bracket_combined_1",
+    "reused": false
+  }
+]

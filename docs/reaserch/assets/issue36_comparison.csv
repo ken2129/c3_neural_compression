@@ -1,0 +1,5 @@
+name,method,lambda,bpp,box_AP_percent,box_AP50_percent,AP_drop_from_original_points,image_count,run_dir
+image_target04,c3_image,0.003,0.4020739601883777,36.18448881628529,53.59369902502941,16.457998371904615,20,/workspace/c3_neural_compression/var/issue36_same_rate_20261010/results/image_target04_eval
+image_target07,c3_image,0.001,0.6854680605184454,44.03049290287311,62.475571397796806,8.611994285316793,20,/workspace/c3_neural_compression/var/issue36_same_rate_20261010/results/image_target07_eval
+combined_target04,c3_combined,0.026706050479919842,0.36549679504788596,45.006908375380675,66.23758749081607,7.6355788128092295,20,/workspace/c3_neural_compression/var/issue36_same_rate_20261010/results/combined_target04_eval
+combined_target07,c3_combined,0.00951283176513923,0.7092471098682214,46.119247180869486,68.86262431022185,6.523240007320413,20,/workspace/c3_neural_compression/var/issue36_same_rate_20261010/results/combined_target07_eval

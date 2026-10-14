@@ -1,0 +1,74 @@
+{
+  "scope": "20_image_calibration_not_heldout",
+  "pipeline_validation": "Exact full manifest and detector metadata equality passed for all 4 runs and original baseline detector",
+  "points": [
+    {
+      "name": "image_target04",
+      "method": "c3_image",
+      "lambda": 0.003,
+      "bpp": 0.4020739601883777,
+      "box_AP_percent": 36.18448881628529,
+      "box_AP50_percent": 53.59369902502941,
+      "AP_drop_from_original_points": 16.457998371904615,
+      "image_count": 20,
+      "run_dir": "/workspace/c3_neural_compression/var/issue36_same_rate_20261010/results/image_target04_eval"
+    },
+    {
+      "name": "image_target07",
+      "method": "c3_image",
+      "lambda": 0.001,
+      "bpp": 0.6854680605184454,
+      "box_AP_percent": 44.03049290287311,
+      "box_AP50_percent": 62.475571397796806,
+      "AP_drop_from_original_points": 8.611994285316793,
+      "image_count": 20,
+      "run_dir": "/workspace/c3_neural_compression/var/issue36_same_rate_20261010/results/image_target07_eval"
+    },
+    {
+      "name": "combined_target04",
+      "method": "c3_combined",
+      "lambda": 0.026706050479919842,
+      "bpp": 0.36549679504788596,
+      "box_AP_percent": 45.006908375380675,
+      "box_AP50_percent": 66.23758749081607,
+      "AP_drop_from_original_points": 7.6355788128092295,
+      "image_count": 20,
+      "run_dir": "/workspace/c3_neural_compression/var/issue36_same_rate_20261010/results/combined_target04_eval"
+    },
+    {
+      "name": "combined_target07",
+      "method": "c3_combined",
+      "lambda": 0.00951283176513923,
+      "bpp": 0.7092471098682214,
+      "box_AP_percent": 46.119247180869486,
+      "box_AP50_percent": 68.86262431022185,
+      "AP_drop_from_original_points": 6.523240007320413,
+      "image_count": 20,
+      "run_dir": "/workspace/c3_neural_compression/var/issue36_same_rate_20261010/results/combined_target07_eval"
+    }
+  ],
+  "pairs": [
+    {
+      "target_bpp": 0.4,
+      "image_measured_bpp": 0.4020739601883777,
+      "combined_measured_bpp": 0.36549679504788596,
+      "relative_rate_difference": 0.09097123604660894,
+      "rate_within_tolerance": true,
+      "combined_minus_image_AP_points": 8.822419559095387,
+      "unmatched_AP_difference_descriptive_only": null
+    },
+    {
+      "target_bpp": 0.7,
+      "image_measured_bpp": 0.6854680605184454,
+      "combined_measured_bpp": 0.7092471098682214,
+      "relative_rate_difference": 0.03469023681685611,
+      "rate_within_tolerance": true,
+      "combined_minus_image_AP_points": 2.0887542779963795,
+      "unmatched_AP_difference_descriptive_only": null
+    }
+  ],
+  "verdict": "improvement_observed_at_both_points",
+  "original_AP_percent": 52.642487188189904,
+  "no_interpolation_no_extrapolation": true,
+  "no_statistical_superiority_or_BD_rate_claim": true
+}

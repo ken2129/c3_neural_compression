@@ -1,0 +1,79 @@
+{
+  "status": "approved",
+  "scope": "fixed20 calibration only, current image and combined objectives, no new loss",
+  "source_commit": "01d1fb3fde6d75f42ba7c6affe9014293be37710",
+  "image_ids": [
+    474039,
+    125778,
+    58539,
+    492968,
+    296284,
+    544565,
+    124636,
+    373315,
+    166259,
+    142324,
+    275198,
+    256868,
+    344029,
+    368684,
+    407943,
+    137246,
+    207585,
+    302107,
+    520301,
+    192716
+  ],
+  "seed": 20261004,
+  "noise_steps": 500,
+  "max_ste_steps": 50,
+  "target_bpp": [
+    0.4,
+    0.7
+  ],
+  "rate_match_definition": "abs(combined_bpp-image_bpp)/image_bpp <= 0.10; target proximity reported separately",
+  "main_metric": "COCO box AP IoU .50:.95, all 20 IDs",
+  "teacher": "torchvision FasterRCNN R50FPN COCO_V1",
+  "machine_weight": 0.1,
+  "feature_layers": [
+    "0",
+    "1",
+    "2",
+    "3"
+  ],
+  "feature_weights": [
+    0.25,
+    0.25,
+    0.25,
+    0.25
+  ],
+  "image_weight": 1.0,
+  "objective": "image MSE + lambda*latent_rate/original_pixels + machine_weight*feature_L1; final network bits included in reported bpp",
+  "lambda_direction": "larger lambda penalizes rate more strongly",
+  "normal_image_lambda": [
+    0.003,
+    0.001
+  ],
+  "combined_bracket_lambda_candidates": [
+    0.003,
+    0.01,
+    0.03,
+    0.1
+  ],
+  "bracket_image_ids": [
+    474039
+  ],
+  "bracket_max_new_conditions": 4,
+  "combined_lambda_selection": "Use measured total bpp only; choose nearest target among bracket or log-lambda interpolation between adjacent bracket points; never AP selection",
+  "final_conditions": 4,
+  "final_images_per_condition": 20,
+  "max_additional_gpu_seconds": 21600,
+  "max_new_storage_bytes": 10737418240,
+  "retry_policy": "No outcome-based retries; preserve raw attempts; environmental failures retained and only explicit corrected attempts",
+  "interpolation_policy": "No AP interpolation in initial report; unmatched measured points remain unmatched; no extrapolation",
+  "old_c3_missing_artifacts": "All three image conditions and combined .0003/.001 have JSON only; do not silently relax exact detector metadata validation",
+  "available_new_combined_lambda_003": "/workspace/c3_neural_compression/var/issue20_resume_20261010_retry1/results/c3_combined_rd3e3_eval",
+  "prerequisite_diagnostics": "/workspace/c3_neural_compression/var/issue35_diagnostics_20261010/results",
+  "existing_issue35_scaled_pilot": "Exploratory coefficient-change run kept separately and excluded from #36",
+  "approval": "User approved budget and requested issue36 complete in tmux with both GPUs"
+}
