@@ -1,0 +1,16 @@
+[
+  {
+    "name": "combined_target04",
+    "target": 0.4,
+    "lambda": 0.026706050479919842,
+    "selection": "linear_bpp_in_log_lambda_bracket",
+    "AP_used": false
+  },
+  {
+    "name": "combined_target07",
+    "target": 0.7,
+    "lambda": 0.00951283176513923,
+    "selection": "linear_bpp_in_log_lambda_bracket",
+    "AP_used": false
+  }
+]

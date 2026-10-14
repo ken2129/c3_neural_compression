@@ -1,0 +1,10 @@
+{
+  "status": "passed",
+  "machine_weight": 0,
+  "max_abs_differences": {
+    "base_gradients": 1.7462298274040222e-10,
+    "updated_parameters": 2.9802322387695312e-08,
+    "optimizer_state": 4.547473508864641e-12
+  },
+  "scope": "one identical initialization/RNG noise update; no teacher gradient dependency, all parameters and optimizer leaves compared"
+}

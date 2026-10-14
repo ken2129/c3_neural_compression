@@ -1,0 +1,128 @@
+{
+  "status": "complete",
+  "image_id": 474039,
+  "seed": 20261004,
+  "identity_loss": 0.0,
+  "feature_loss": 0.09480790793895721,
+  "per_layer_l1": {
+    "0": 0.09546512365341187,
+    "1": 0.08807718753814697,
+    "2": 0.10105675458908081,
+    "3": 0.09463255852460861
+  },
+  "input_gradient_finite": true,
+  "input_gradient_norm": 0.36595410108566284,
+  "weighted_feature_gradient_norm": 0.0365954264998436,
+  "image_mse_gradient_norm": 2.2636542170374895e-05,
+  "weighted_feature_to_image_gradient_ratio": 1616.6526770920473,
+  "gradient_cosine": 0.024277022342215817,
+  "bridge_gradient_matches_torch": true,
+  "finite_differences": [
+    {
+      "epsilon": 0.001,
+      "finite_difference": 10.01991331577301,
+      "autograd_directional": 10.360649117082122,
+      "relative_error": 0.03288749550907228
+    },
+    {
+      "epsilon": 0.0003,
+      "finite_difference": 10.308635731538137,
+      "autograd_directional": 10.360649117082122,
+      "relative_error": 0.005020282508962469
+    },
+    {
+      "epsilon": 0.0001,
+      "finite_difference": 10.48702746629715,
+      "autograd_directional": 10.360649117082122,
+      "relative_error": 0.012197918082821772
+    }
+  ],
+  "teacher_frozen": true,
+  "teacher_gradients_none": true,
+  "teacher_checksum_unchanged": true,
+  "reference_detached": true,
+  "metadata": [
+    {
+      "layer": "0",
+      "input_shape_hwc": [
+        401,
+        640,
+        3
+      ],
+      "transformed_shape_nchw": [
+        1,
+        3,
+        800,
+        1280
+      ],
+      "feature_shape_nchw": [
+        1,
+        256,
+        200,
+        320
+      ]
+    },
+    {
+      "layer": "1",
+      "input_shape_hwc": [
+        401,
+        640,
+        3
+      ],
+      "transformed_shape_nchw": [
+        1,
+        3,
+        800,
+        1280
+      ],
+      "feature_shape_nchw": [
+        1,
+        256,
+        100,
+        160
+      ]
+    },
+    {
+      "layer": "2",
+      "input_shape_hwc": [
+        401,
+        640,
+        3
+      ],
+      "transformed_shape_nchw": [
+        1,
+        3,
+        800,
+        1280
+      ],
+      "feature_shape_nchw": [
+        1,
+        256,
+        50,
+        80
+      ]
+    },
+    {
+      "layer": "3",
+      "input_shape_hwc": [
+        401,
+        640,
+        3
+      ],
+      "transformed_shape_nchw": [
+        1,
+        3,
+        800,
+        1280
+      ],
+      "feature_shape_nchw": [
+        1,
+        256,
+        25,
+        40
+      ]
+    }
+  ],
+  "limitations": "Input-space smoke on fixed perturbation; not latent/synthesis parameter gradients. No hard-rounding finite differences. Zero-weight optimizer parity remains separate.",
+  "wall_seconds": 2.4162354469299316
+}
