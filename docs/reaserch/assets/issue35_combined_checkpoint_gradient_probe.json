@@ -1,0 +1,36 @@
+{
+  "checkpoint": "/workspace/c3_neural_compression/var/issue35_diagnostics_20261010/results/pilot/combined/checkpoints/datum_00000/noise_step_000000500.pkl",
+  "evaluation_note": "One fixed RNG probe at end-noise temperature, not original logged noise realization; base=rate+image",
+  "feature_loss": 0.1536616086959839,
+  "base_metrics": {
+    "distortion": 0.005040531978011131,
+    "distortion_rounded": 0.005041586700826883,
+    "loss": 0.006275170482695103,
+    "psnr": 22.975234985351562,
+    "psnr_rounded": 22.97432518005371,
+    "rate": 316857.5625
+  },
+  "groups": {
+    "latent": {
+      "base_norm": 0.00046299328096210957,
+      "weighted_feature_norm": 0.019784782081842422,
+      "ratio": 42.7323308898333,
+      "cosine": -0.10542233390953129,
+      "finite": true
+    },
+    "synthesis": {
+      "base_norm": 0.0087563656270504,
+      "weighted_feature_norm": 0.01336754485964775,
+      "ratio": 1.526608804268334,
+      "cosine": -0.6938263167990913,
+      "finite": true
+    },
+    "entropy": {
+      "base_norm": 1.9326709661982022e-05,
+      "weighted_feature_norm": 0.0,
+      "ratio": 0.0,
+      "cosine": 0.0,
+      "finite": true
+    }
+  }
+}

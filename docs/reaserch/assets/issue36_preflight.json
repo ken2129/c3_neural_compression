@@ -1,0 +1,30 @@
+{
+  "status": "passed",
+  "commit": "01d1fb3fde6d75f42ba7c6affe9014293be37710",
+  "image_ids": [
+    474039,
+    125778,
+    58539,
+    492968,
+    296284,
+    544565,
+    124636,
+    373315,
+    166259,
+    142324,
+    275198,
+    256868,
+    344029,
+    368684,
+    407943,
+    137246,
+    207585,
+    302107,
+    520301,
+    192716
+  ],
+  "teacher_sha256": "258fb6c638b15964ddcdd1ae0748c5eef1be9e732750120cc857feed3faac384",
+  "all_input_hashes_checked": true,
+  "supervisor_pid": 145220,
+  "boot_id_sha256": "e4a4e0c677b15c54e14ebcf2712d7fa6ad199c601d611e68c2bcf71230a89ecf"
+}

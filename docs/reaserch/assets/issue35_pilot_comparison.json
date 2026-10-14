@@ -1,0 +1,139 @@
+{
+  "scope": "one_image_diagnostic_not_performance_evaluation",
+  "rows": [
+    {
+      "variant": "image",
+      "weight": 0,
+      "image_id": 474039,
+      "estimated_bpp": {
+        "entropy_network": 0.029308507448419965,
+        "latents": 0.3415655806772132,
+        "synthesis_network": 0.0221916788534036,
+        "total": 0.3930657669790368
+      },
+      "image_mse_png": 0.0012246114201843739,
+      "feature_l1_png": 0.45002105832099915,
+      "per_layer_l1_png": {
+        "0": 0.42729729413986206,
+        "1": 0.42110633850097656,
+        "2": 0.48287755250930786,
+        "3": 0.4688030481338501
+      },
+      "estimated_bits": {
+        "entropy_network": 7521.7353515625,
+        "latents": 87659.390625,
+        "synthesis_network": 5695.2724609375,
+        "total": 100876.3984375
+      },
+      "psnr_quantized": 29.120014190673828,
+      "timing_seconds": {
+        "network_quantization_search": 15.532214995473623,
+        "optimization": 156.8874493110925,
+        "total": 174.0181689625606
+      },
+      "rgb_mean_channels": [
+        0.5253879427909851,
+        0.4883115887641907,
+        0.4645952880382538
+      ],
+      "rgb_std_channels": [
+        0.33288174867630005,
+        0.33400362730026245,
+        0.34976649284362793
+      ],
+      "zero_fraction": 0.0013001350789692435,
+      "one_fraction": 0.022716645885286782,
+      "reconstruction_sha256": "a213ff2dbda939a2a1367540b85c166e22826ccb7ca7b4ae0fe08ad1376ed08a"
+    },
+    {
+      "variant": "combined",
+      "weight": 0.1,
+      "image_id": 474039,
+      "estimated_bpp": {
+        "entropy_network": 0.034418413347734184,
+        "latents": 1.2174212905236907,
+        "synthesis_network": 0.02627710356676668,
+        "total": 1.2781168074381917
+      },
+      "image_mse_png": 0.005042314995080233,
+      "feature_l1_png": 0.14819864928722382,
+      "per_layer_l1_png": {
+        "0": 0.24836108088493347,
+        "1": 0.1510636806488037,
+        "2": 0.11595337092876434,
+        "3": 0.07741645723581314
+      },
+      "estimated_bits": {
+        "entropy_network": 8833.1416015625,
+        "latents": 312439.0,
+        "synthesis_network": 6743.755859375,
+        "total": 328015.8974609375
+      },
+      "psnr_quantized": 22.973697662353516,
+      "timing_seconds": {
+        "network_quantization_search": 18.450732960365713,
+        "optimization": 219.25381733477116,
+        "total": 239.27296578045934
+      },
+      "rgb_mean_channels": [
+        0.5200209021568298,
+        0.498575896024704,
+        0.4634542465209961
+      ],
+      "rgb_std_channels": [
+        0.32978910207748413,
+        0.32359176874160767,
+        0.35597944259643555
+      ],
+      "zero_fraction": 6.234413965087281e-05,
+      "one_fraction": 0.07905886325852036,
+      "reconstruction_sha256": "bff06db2989b133bd5665c863284a9c6fa10269179b40bc6c7aeddfa2e6e7e94"
+    },
+    {
+      "variant": "scaled",
+      "weight": 0.0001,
+      "image_id": 474039,
+      "estimated_bpp": {
+        "entropy_network": 0.029261973849555797,
+        "latents": 0.363753092853803,
+        "synthesis_network": 0.021889478726280002,
+        "total": 0.4149045454296388
+      },
+      "image_mse_png": 0.000799087225459516,
+      "feature_l1_png": 0.27412086725234985,
+      "per_layer_l1_png": {
+        "0": 0.299402117729187,
+        "1": 0.26274746656417847,
+        "2": 0.2827092111110687,
+        "3": 0.2516247034072876
+      },
+      "estimated_bits": {
+        "entropy_network": 7509.79296875,
+        "latents": 93353.59375,
+        "synthesis_network": 5617.7158203125,
+        "total": 106481.1025390625
+      },
+      "psnr_quantized": 30.974056243896484,
+      "timing_seconds": {
+        "network_quantization_search": 18.054388326592743,
+        "optimization": 219.59878145623952,
+        "total": 239.2055406421423
+      },
+      "rgb_mean_channels": [
+        0.5244691371917725,
+        0.48888179659843445,
+        0.4629788100719452
+      ],
+      "rgb_std_channels": [
+        0.33496496081352234,
+        0.3381637930870056,
+        0.35333874821662903
+      ],
+      "zero_fraction": 0.006069461762261014,
+      "one_fraction": 0.018005766832917706,
+      "reconstruction_sha256": "8e17b38ea4b270fdf0935c7d212b5d6e4ab9e7b1e7dfce0b9e4de15bce6a5aeb"
+    }
+  ],
+  "coefficient_change_only": true,
+  "no_ap_based_selection": true
+}
