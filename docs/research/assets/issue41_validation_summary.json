@@ -1,0 +1,9 @@
+{
+  "input_protocol": "detector_input_v1",
+  "fixed_commit": "0c3a60c703bd41956b6558d527470350bcc7dd5d",
+  "all_four_manifests_and_evaluators_exactly_equal": true,
+  "all_80_image_rate_rows_recollected_without_GPU": true,
+  "detailed_records": "Detailed input paths, environment/config metadata, wrappers and per-image records remain in the local experiment archive.",
+  "image_count": 20,
+  "published_scope": "Validation outcomes only; image IDs and model identifiers remain local."
+}

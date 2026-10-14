@@ -1,0 +1,17 @@
+{
+  "status": "CPU_preparation_passed_GPU_not_started",
+  "input_asset_hashes_verified": true,
+  "mapper_parity_images": 20,
+  "test_count": 151,
+  "test_result": "all passed",
+  "test_log_sha256": "5602e033aef81b20a893fe0a2e3572679081770d3a37a439320882859386f0b7",
+  "original_pixels": 5659540,
+  "mapped_pixels": 17724800,
+  "CUDA_VISIBLE_DEVICES": "",
+  "inference_executed": false,
+  "limitations": [
+    "No GPU codec optimization or learned detector inference in these CPU fixtures",
+    "No paper detector identity verification",
+    "Adapt AP/AP50 paper discrepancy remains unresolved"
+  ]
+}

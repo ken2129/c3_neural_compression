@@ -1,0 +1,57 @@
+{
+  "attempts_including_failures": 5,
+  "points": [
+    {
+      "name": "reused_smoke",
+      "objective": "combined",
+      "lambda": 0.01,
+      "bpp": 0.4937191229979322,
+      "wall_seconds": 261.51525633595884,
+      "bytes": 164869791,
+      "reused": true
+    },
+    {
+      "name": "cal_combined_3",
+      "objective": "combined",
+      "lambda": 0.03,
+      "bpp": 0.30444810023416086,
+      "wall_seconds": 266.62760944478214,
+      "bytes": 164725204,
+      "full20": false
+    },
+    {
+      "name": "cal_combined_4",
+      "objective": "combined",
+      "lambda": 0.09,
+      "bpp": 0.15487382307777017,
+      "wall_seconds": 267.18134528491646,
+      "bytes": 164627936,
+      "full20": false
+    },
+    {
+      "name": "cal_combined_5",
+      "objective": "combined",
+      "lambda": 0.27,
+      "bpp": 0.07122735581364403,
+      "wall_seconds": 266.2292864918709,
+      "bytes": 164498240,
+      "full20": false
+    }
+  ],
+  "selected": [
+    {
+      "objective": "combined",
+      "target_bpp": 0.15,
+      "lambda": 0.095949540990876,
+      "selection": "bpp linear in log-lambda within measured bracket",
+      "AP_used": false
+    },
+    {
+      "objective": "combined",
+      "target_bpp": 0.3,
+      "lambda": 0.030996315958971565,
+      "selection": "bpp linear in log-lambda within measured bracket",
+      "AP_used": false
+    }
+  ]
+}
