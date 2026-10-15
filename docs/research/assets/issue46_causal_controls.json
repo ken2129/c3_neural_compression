@@ -3880,10 +3880,193 @@
     }
   },
   "cost_current": {
-    "as_of": "2026-10-15T00:27:54.843219+00:00",
-    "GPU_target_process_hours": 10.265543797824842,
-    "includes_import_compile_and_failed_attempts": true,
-    "no_time_limit": true,
-    "diagnostic_GiB": 7.880229516886175
+    "GPU_target_process_seconds": 52127.91854439862,
+    "GPU_target_process_hours": 14.479977373444061,
+    "diagnostic_GiB_at_audit": 8.447448994964361,
+    "minimum_disk_reserve_GiB": 3,
+    "time_limit_seconds": null,
+    "scope": "includes imports/compilation/failed attempts; not pure GPU kernel time"
+  },
+  "original_step50_separated_flags_full20": {
+    "status": "complete",
+    "verified_at": "2026-10-15T03:21:11.594206+00:00",
+    "image_count": 20,
+    "canonical_evaluator_cudnn_deterministic": true,
+    "arms": [
+      {
+        "condition": "middle",
+        "backend": "default",
+        "physical_training_GPU": 0,
+        "canonical_evaluation_GPU": 0,
+        "mean_estimated_bpp": 0.1450063058139123,
+        "mean_MSE": 0.005411079182522371,
+        "AP_points": 47.08852354064062,
+        "AP50_points": 67.27236457381589,
+        "arm_original_AP_points": 47.08852354064062,
+        "predictions_exact_to_arm": true
+      },
+      {
+        "condition": "middle",
+        "backend": "deterministic",
+        "physical_training_GPU": 0,
+        "canonical_evaluation_GPU": 0,
+        "mean_estimated_bpp": 0.14453256533882758,
+        "mean_MSE": 0.005420065985526889,
+        "AP_points": 47.51451401661696,
+        "AP50_points": 66.12952769377698,
+        "arm_original_AP_points": 47.51451401661696,
+        "predictions_exact_to_arm": true
+      },
+      {
+        "condition": "middle",
+        "backend": "cudnn_only",
+        "physical_training_GPU": 0,
+        "canonical_evaluation_GPU": 0,
+        "mean_estimated_bpp": 0.1448702661926745,
+        "mean_MSE": 0.005419668508693576,
+        "AP_points": 49.42489661854971,
+        "AP50_points": 68.6501921243464,
+        "arm_original_AP_points": 49.42489661854971,
+        "predictions_exact_to_arm": true
+      },
+      {
+        "condition": "middle",
+        "backend": "xla_only",
+        "physical_training_GPU": 0,
+        "canonical_evaluation_GPU": 0,
+        "mean_estimated_bpp": 0.14480011508687002,
+        "mean_MSE": 0.0054369976569432765,
+        "AP_points": 47.30174343826856,
+        "AP50_points": 68.4328660044007,
+        "arm_original_AP_points": 47.30174343826856,
+        "predictions_exact_to_arm": true
+      },
+      {
+        "condition": "high",
+        "backend": "default",
+        "physical_training_GPU": 1,
+        "canonical_evaluation_GPU": 0,
+        "mean_estimated_bpp": 0.28624239840808846,
+        "mean_MSE": 0.0048631947254762055,
+        "AP_points": 46.150292634782154,
+        "AP50_points": 65.44590735155448,
+        "arm_original_AP_points": 46.150292634782154,
+        "predictions_exact_to_arm": true
+      },
+      {
+        "condition": "high",
+        "backend": "deterministic",
+        "physical_training_GPU": 1,
+        "canonical_evaluation_GPU": 0,
+        "mean_estimated_bpp": 0.28619818640451267,
+        "mean_MSE": 0.004868124832864851,
+        "AP_points": 44.60061956993705,
+        "AP50_points": 63.79623024236947,
+        "arm_original_AP_points": 44.60061956993705,
+        "predictions_exact_to_arm": true
+      },
+      {
+        "condition": "high",
+        "backend": "cudnn_only",
+        "physical_training_GPU": 1,
+        "canonical_evaluation_GPU": 0,
+        "mean_estimated_bpp": 0.2858938308968944,
+        "mean_MSE": 0.004853318375535309,
+        "AP_points": 45.91874390602508,
+        "AP50_points": 65.79497728101303,
+        "arm_original_AP_points": 45.91874390602508,
+        "predictions_exact_to_arm": true
+      },
+      {
+        "condition": "high",
+        "backend": "xla_only",
+        "physical_training_GPU": 1,
+        "canonical_evaluation_GPU": 0,
+        "mean_estimated_bpp": 0.28641369137469386,
+        "mean_MSE": 0.004888289020163939,
+        "AP_points": 46.20860890705605,
+        "AP50_points": 66.356518077464,
+        "arm_original_AP_points": 46.20860890705605,
+        "predictions_exact_to_arm": true
+      }
+    ],
+    "high_minus_middle_AP_points": {
+      "default": -0.9382309058584681,
+      "deterministic": -2.9138944466799046,
+      "cudnn_only": -3.5061527125246315,
+      "xla_only": -1.093134531212506
+    },
+    "per_lambda_factorial_AP_contrasts": {
+      "middle": {
+        "XLA_given_cudnn_off": 0.21321989762793692,
+        "XLA_given_cudnn_on": -1.9103826019327528,
+        "cudnn_given_XLA_off": 2.336373077909087,
+        "cudnn_given_XLA_on": 0.21277057834839752,
+        "interaction": -2.1236024995606897
+      },
+      "high": {
+        "XLA_given_cudnn_off": 0.05831627227389902,
+        "XLA_given_cudnn_on": -1.318124336088026,
+        "cudnn_given_XLA_off": -0.2315487287570761,
+        "cudnn_given_XLA_on": -1.607989337119001,
+        "interaction": -1.376440608361925
+      }
+    },
+    "parameter_identity": [
+      {
+        "condition": "middle",
+        "backend": "default",
+        "versus": "deterministic",
+        "pre_params_exact_count": 0,
+        "quantized_params_exact_count": 0,
+        "PNG_exact_count": 0
+      },
+      {
+        "condition": "middle",
+        "backend": "cudnn_only",
+        "versus": "deterministic",
+        "pre_params_exact_count": 0,
+        "quantized_params_exact_count": 0,
+        "PNG_exact_count": 0
+      },
+      {
+        "condition": "middle",
+        "backend": "xla_only",
+        "versus": "deterministic",
+        "pre_params_exact_count": 0,
+        "quantized_params_exact_count": 0,
+        "PNG_exact_count": 0
+      },
+      {
+        "condition": "high",
+        "backend": "default",
+        "versus": "deterministic",
+        "pre_params_exact_count": 0,
+        "quantized_params_exact_count": 0,
+        "PNG_exact_count": 0
+      },
+      {
+        "condition": "high",
+        "backend": "cudnn_only",
+        "versus": "deterministic",
+        "pre_params_exact_count": 0,
+        "quantized_params_exact_count": 0,
+        "PNG_exact_count": 0
+      },
+      {
+        "condition": "high",
+        "backend": "xla_only",
+        "versus": "deterministic",
+        "pre_params_exact_count": 0,
+        "quantized_params_exact_count": 0,
+        "PNG_exact_count": 0
+      }
+    ],
+    "limitations": [
+      "single realization per stochastic cell; conditional contrasts are not AP variance estimates",
+      "intervention starts at original50 state; pre50 history held",
+      "not unique additive attribution of historical gap; not matched-rate repair",
+      "all original artifacts untouched; generation and evaluation flags separated"
+    ]
   }
 }
