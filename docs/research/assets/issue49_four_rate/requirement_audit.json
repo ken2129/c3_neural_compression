@@ -1,0 +1,282 @@
+{
+  "scope": "Issue49 approved fixed20 calibration and independent-subset20 study",
+  "checklist": [
+    {
+      "section": "① 条件と再現性を固定する",
+      "item": 1,
+      "requirement": "#48の結果と未解決事項を確認し、今回採用するコードcommit・数値計算設定・checkpoint選択・保存規則を記録する。",
+      "status": "delivered",
+      "evidence": "Pinned implementation and deterministic flags; fresh exact repeats; pilot cost/storage gate; final source audit."
+    },
+    {
+      "section": "① 条件と再現性を固定する",
+      "item": 2,
+      "requirement": "数値計算設定は再現性の確認に基づいて選ぶ。調整集合でもAPが最も高い数値設定を採用する選び方はしない。",
+      "status": "delivered",
+      "evidence": "Pinned implementation and deterministic flags; fresh exact repeats; pilot cost/storage gate; final source audit."
+    },
+    {
+      "section": "① 条件と再現性を固定する",
+      "item": 3,
+      "requirement": "既存成果物を再利用する条件を明記。画像・入力・評価器・rate規約・実装／数値設定が対応しない点は、同じ曲線へ無条件に混ぜない。",
+      "status": "delivered",
+      "evidence": "Pinned implementation and deterministic flags; fresh exact repeats; pilot cost/storage gate; final source audit."
+    },
+    {
+      "section": "① 条件と再現性を固定する",
+      "item": 4,
+      "requirement": "最小の再現性確認で、同一入力・seedのパラメータ／復元／予測の一致を点検し、完全一致を要求しない項目は許容差を事前に決める。",
+      "status": "delivered",
+      "evidence": "Pinned implementation and deterministic flags; fresh exact repeats; pilot cost/storage gate; final source audit."
+    },
+    {
+      "section": "① 条件と再現性を固定する",
+      "item": 5,
+      "requirement": "最新設定の所要時間と保存容量を測り、後段全体の費用を見積もる。#46での「GPU2台・時間上限なし」を新しい実験全体の予算へ無条件に読み替えない。",
+      "status": "delivered",
+      "evidence": "Pinned implementation and deterministic flags; fresh exact repeats; pilot cost/storage gate; final source audit."
+    },
+    {
+      "section": "② 既存20画像で各方式4点を校正し、設定を凍結する",
+      "item": 1,
+      "requirement": "調整集合は#41と同じ20画像。独立評価とは呼ばない。",
+      "status": "delivered",
+      "evidence": "Eight fresh fixed20 conditions; rate-only rule; initial candidates all pass; frozen lambda CSV; immutable pre-heldout freeze."
+    },
+    {
+      "section": "② 既存20画像で各方式4点を校正し、設定を凍結する",
+      "item": 2,
+      "requirement": "**各方式4点、計8条件**を目安とする。目標bpp案は **0.10／0.15／0.225／0.30**。これらは今回の設計案で、論文の標準設定とは主張しない。到達可能性と費用を見て、校正を始める前に4点の範囲を確定する。",
+      "status": "delivered",
+      "evidence": "Eight fresh fixed20 conditions; rate-only rule; initial candidates all pass; frozen lambda CSV; immutable pre-heldout freeze."
+    },
+    {
+      "section": "② 既存20画像で各方式4点を校正し、設定を凍結する",
+      "item": 3,
+      "requirement": "λは**20画像平均のrateだけ**から選ぶ。APでλ・seed・checkpoint・数値設定を選ばない。",
+      "status": "delivered",
+      "evidence": "Eight fresh fixed20 conditions; rate-only rule; initial candidates all pass; frozen lambda CSV; immutable pre-heldout freeze."
+    },
+    {
+      "section": "② 既存20画像で各方式4点を校正し、設定を凍結する",
+      "item": 4,
+      "requirement": "既存7点を校正の参考に使うが、採用設定との対応を照合する。1画像のrateを20画像平均へそのまま当てはめない。",
+      "status": "delivered",
+      "evidence": "Eight fresh fixed20 conditions; rate-only rule; initial candidates all pass; frozen lambda CSV; immutable pre-heldout freeze."
+    },
+    {
+      "section": "② 既存20画像で各方式4点を校正し、設定を凍結する",
+      "item": 5,
+      "requirement": "初期候補、補間／外挿の規則、候補数・費用の上限、失敗・未達の停止条件を先に固定する。失敗と校正分も費用に含める。",
+      "status": "delivered",
+      "evidence": "Eight fresh fixed20 conditions; rate-only rule; initial candidates all pass; frozen lambda CSV; immutable pre-heldout freeze."
+    },
+    {
+      "section": "② 既存20画像で各方式4点を校正し、設定を凍結する",
+      "item": 6,
+      "requirement": "校正では各目標との相対差±10%と、対応する方式間rate差10%を別々に検証。定義は#41と揃え、方式間差は通常C3の実測bppを分母にする。",
+      "status": "delivered",
+      "evidence": "Eight fresh fixed20 conditions; rate-only rule; initial candidates all pass; frozen lambda CSV; immutable pre-heldout freeze."
+    },
+    {
+      "section": "② 既存20画像で各方式4点を校正し、設定を凍結する",
+      "item": 7,
+      "requirement": "上限内で揃わない点を消さず、到達rateと未達を保存して評価計画を判断する。",
+      "status": "delivered",
+      "evidence": "Eight fresh fixed20 conditions; rate-only rule; initial candidates all pass; frozen lambda CSV; immutable pre-heldout freeze."
+    },
+    {
+      "section": "② 既存20画像で各方式4点を校正し、設定を凍結する",
+      "item": 8,
+      "requirement": "最終的な8条件のλ・モデル・step・seed/RNG・数値設定・評価器と解析規則を凍結し、未使用集合のAPを見る前に記録する。",
+      "status": "delivered",
+      "evidence": "Eight fresh fixed20 conditions; rate-only rule; initial candidates all pass; frozen lambda CSV; immutable pre-heldout freeze."
+    },
+    {
+      "section": "③ 未使用画像集合を決める",
+      "item": 1,
+      "requirement": "評価集合は調整20画像と非重複にし、既存実験での使用履歴も確認する。確認できない画像を「完全未使用」と断定しない。",
+      "status": "delivered",
+      "evidence": "624 inspected prior-use exclusions, SHA256 selection seed, frozen nonoverlapping20 manifest; scoped unused claim; common JPEG baseline."
+    },
+    {
+      "section": "③ 未使用画像集合を決める",
+      "item": 2,
+      "requirement": "抽出母集団、除外規則、抽出seed、画像数、manifestを評価APを見る前に固定する。カテゴリ構成や検出結果を見て有利な集合へ差し替えない。",
+      "status": "delivered",
+      "evidence": "624 inspected prior-use exclusions, SHA256 selection seed, frozen nonoverlapping20 manifest; scoped unused claim; common JPEG baseline."
+    },
+    {
+      "section": "③ 未使用画像集合を決める",
+      "item": 3,
+      "requirement": "画像数は自動的に100枚／5,000枚にせず、①の実測費用・保存先と判断したい精度から決める。候補画像数ごとに必要GPU時間と保存容量を提示する。",
+      "status": "delivered",
+      "evidence": "624 inspected prior-use exclusions, SHA256 selection seed, frozen nonoverlapping20 manifest; scoped unused claim; common JPEG baseline."
+    },
+    {
+      "section": "③ 未使用画像集合を決める",
+      "item": 4,
+      "requirement": "保存先と空き容量を確保する。旧成果物の削除を前提にしない。大容量成果物をBoxへ転送する場合、従来通り転送先を提案・承認してから行う。",
+      "status": "delivered",
+      "evidence": "624 inspected prior-use exclusions, SHA256 selection seed, frozen nonoverlapping20 manifest; scoped unused claim; common JPEG baseline."
+    },
+    {
+      "section": "③ 未使用画像集合を決める",
+      "item": 5,
+      "requirement": "元画像baselineも同じ評価集合・共通評価器で測る。COCO配布JPEGを入力とするbaselineであり、JPEG化前の無損失原画像とは呼ばない。",
+      "status": "delivered",
+      "evidence": "624 inspected prior-use exclusions, SHA256 selection seed, frozen nonoverlapping20 manifest; scoped unused claim; common JPEG baseline."
+    },
+    {
+      "section": "④ 固定した8条件を評価する",
+      "item": 1,
+      "requirement": "同じ評価集合・共通評価器で通常C3／C3′各4点を測定。N画像なら本測定は **8N符号化**。baseline・校正・再現性確認は別途見積もる。",
+      "status": "delivered",
+      "evidence": "160 heldout encodes; immutable settings; official pooled six metrics; recomputed image-mean total-bit rates; complete provenance replay."
+    },
+    {
+      "section": "④ 固定した8条件を評価する",
+      "item": 2,
+      "requirement": "時間見積りは各方式の1画像費用から **4N ×（通常C3費用＋C3′費用）** とし、compile・検出評価・画像サイズ差の余裕を含める。壁時計時間と累計GPU時間を分ける。",
+      "status": "delivered",
+      "evidence": "160 heldout encodes; immutable settings; official pooled six metrics; recomputed image-mean total-bit rates; complete provenance replay."
+    },
+    {
+      "section": "④ 固定した8条件を評価する",
+      "item": 3,
+      "requirement": "評価集合では、実測rateが目標からずれてもλを再調整しない。非単調なAPや不利な点も残す。rateを揃え直す場合は、その集合を以後独立評価として扱わず、新しい計画へ切り分ける。",
+      "status": "delivered",
+      "evidence": "160 heldout encodes; immutable settings; official pooled six metrics; recomputed image-mean total-bit rates; complete provenance replay."
+    },
+    {
+      "section": "④ 固定した8条件を評価する",
+      "item": 4,
+      "requirement": "集合全体の公式COCO box AP@[.50:.95]を主metric、AP50／AP75／サイズ別APを補助metricとする。画像別APの単純平均で集合APを置き換えない。",
+      "status": "delivered",
+      "evidence": "160 heldout encodes; immutable settings; official pooled six metrics; recomputed image-mean total-bit rates; complete provenance replay."
+    },
+    {
+      "section": "④ 固定した8条件を評価する",
+      "item": 5,
+      "requirement": "主rateは各画像の全推定bits／resize済み非padding画素数の算術平均。latentと画像ごとのnetwork bitsを含め、実bitstreamとは区別する。",
+      "status": "delivered",
+      "evidence": "160 heldout encodes; immutable settings; official pooled six metrics; recomputed image-mean total-bit rates; complete provenance replay."
+    },
+    {
+      "section": "④ 固定した8条件を評価する",
+      "item": 6,
+      "requirement": "圧縮前の短辺800／長辺上限1333 resize、復元後の二重resizeなし、元画像座標へのbox変換を維持。",
+      "status": "delivered",
+      "evidence": "160 heldout encodes; immutable settings; official pooled six metrics; recomputed image-mean total-bit rates; complete provenance replay."
+    },
+    {
+      "section": "④ 固定した8条件を評価する",
+      "item": 7,
+      "requirement": "現C3′は画像MSE係数1、feature L1係数0.1、FPN層0–3各0.25。500 noise＋最大50 STEを出発条件とし、変更するなら①で理由と費用を決め、凍結後に変更しない。teacherは勝手に交換しない。",
+      "status": "delivered",
+      "evidence": "160 heldout encodes; immutable settings; official pooled six metrics; recomputed image-mean total-bit rates; complete provenance replay."
+    },
+    {
+      "section": "④ 固定した8条件を評価する",
+      "item": 8,
+      "requirement": "source/config、入力、評価器、完了attempt、復元・予測の対応とrateを検証する。",
+      "status": "delivered",
+      "evidence": "160 heldout encodes; immutable settings; official pooled six metrics; recomputed image-mean total-bit rates; complete provenance replay."
+    },
+    {
+      "section": "⑤ 結果を判定し、次段階を決める",
+      "item": 1,
+      "requirement": "調整集合と未使用集合を分け、実測bpp–APの全点と元画像baselineを図表へ記録する。",
+      "status": "delivered",
+      "evidence": "Separate complete plots/tables/baselines; rate flags and paired AP ranges; mixed conclusions; no interpolation/BD-rate/superiority claim; no external extension."
+    },
+    {
+      "section": "⑤ 結果を判定し、次段階を決める",
+      "item": 2,
+      "requirement": "目標への近さ、方式間のrate差、AP差を別々に報告。rate不一致のAP差を厳密な同rate改善量としない。",
+      "status": "delivered",
+      "evidence": "Separate complete plots/tables/baselines; rate flags and paired AP ranges; mixed conclusions; no interpolation/BD-rate/superiority claim; no external extension."
+    },
+    {
+      "section": "⑤ 結果を判定し、次段階を決める",
+      "item": 3,
+      "requirement": "不確実性の評価方法を実行前に決める。画像再抽出等を使う場合、公式COCO APの集合再計算とカテゴリ支持数の変化を考慮し、画像別APの平均から信頼区間を作らない。",
+      "status": "delivered",
+      "evidence": "Separate complete plots/tables/baselines; rate flags and paired AP ranges; mixed conclusions; no interpolation/BD-rate/superiority claim; no external extension."
+    },
+    {
+      "section": "⑤ 結果を判定し、次段階を決める",
+      "item": 4,
+      "requirement": "1 seedや4点だけで統計的優越性・普遍的な単調性を主張しない。補間したAPを実測と混同せず、点数・曲線形状が不十分ならBD-rateを算出しない。",
+      "status": "delivered",
+      "evidence": "Separate complete plots/tables/baselines; rate flags and paired AP ranges; mixed conclusions; no interpolation/BD-rate/superiority claim; no external extension."
+    },
+    {
+      "section": "⑤ 結果を判定し、次段階を決める",
+      "item": 5,
+      "requirement": "改善が有望なら、対応する条件のTransTIC／Adapt-ICMH比較を次Issueで計画。今回の20画像APや未使用subset APを論文の全5,000画像APと直接差し引かない。",
+      "status": "delivered",
+      "evidence": "Separate complete plots/tables/baselines; rate flags and paired AP ranges; mixed conclusions; no interpolation/BD-rate/superiority claim; no external extension."
+    },
+    {
+      "section": "⑤ 結果を判定し、次段階を決める",
+      "item": 6,
+      "requirement": "同じ非単調性が再現し研究結論を左右する場合に限り、#46の原因調査を必要な範囲で再開する。改善が出なかったこと自体を実装失敗と決めない。",
+      "status": "delivered",
+      "evidence": "Separate complete plots/tables/baselines; rate flags and paired AP ranges; mixed conclusions; no interpolation/BD-rate/superiority claim; no external extension."
+    },
+    {
+      "section": "completion",
+      "item": 1,
+      "requirement": "校正と非重複評価の区別、固定された設定と選択履歴が記録されている。",
+      "status": "delivered",
+      "evidence": "See research record, artifact bundle and results PR."
+    },
+    {
+      "section": "completion",
+      "item": 2,
+      "requirement": "各方式4点の測定・共通評価・出典照合が完了、または停止／未達と不足が証拠付きで示されている。",
+      "status": "delivered",
+      "evidence": "See research record, artifact bundle and results PR."
+    },
+    {
+      "section": "completion",
+      "item": 3,
+      "requirement": "rate・AP・baseline・不確実性・費用・限定事項から、改善の有無／判定不能を説明できる。",
+      "status": "delivered",
+      "evidence": "See research record, artifact bundle and results PR."
+    },
+    {
+      "section": "completion",
+      "item": 4,
+      "requirement": "数値とグラフ、実行履歴、次段階の判断を研究記録とmain向け結果PRに残す。",
+      "status": "delivered_with_results_PR",
+      "evidence": "Final research record, complete artifacts and this main-targeted results PR; final PR head/tree readback retained privately."
+    },
+    {
+      "section": "completion",
+      "item": 5,
+      "requirement": "ユーザーのレビュー・マージ後に終了範囲を確定する。",
+      "status": "pending_user_review_and_merge",
+      "evidence": "No merge/closure performed; user review determines final scope."
+    }
+  ],
+  "operational_obligations": {
+    "predeclared_scope_and_approval": "met:40 GPUh,484 encodes,8GiB; actual324 encodes/16.2897 GPUh",
+    "GPU_monitoring_limits_no_interference": "met:42 terminal receipts; budget/storage/nonfinite/hash guards; no additional GPU work",
+    "periodic_and_completion_Slack_notification": "exception: start notification blocked by automatic approval review because destination and payload authorization were not verified; not retried; no completion-delivery claim",
+    "publication_and_science_separated": "met: all scientific audit and private figures continued independently",
+    "latest_main_docs_no_overwrite": "met: new records based on checked main; prior records unchanged",
+    "public_privacy": "passed: public file whitelist, no internal paths/image-ID lists/model hashes/secrets; final local/remote tree checked separately",
+    "Box_retention": "verified:21 archives,3402874880 bytes, all SHA1/size/destination readbacks match,2966 job files rehashed; final delivery receipt supplement tracked privately",
+    "user_review_merge_issue_close": "pending_user: no merge/close performed"
+  },
+  "completion_condition_summary": {
+    "calibration_vs_heldout_and_selection": "met",
+    "eight_conditions_common_evaluation_and_provenance": "met",
+    "interpretation_uncertainty_cost_limits": "met",
+    "research_record_and_results_PR": "delivered_with_results_PR",
+    "user_review_and_merge_scope_decision": "pending_user"
+  },
+  "Goal_complete": false
+}
