@@ -328,3 +328,5 @@ and [the actual CPU validation record](docs/issue20_validation.md). The helpers
 freeze shared image IDs, preserve per-image estimated bits and all resize
 geometries, use one explicit Detectron2 checkpoint for evaluation, and reject
 partial/mixed results. CPU synthetic smokes are not COCO performance results.
+
+- [Issue26：YOLOv8mへの転移評価（20画像・各4点）](docs/research/2026-10-16_issue26_yolo_transfer.md)
