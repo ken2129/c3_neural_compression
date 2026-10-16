@@ -7,7 +7,8 @@ belongs to this experiment.
 
 The execution runtime is the fixed repository source commit
 `0c3a60c703bd41956b6558d527470350bcc7dd5d`, which provides the evaluation package.
-The base main branch does not by itself contain that runtime. Supply the original
+The current main tree includes that evaluation runtime; the historical run
+remains bound to the commit above and is not implicitly re-executed. Supply the original
 private execution layout to `--root`; manifests, checkpoint locations/digests,
 images, predictions, and environment metadata stay private. Published research
 assets contain aggregates only. Do not publish the private root.
