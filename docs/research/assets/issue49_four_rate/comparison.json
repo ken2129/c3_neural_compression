@@ -1,0 +1,525 @@
+{
+  "schema_version": 1,
+  "targets": [
+    0.1,
+    0.15,
+    0.225,
+    0.3
+  ],
+  "phases": {
+    "calibration": {
+      "N": 20,
+      "baseline": {
+        "status": "complete",
+        "input": "COCO-distributed JPEG",
+        "box_ap_percent": 52.642487188189904,
+        "box_ap50_percent": 71.96022230923104,
+        "box_ap75_percent": 55.09840653822453,
+        "box_ap_small_percent": 25.648598431271697,
+        "box_ap_medium_percent": 56.88866135714585,
+        "box_ap_large_percent": 77.64946148390823
+      },
+      "points": [
+        {
+          "method": "c3_image",
+          "target_bpp": 0.1,
+          "status": "complete",
+          "mean_estimated_bpp": 0.09650612926604143,
+          "box_ap_percent": 30.471211789812457,
+          "box_ap50_percent": 45.885547401947996,
+          "box_ap75_percent": 30.956049313952995,
+          "box_ap_small_percent": 10.981626953904179,
+          "box_ap_medium_percent": 28.256302947454742,
+          "box_ap_large_percent": 57.8099325643416,
+          "target_relative_error": 0.034938707339585706,
+          "target_passed": true
+        },
+        {
+          "method": "c3_image",
+          "target_bpp": 0.15,
+          "status": "complete",
+          "mean_estimated_bpp": 0.14979837356386563,
+          "box_ap_percent": 37.075969539020385,
+          "box_ap50_percent": 54.852833068395235,
+          "box_ap75_percent": 41.00331681879565,
+          "box_ap_small_percent": 12.410821382890166,
+          "box_ap_medium_percent": 36.61326547195845,
+          "box_ap_large_percent": 70.06097665054966,
+          "target_relative_error": 0.0013441762408957412,
+          "target_passed": true
+        },
+        {
+          "method": "c3_image",
+          "target_bpp": 0.225,
+          "status": "complete",
+          "mean_estimated_bpp": 0.22434055515190982,
+          "box_ap_percent": 44.49779059825243,
+          "box_ap50_percent": 64.01509842199002,
+          "box_ap75_percent": 47.37379034785707,
+          "box_ap_small_percent": 21.307831350361926,
+          "box_ap_medium_percent": 44.028933333543044,
+          "box_ap_large_percent": 74.11280758647982,
+          "target_relative_error": 0.0029308659915119576,
+          "target_passed": true
+        },
+        {
+          "method": "c3_image",
+          "target_bpp": 0.3,
+          "status": "complete",
+          "mean_estimated_bpp": 0.3003668451041922,
+          "box_ap_percent": 45.8356499935479,
+          "box_ap50_percent": 64.72504651615664,
+          "box_ap75_percent": 49.12764487586448,
+          "box_ap_small_percent": 23.78799174049073,
+          "box_ap_medium_percent": 47.04963895118116,
+          "box_ap_large_percent": 74.53059996383509,
+          "target_relative_error": 0.00122281701397405,
+          "target_passed": true
+        },
+        {
+          "method": "c3_combined",
+          "target_bpp": 0.1,
+          "status": "complete",
+          "mean_estimated_bpp": 0.10012918435777311,
+          "box_ap_percent": 44.78917757222119,
+          "box_ap50_percent": 62.66172280937871,
+          "box_ap75_percent": 46.20238890439362,
+          "box_ap_small_percent": 13.36785928592859,
+          "box_ap_medium_percent": 48.605459265755464,
+          "box_ap_large_percent": 75.53799774066773,
+          "target_relative_error": 0.0012918435777310722,
+          "target_passed": true
+        },
+        {
+          "method": "c3_combined",
+          "target_bpp": 0.15,
+          "status": "complete",
+          "mean_estimated_bpp": 0.150563736940513,
+          "box_ap_percent": 42.185901946245316,
+          "box_ap50_percent": 60.730587048275964,
+          "box_ap75_percent": 45.65002870633574,
+          "box_ap_small_percent": 15.040331652212839,
+          "box_ap_medium_percent": 44.48750930716039,
+          "box_ap_large_percent": 71.1200208441397,
+          "target_relative_error": 0.003758246270086733,
+          "target_passed": true
+        },
+        {
+          "method": "c3_combined",
+          "target_bpp": 0.225,
+          "status": "complete",
+          "mean_estimated_bpp": 0.23008944129723727,
+          "box_ap_percent": 46.3998347870096,
+          "box_ap50_percent": 64.4172014762752,
+          "box_ap75_percent": 48.74846392178158,
+          "box_ap_small_percent": 22.522430457331446,
+          "box_ap_medium_percent": 46.40478762150016,
+          "box_ap_large_percent": 75.32185302957815,
+          "target_relative_error": 0.02261973909883228,
+          "target_passed": true
+        },
+        {
+          "method": "c3_combined",
+          "target_bpp": 0.3,
+          "status": "complete",
+          "mean_estimated_bpp": 0.29612240028516545,
+          "box_ap_percent": 47.84459970930774,
+          "box_ap50_percent": 69.05734223443851,
+          "box_ap75_percent": 51.68688444527141,
+          "box_ap_small_percent": 21.93153900554891,
+          "box_ap_medium_percent": 52.23646088159639,
+          "box_ap_large_percent": 77.83346201661213,
+          "target_relative_error": 0.012925332382781781,
+          "target_passed": true
+        }
+      ],
+      "paired_comparisons": [
+        {
+          "target_bpp": 0.1,
+          "relative_rate_difference": 0.037542227828285285,
+          "rate_pair_passed": true,
+          "AP_difference_points": 14.317965782408734,
+          "delete_one_AP_difference_min": 12.32727550474988,
+          "delete_one_AP_difference_max": 15.989773538743474
+        },
+        {
+          "target_bpp": 0.15,
+          "relative_rate_difference": 0.005109290297608359,
+          "rate_pair_passed": true,
+          "AP_difference_points": 5.109932407224932,
+          "delete_one_AP_difference_min": 2.9871726459627435,
+          "delete_one_AP_difference_max": 6.457802965869986
+        },
+        {
+          "target_bpp": 0.225,
+          "relative_rate_difference": 0.025625710614091402,
+          "rate_pair_passed": true,
+          "AP_difference_points": 1.9020441887571735,
+          "delete_one_AP_difference_min": 1.6708426366143447,
+          "delete_one_AP_difference_max": 2.5319322882431825
+        },
+        {
+          "target_bpp": 0.3,
+          "relative_rate_difference": 0.014130869928584902,
+          "rate_pair_passed": true,
+          "AP_difference_points": 2.00894971575984,
+          "delete_one_AP_difference_min": 0.28460726393804703,
+          "delete_one_AP_difference_max": 4.540283236703796
+        }
+      ]
+    },
+    "heldout": {
+      "N": 20,
+      "baseline": {
+        "status": "complete",
+        "input": "COCO-distributed JPEG",
+        "box_ap_percent": 47.432959401770944,
+        "box_ap50_percent": 64.79709769983305,
+        "box_ap75_percent": 49.99785755506001,
+        "box_ap_small_percent": 21.085275195747318,
+        "box_ap_medium_percent": 50.79855813982529,
+        "box_ap_large_percent": 70.80563413484205
+      },
+      "points": [
+        {
+          "method": "c3_image",
+          "target_bpp": 0.1,
+          "status": "complete",
+          "mean_estimated_bpp": 0.1051765044229496,
+          "box_ap_percent": 29.733242364695784,
+          "box_ap50_percent": 52.509137214300004,
+          "box_ap75_percent": 27.59869730365433,
+          "box_ap_small_percent": 12.66103092234058,
+          "box_ap_medium_percent": 28.440413948280526,
+          "box_ap_large_percent": 52.356676994230035,
+          "target_relative_error": 0.051765044229495905,
+          "target_passed": true
+        },
+        {
+          "method": "c3_image",
+          "target_bpp": 0.15,
+          "status": "complete",
+          "mean_estimated_bpp": 0.16231737121091908,
+          "box_ap_percent": 36.49191895047416,
+          "box_ap50_percent": 56.430825905832705,
+          "box_ap75_percent": 38.564557647604076,
+          "box_ap_small_percent": 20.84098551561694,
+          "box_ap_medium_percent": 36.537473317467494,
+          "box_ap_large_percent": 56.76980198019802,
+          "target_relative_error": 0.08211580807279388,
+          "target_passed": true
+        },
+        {
+          "method": "c3_image",
+          "target_bpp": 0.225,
+          "status": "complete",
+          "mean_estimated_bpp": 0.24138029640448644,
+          "box_ap_percent": 41.23185496573998,
+          "box_ap50_percent": 61.15214610118004,
+          "box_ap75_percent": 45.03075170842831,
+          "box_ap_small_percent": 21.433042565890833,
+          "box_ap_medium_percent": 43.04502942251006,
+          "box_ap_large_percent": 62.771152115211514,
+          "target_relative_error": 0.07280131735327304,
+          "target_passed": true
+        },
+        {
+          "method": "c3_image",
+          "target_bpp": 0.3,
+          "status": "complete",
+          "mean_estimated_bpp": 0.3169445500418172,
+          "box_ap_percent": 41.971638025658436,
+          "box_ap50_percent": 62.19699816241396,
+          "box_ap75_percent": 46.162356833082946,
+          "box_ap_small_percent": 19.603666546561346,
+          "box_ap_medium_percent": 42.73267879752867,
+          "box_ap_large_percent": 65.18741159830269,
+          "target_relative_error": 0.05648183347272406,
+          "target_passed": true
+        },
+        {
+          "method": "c3_combined",
+          "target_bpp": 0.1,
+          "status": "complete",
+          "mean_estimated_bpp": 0.09457139983328176,
+          "box_ap_percent": 36.164844702269846,
+          "box_ap50_percent": 56.09614124248462,
+          "box_ap75_percent": 38.23362970649176,
+          "box_ap_small_percent": 10.381971660479744,
+          "box_ap_medium_percent": 33.90940540362114,
+          "box_ap_large_percent": 62.97736916548797,
+          "target_relative_error": 0.05428600166718242,
+          "target_passed": true
+        },
+        {
+          "method": "c3_combined",
+          "target_bpp": 0.15,
+          "status": "complete",
+          "mean_estimated_bpp": 0.14459997657775434,
+          "box_ap_percent": 37.14991619780687,
+          "box_ap50_percent": 58.77169740191093,
+          "box_ap75_percent": 37.148701998240256,
+          "box_ap_small_percent": 17.36929885840739,
+          "box_ap_medium_percent": 38.80657997289057,
+          "box_ap_large_percent": 61.78184144945106,
+          "target_relative_error": 0.036000156148304395,
+          "target_passed": true
+        },
+        {
+          "method": "c3_combined",
+          "target_bpp": 0.225,
+          "status": "complete",
+          "mean_estimated_bpp": 0.22472595847969218,
+          "box_ap_percent": 40.42430325278183,
+          "box_ap50_percent": 55.68271839888208,
+          "box_ap75_percent": 43.57986714667037,
+          "box_ap_small_percent": 16.775153833533082,
+          "box_ap_medium_percent": 40.56850218568221,
+          "box_ap_large_percent": 68.89994611706068,
+          "target_relative_error": 0.0012179623124792321,
+          "target_passed": true
+        },
+        {
+          "method": "c3_combined",
+          "target_bpp": 0.3,
+          "status": "complete",
+          "mean_estimated_bpp": 0.2897194231980741,
+          "box_ap_percent": 42.390498997230246,
+          "box_ap50_percent": 58.88005612718884,
+          "box_ap75_percent": 45.939143081197514,
+          "box_ap_small_percent": 18.125823309663936,
+          "box_ap_medium_percent": 44.42561562509448,
+          "box_ap_large_percent": 66.53642149929279,
+          "target_relative_error": 0.034268589339753006,
+          "target_passed": true
+        }
+      ],
+      "paired_comparisons": [
+        {
+          "target_bpp": 0.1,
+          "relative_rate_difference": 0.10083149889657096,
+          "rate_pair_passed": false,
+          "AP_difference_points": 6.431602337574063,
+          "delete_one_AP_difference_min": 4.833113691965591,
+          "delete_one_AP_difference_max": 8.062105261303405
+        },
+        {
+          "target_bpp": 0.15,
+          "relative_rate_difference": 0.10915279431270689,
+          "rate_pair_passed": false,
+          "AP_difference_points": 0.6579972473327089,
+          "delete_one_AP_difference_min": -1.6780658971988216,
+          "delete_one_AP_difference_max": 2.681493537619378
+        },
+        {
+          "target_bpp": 0.225,
+          "relative_rate_difference": 0.06899626097436805,
+          "rate_pair_passed": true,
+          "AP_difference_points": -0.8075517129581442,
+          "delete_one_AP_difference_min": -1.853347921573062,
+          "delete_one_AP_difference_max": 1.1355172542790615
+        },
+        {
+          "target_bpp": 0.3,
+          "relative_rate_difference": 0.08589870638302843,
+          "rate_pair_passed": true,
+          "AP_difference_points": 0.4188609715718101,
+          "delete_one_AP_difference_min": -0.360938144240297,
+          "delete_one_AP_difference_max": 1.7170492965096262
+        }
+      ]
+    }
+  },
+  "costs": {
+    "GPU_hours": 16.28968203475233,
+    "wall_hours": 9.559847083025508
+  },
+  "rate_definition": "mean(total estimated latent and per-image network bits / resized nonpadding pixels)",
+  "interpretation": "Measured points only. AP differences at mismatched rates are not strict equal-rate improvements. No AP interpolation, BD-rate or statistical superiority claim.",
+  "uncertainty_method": "paired delete-one official pooled COCO AP, descriptive ranges with category support changes; not confidence intervals",
+  "source_commit": "0c3a60c703bd41956b6558d527470350bcc7dd5d",
+  "optimization": {
+    "noise_steps": 500,
+    "max_STE_steps": 50,
+    "seed": 20261004,
+    "image_weight": 1,
+    "feature_weight_C3prime": 0.1,
+    "FPN_layers": [
+      "0",
+      "1",
+      "2",
+      "3"
+    ],
+    "layer_weights": [
+      0.25,
+      0.25,
+      0.25,
+      0.25
+    ],
+    "teacher": "same fixed torchvision COCO_V1 feature teacher as prior protocol; shared evaluation detector is separate",
+    "generation_XLA_exclude_nondeterministic_ops": true,
+    "generation_torch_cudnn_deterministic": true
+  },
+  "frozen_conditions": [
+    {
+      "method": "c3_image",
+      "target_bpp": 0.1,
+      "lambda": 0.012183527947849207,
+      "calibration_mean_bpp": 0.09650612926604143
+    },
+    {
+      "method": "c3_image",
+      "target_bpp": 0.15,
+      "lambda": 0.005145655464008737,
+      "calibration_mean_bpp": 0.14979837356386563
+    },
+    {
+      "method": "c3_image",
+      "target_bpp": 0.225,
+      "lambda": 0.002173243273017414,
+      "calibration_mean_bpp": 0.22434055515190982
+    },
+    {
+      "method": "c3_image",
+      "target_bpp": 0.3,
+      "lambda": 0.0011726741387599535,
+      "calibration_mean_bpp": 0.3003668451041922
+    },
+    {
+      "method": "c3_combined",
+      "target_bpp": 0.1,
+      "lambda": 0.13215534204853024,
+      "calibration_mean_bpp": 0.10012918435777311
+    },
+    {
+      "method": "c3_combined",
+      "target_bpp": 0.15,
+      "lambda": 0.07790582525987069,
+      "calibration_mean_bpp": 0.150563736940513
+    },
+    {
+      "method": "c3_combined",
+      "target_bpp": 0.225,
+      "lambda": 0.043644024521953165,
+      "calibration_mean_bpp": 0.23008944129723727
+    },
+    {
+      "method": "c3_combined",
+      "target_bpp": 0.3,
+      "lambda": 0.028932084306709713,
+      "calibration_mean_bpp": 0.29612240028516545
+    }
+  ],
+  "audit_summary": {
+    "completed_jobs": 42,
+    "codec_encodes": 324,
+    "full_set_official_AP_replays_exact": 18,
+    "delete_one_official_AP_replays_exact": 360,
+    "failed_jobs": 0,
+    "heldout_started_after_freeze": true,
+    "new_GPU_experiments_during_final_audit": 0
+  },
+  "selection": {
+    "prior_used_images_excluded": 624,
+    "eligible_population": 4376,
+    "subset_N": 20,
+    "selection_seed": 20261015,
+    "rule": "SHA256(seed:ID) ascending, no category/AP filtering",
+    "unused_claim_scope": "No use in inspected experiment records; unavailable/unrecorded history not certified"
+  },
+  "uncertainty": {
+    "calibration": {
+      "method": "paired delete-one official pooled COCO AP",
+      "interpretation": "descriptive sensitivity ranges; changing category support; not confidence intervals or superiority evidence",
+      "AP_ranges_percent": {
+        "c3_image_100": [
+          28.572590948542036,
+          33.39827099915652
+        ],
+        "c3_image_150": [
+          35.296402724972694,
+          40.16041205702962
+        ],
+        "c3_image_225": [
+          42.75604497251308,
+          47.90580542601697
+        ],
+        "c3_image_300": [
+          43.820343513631066,
+          49.14613522267936
+        ],
+        "c3_combined_100": [
+          42.88240116329155,
+          47.822564891549824
+        ],
+        "c3_combined_150": [
+          40.569421928960395,
+          44.971519577330014
+        ],
+        "c3_combined_225": [
+          44.802997922226986,
+          50.042429790126995
+        ],
+        "c3_combined_300": [
+          46.047403394758405,
+          52.376985002507915
+        ],
+        "baseline": [
+          51.29649146990756,
+          57.83704607783361
+        ]
+      },
+      "category_support_range": [
+        33,
+        37
+      ]
+    },
+    "heldout": {
+      "method": "paired delete-one official pooled COCO AP",
+      "interpretation": "descriptive sensitivity ranges; changing category support; not confidence intervals or superiority evidence",
+      "AP_ranges_percent": {
+        "c3_image_100": [
+          27.310422605021206,
+          33.02781788187793
+        ],
+        "c3_image_150": [
+          34.64681270738706,
+          39.593612662976184
+        ],
+        "c3_image_225": [
+          38.438070401151926,
+          44.495967913177495
+        ],
+        "c3_image_300": [
+          39.41916426841527,
+          45.05339815345072
+        ],
+        "c3_combined_100": [
+          33.96363245062397,
+          38.75663070649963
+        ],
+        "c3_combined_150": [
+          34.10963441287817,
+          39.812799839462734
+        ],
+        "c3_combined_225": [
+          37.846633204397136,
+          43.75629303450845
+        ],
+        "c3_combined_300": [
+          40.01472160998772,
+          45.431627983742764
+        ],
+        "baseline": [
+          44.11318318086129,
+          51.874101429124806
+        ]
+      },
+      "category_support_range": [
+        26,
+        30
+      ]
+    }
+  },
+  "conclusion": "Mixed independent-subset evidence. Positive AP differences at three target pairs and negative at0.225; all heldout target errors<=10%, but method-rate gaps exceed10% at0.10/0.15. No universal equal-rate superiority or statistical significance claim. Calibration C3prime is nonmonotonic; heldout selected C3prime points are monotonic in this sample."
+}

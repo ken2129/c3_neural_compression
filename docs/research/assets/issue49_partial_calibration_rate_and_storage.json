@@ -1,0 +1,32 @@
+{
+  "status": "partial calibration, four of eight initial conditions complete",
+  "image_count": 20,
+  "dataset_role": "calibration; not independent evaluation",
+  "points": [
+    {
+      "target_bpp": 0.1,
+      "C3_mean_bpp": 0.09650612926604143,
+      "C3prime_mean_bpp": 0.10012918435777311,
+      "C3_target_relative_error": 0.034938707339585706,
+      "C3prime_target_relative_error": 0.0012918435777310722,
+      "between_method_relative_difference": 0.037542227828285285
+    },
+    {
+      "target_bpp": 0.15,
+      "C3_mean_bpp": 0.14979837356386563,
+      "C3prime_mean_bpp": 0.150563736940513,
+      "C3_target_relative_error": 0.0013441762408957412,
+      "C3prime_target_relative_error": 0.003758246270086733,
+      "between_method_relative_difference": 0.005109290297608359
+    }
+  ],
+  "AP_used_for_lambda_selection": false,
+  "old_archive_preservation": {
+    "verified_targets": 4,
+    "deleted_intermediate_checkpoint_files": 1848,
+    "deleted_intermediate_checkpoint_bytes": 19956970700,
+    "retained_files_rehashed_exact": 7816,
+    "first_latest_noise_states_and_all_noncheckpoint_artifacts_retained": true,
+    "Box_copies_preserved": true
+  }
+}
