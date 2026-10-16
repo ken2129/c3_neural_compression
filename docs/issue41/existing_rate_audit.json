@@ -1,0 +1,323 @@
+{
+  "scope": "CPU_reaggregation_of_existing_results_no_new_inference",
+  "exact_manifest_and_detector_metadata_equal": true,
+  "interpretation": "C3 original-input points only change rate reporting here. They are not measurements of resize-before-compression protocol. External points retain official codec alignment and output precision. No paper AP reproduction claim.",
+  "runs": [
+    {
+      "point": {
+        "run_dir": "/workspace/c3_neural_compression/var/issue20_resume_20261010_retry1/results/transtic_det1_eval",
+        "method": "transtic",
+        "image_count": 20,
+        "original_pixel_pooled_bpp": 0.3509439430065209,
+        "original_pixel_per_image_mean_bpp": 0.38237996839568605,
+        "resized_nonpadding_per_image_mean_bpp": 0.1132401351560699,
+        "box_AP_percent": 47.4208221187449,
+        "box_AP50_percent": 66.45969434507276,
+        "codec_input_stage": "detector_resized_image",
+        "is_new_issue41_c3_measurement": false
+      },
+      "source_json_sha256": {
+        "codec.json": "5a7ccf51cc49a2d51a88981b222a71110bf3c15051a20fd03d7f5bb829832e42",
+        "config.json": "a5dcbfea83b1b00c827213b05be817fed4c5d27f96e9b0f19898bf8518e5ef5e",
+        "detector.json": "b9a7e2ba04a1cdd540bf33f791f69eabc2d622c3f15225ca08005f98c5ee950c",
+        "environment.json": "cae01687e64822f9b3f0129426074404e416f579d64f11933c13e10cb8ed75b8",
+        "gpu_diagnostics.json": "29eac8cae0f24dd94f37a143aa27b7f357931fc8ca52af655205d710a4d76681",
+        "manifest.json": "690cb48f28d14ad13fc0bb8f0a68c6b3ffd6bfa3c9eaaa5655a1b44140f4cdaf",
+        "metrics.json": "ce874f1d6935138850d8dbb90cbf12091ee6c98042b097bdeb8369691879b3fa",
+        "per_image.json": "c01fc5099d108f09a43b994fd03bcb9df36bee530f13da762ea9de7da63e74df",
+        "predictions.json": "002b92fa221623c5aab2f1f13985644400bd8f31fa7a54e862eea9fbfe0f4418",
+        "rate_summary.json": "49318c46a362c744b6c82721a4281886250bd9c09f3ef4e151da5a1fd2378e73",
+        "status.json": "c53e9111a25e1bc7a3e3d99467432279ee5267848114b84deb069d59b0f8429d"
+      }
+    },
+    {
+      "point": {
+        "run_dir": "/workspace/c3_neural_compression/var/issue20_resume_20261010_retry1/results/transtic_det2_eval",
+        "method": "transtic",
+        "image_count": 20,
+        "original_pixel_pooled_bpp": 0.5124043891762846,
+        "original_pixel_per_image_mean_bpp": 0.5572343679014347,
+        "resized_nonpadding_per_image_mean_bpp": 0.16524041058548553,
+        "box_AP_percent": 48.28354720174762,
+        "box_AP50_percent": 71.58550628372127,
+        "codec_input_stage": "detector_resized_image",
+        "is_new_issue41_c3_measurement": false
+      },
+      "source_json_sha256": {
+        "codec.json": "a1916b0e87745fe4e5605ddb94da8f58f45d8f1bde3ac8aaa72e9b9441822a42",
+        "config.json": "d7cb3c2b4074b1a768019ed6ba906ef7f87c7205745620dd71af621e4e8911e2",
+        "detector.json": "b9a7e2ba04a1cdd540bf33f791f69eabc2d622c3f15225ca08005f98c5ee950c",
+        "environment.json": "cae01687e64822f9b3f0129426074404e416f579d64f11933c13e10cb8ed75b8",
+        "gpu_diagnostics.json": "2c09e82f1797b4d832f03933e29d9307534b564b98756f61dcfab58b8f14c1c3",
+        "manifest.json": "690cb48f28d14ad13fc0bb8f0a68c6b3ffd6bfa3c9eaaa5655a1b44140f4cdaf",
+        "metrics.json": "69dcaa090083bafcc50a68bf1cf70b1706aafd6e47285ecdd3f4f9437df80e4a",
+        "per_image.json": "6b41689bb60c7c9d2337f8ebde8ed0f9276d08c097f15035de5071fc65f8bb05",
+        "predictions.json": "10ae807d46536268d9d937f39d94e2f4ac7e2b248eac874ea505f9c7f5a1b770",
+        "rate_summary.json": "650bf0aaecd4974c239d08d7b022dac8d643af4f61847d92cb970770495194ed",
+        "status.json": "c53e9111a25e1bc7a3e3d99467432279ee5267848114b84deb069d59b0f8429d"
+      }
+    },
+    {
+      "point": {
+        "run_dir": "/workspace/c3_neural_compression/var/issue20_resume_20261010_retry1/results/transtic_det3_eval",
+        "method": "transtic",
+        "image_count": 20,
+        "original_pixel_pooled_bpp": 0.6731327901511209,
+        "original_pixel_per_image_mean_bpp": 0.7292953676176317,
+        "resized_nonpadding_per_image_mean_bpp": 0.2171948524260859,
+        "box_AP_percent": 49.49483304280065,
+        "box_AP50_percent": 71.43132962720166,
+        "codec_input_stage": "detector_resized_image",
+        "is_new_issue41_c3_measurement": false
+      },
+      "source_json_sha256": {
+        "codec.json": "c5d19dcef745aaba3acf423c46ad56ff8d7cca30b4d22304736f581b6bbb57d3",
+        "config.json": "99f59de12d54f5609c557ed46645bd6e28c56783c83b842c4022cfce6e6b5591",
+        "detector.json": "b9a7e2ba04a1cdd540bf33f791f69eabc2d622c3f15225ca08005f98c5ee950c",
+        "environment.json": "cae01687e64822f9b3f0129426074404e416f579d64f11933c13e10cb8ed75b8",
+        "gpu_diagnostics.json": "7fddec9eb113165d1c48a6611f1c2a75e63fcb97e939d2992453d71024eb0bb3",
+        "manifest.json": "690cb48f28d14ad13fc0bb8f0a68c6b3ffd6bfa3c9eaaa5655a1b44140f4cdaf",
+        "metrics.json": "d091a231214d3eef349335e07454ac4225a949aa270c62219ebf765a1d539c74",
+        "per_image.json": "9f48cc205bd670076296dda6976832e80c2e0cdfae4a87041a19e6e363310176",
+        "predictions.json": "1cbec253ac689484496b35a380279c51321140369704e85318fc16079b1d97c8",
+        "rate_summary.json": "7be7bb997fb2a261c4ab5c7125540dc7951e1c3997591af5957d1399d2be0211",
+        "status.json": "c53e9111a25e1bc7a3e3d99467432279ee5267848114b84deb069d59b0f8429d"
+      }
+    },
+    {
+      "point": {
+        "run_dir": "/workspace/c3_neural_compression/var/issue20_resume_20261010_retry1/results/transtic_det4_eval",
+        "method": "transtic",
+        "image_count": 20,
+        "original_pixel_pooled_bpp": 1.0312329636386084,
+        "original_pixel_per_image_mean_bpp": 1.1070937861933476,
+        "resized_nonpadding_per_image_mean_bpp": 0.33303605247763807,
+        "box_AP_percent": 50.382321565875685,
+        "box_AP50_percent": 69.4807433698805,
+        "codec_input_stage": "detector_resized_image",
+        "is_new_issue41_c3_measurement": false
+      },
+      "source_json_sha256": {
+        "codec.json": "2ce649b78035314e4815b4bebdc0d777aea4ba28d1287f7cf3373ddc3978c113",
+        "config.json": "922c6fcd2c7f593cad2b5a02858ee56c959e597a22c0cd9ed767cbf0bb2c3f68",
+        "detector.json": "b9a7e2ba04a1cdd540bf33f791f69eabc2d622c3f15225ca08005f98c5ee950c",
+        "environment.json": "cae01687e64822f9b3f0129426074404e416f579d64f11933c13e10cb8ed75b8",
+        "gpu_diagnostics.json": "0d6ba0bef66529302cecd110eda8041a44c2768c9300eb0e1b4b6fd22d8779e5",
+        "manifest.json": "690cb48f28d14ad13fc0bb8f0a68c6b3ffd6bfa3c9eaaa5655a1b44140f4cdaf",
+        "metrics.json": "eb2273652038feccc2a8725a941dd39de2c44783c2d14a7917d98a00d981866a",
+        "per_image.json": "1b065a0992d1a8ba2b9e2d0101577f9d6ab3def41f83e32b161f9a3c41e55eab",
+        "predictions.json": "430f01c115add16a0ee4c30a3fc8dbf1fcd4fd0cc45164489f8b12bb56b71d15",
+        "rate_summary.json": "0503f9e601c9b730f54c2d763d6e02d9d59660f3c182872e5365a4b5560cae74",
+        "status.json": "c53e9111a25e1bc7a3e3d99467432279ee5267848114b84deb069d59b0f8429d"
+      }
+    },
+    {
+      "point": {
+        "run_dir": "/workspace/c3_neural_compression/var/issue23_calibration20_20261010/results/adapt_icmh_level1_eval",
+        "method": "adapt_icmh",
+        "image_count": 20,
+        "original_pixel_pooled_bpp": 0.30146944000611137,
+        "original_pixel_per_image_mean_bpp": 0.33339228388201475,
+        "resized_nonpadding_per_image_mean_bpp": 0.0971864353952041,
+        "box_AP_percent": 48.51396344207103,
+        "box_AP50_percent": 66.22240846168037,
+        "codec_input_stage": "detector_resized_image",
+        "is_new_issue41_c3_measurement": false
+      },
+      "source_json_sha256": {
+        "codec.json": "6faeb77cbfff63b9ee9db5876e36cc4a155c06ae0cdab4f69e06e6172929ddec",
+        "config.json": "ab50c3cac4ca96b49198728aaaa58f2adfdddd0c2f558873a434322effaa03ea",
+        "detector.json": "b9a7e2ba04a1cdd540bf33f791f69eabc2d622c3f15225ca08005f98c5ee950c",
+        "environment.json": "8bee94aa5ca103aa9c0262b470dcd28c2e09f4d1a549e9979651dc62aa7031ae",
+        "manifest.json": "690cb48f28d14ad13fc0bb8f0a68c6b3ffd6bfa3c9eaaa5655a1b44140f4cdaf",
+        "metrics.json": "6712a01b434d09ca3bda35eda3190925d93af8d9a24baa7e7af282f198c6b187",
+        "per_image.json": "35303000db66725fcdfa4e8c67a2d45f14278eb68cb03ab331573e4a452b6f2e",
+        "predictions.json": "4f5f62344ba946e6c5a7ef0f175626bc4377254ceceabbfbc33b2ca511caf977",
+        "rate_summary.json": "acc310311982f837f0221d8db6b59c270192f16a83ab8fb803d66dd9a1f7145b",
+        "status.json": "23e42b5bad831a13a34c4986843176736e79d2fa396c242b1fddafef2227ea02"
+      }
+    },
+    {
+      "point": {
+        "run_dir": "/workspace/c3_neural_compression/var/issue23_calibration20_20261010/results/adapt_icmh_level2_eval",
+        "method": "adapt_icmh",
+        "image_count": 20,
+        "original_pixel_pooled_bpp": 0.41396856189118286,
+        "original_pixel_per_image_mean_bpp": 0.45664321040524564,
+        "resized_nonpadding_per_image_mean_bpp": 0.13311993893802135,
+        "box_AP_percent": 50.01032537379394,
+        "box_AP50_percent": 72.98184748163237,
+        "codec_input_stage": "detector_resized_image",
+        "is_new_issue41_c3_measurement": false
+      },
+      "source_json_sha256": {
+        "codec.json": "0975af60c94c5d9d6465eb924ca7bc58805e6e9764fcea6b8e52536192e8aa7f",
+        "config.json": "4e46292b413b1e97018c8dc36dfefa5a91ef6321309c03503a567d61015d0ed1",
+        "detector.json": "b9a7e2ba04a1cdd540bf33f791f69eabc2d622c3f15225ca08005f98c5ee950c",
+        "environment.json": "8bee94aa5ca103aa9c0262b470dcd28c2e09f4d1a549e9979651dc62aa7031ae",
+        "manifest.json": "690cb48f28d14ad13fc0bb8f0a68c6b3ffd6bfa3c9eaaa5655a1b44140f4cdaf",
+        "metrics.json": "39bfeea90f954d82d92e2983712b001d83526c77de074ee10adaee2a7acc6189",
+        "per_image.json": "8810a8aa0772e6cc8ab0fdb2bfdbfdf672161188d45b3adbf440aa605271a1ca",
+        "predictions.json": "e843ff657660a2770a77217b7d6851ec7f88e281590f2d03aff3332d51bbdf7e",
+        "rate_summary.json": "e0e32497818aa02232c37e01f49d877b0a7b5737c6c6d9b64bd6fe3cdd1b65f5",
+        "status.json": "add776c396dc5a4d6af475b5169df78ac6218aef8f94d87c622e5887cb6d29db"
+      }
+    },
+    {
+      "point": {
+        "run_dir": "/workspace/c3_neural_compression/var/issue23_calibration20_20261010/results/adapt_icmh_level3_eval",
+        "method": "adapt_icmh",
+        "image_count": 20,
+        "original_pixel_pooled_bpp": 0.614880642560504,
+        "original_pixel_per_image_mean_bpp": 0.6741357895057581,
+        "resized_nonpadding_per_image_mean_bpp": 0.19766881669450295,
+        "box_AP_percent": 50.01252594462658,
+        "box_AP50_percent": 71.01940046752374,
+        "codec_input_stage": "detector_resized_image",
+        "is_new_issue41_c3_measurement": false
+      },
+      "source_json_sha256": {
+        "codec.json": "434faeb550329bf025a7f7de43fc3fbf8b1dce781420c1c73447766c4e256d97",
+        "config.json": "f2d250eb8c17f852856480468c8634181687a67c909caf883c82a1a552e39220",
+        "detector.json": "b9a7e2ba04a1cdd540bf33f791f69eabc2d622c3f15225ca08005f98c5ee950c",
+        "environment.json": "8bee94aa5ca103aa9c0262b470dcd28c2e09f4d1a549e9979651dc62aa7031ae",
+        "manifest.json": "690cb48f28d14ad13fc0bb8f0a68c6b3ffd6bfa3c9eaaa5655a1b44140f4cdaf",
+        "metrics.json": "771faa86d3a47e3fdbe4a4d637822d4fa4e20ef53eab222063d75bf4b4dfb1ca",
+        "per_image.json": "f92227b2eb11889cdac7e7a5ad4968e1d57bf1b04207ac44ef72f4eeef86ad3c",
+        "predictions.json": "c5bb595ab189665891c988415135930627e9ddd2efd814cc1b873040f4dc5351",
+        "rate_summary.json": "eb7e9603502cf0c6dfbe7feb685ba3210dbddf9a56990b0dcfd9b308d736817d",
+        "status.json": "f8e2fa7aeb8382710dcc4b4145e527ccb48c116e5c437e8bef747727ad60c9dd"
+      }
+    },
+    {
+      "point": {
+        "run_dir": "/workspace/c3_neural_compression/var/issue23_calibration20_20261010/results/adapt_icmh_level4_eval",
+        "method": "adapt_icmh",
+        "image_count": 20,
+        "original_pixel_pooled_bpp": 0.8673561294706593,
+        "original_pixel_per_image_mean_bpp": 0.9487963121612106,
+        "resized_nonpadding_per_image_mean_bpp": 0.2787703346695538,
+        "box_AP_percent": 52.70273985539803,
+        "box_AP50_percent": 72.88575822500604,
+        "codec_input_stage": "detector_resized_image",
+        "is_new_issue41_c3_measurement": false
+      },
+      "source_json_sha256": {
+        "codec.json": "3b0fbae744dfa9050dc46735152a340c706d3dc32c12dd2ea0bc56398bc57315",
+        "config.json": "a344648a9b5252ff6a9e63cac5d86fa37834c661d742ea217935c81f76c5da0f",
+        "detector.json": "b9a7e2ba04a1cdd540bf33f791f69eabc2d622c3f15225ca08005f98c5ee950c",
+        "environment.json": "8bee94aa5ca103aa9c0262b470dcd28c2e09f4d1a549e9979651dc62aa7031ae",
+        "manifest.json": "690cb48f28d14ad13fc0bb8f0a68c6b3ffd6bfa3c9eaaa5655a1b44140f4cdaf",
+        "metrics.json": "8a34b63f38b006a5c5d61f53f4e0dd6eb66e38db0d5126b8a4f18b36435d0551",
+        "per_image.json": "4b7940c94a33cc29e9df97652a2366f5673557d894fd4df9f08a5f42043dd7cc",
+        "predictions.json": "eda679c967e3436ee96ead189334c8ee76973f48917428561218bbace87ff3d6",
+        "rate_summary.json": "976e36bd52a20a63836482fa472914e06b597946d0d7490f8f25048e4197d3dd",
+        "status.json": "1680ab286f90d0a4392bf5a40a026bd24e74256d2673f7d01447821d7fa7f22b"
+      }
+    },
+    {
+      "point": {
+        "run_dir": "/workspace/c3_neural_compression/var/issue36_same_rate_20261010/results/image_target04_eval",
+        "method": "c3_image",
+        "image_count": 20,
+        "original_pixel_pooled_bpp": 0.4020739601883777,
+        "original_pixel_per_image_mean_bpp": 0.40476660395895125,
+        "resized_nonpadding_per_image_mean_bpp": 0.1308436737437533,
+        "box_AP_percent": 36.18448881628529,
+        "box_AP50_percent": 53.59369902502941,
+        "codec_input_stage": "original_image",
+        "is_new_issue41_c3_measurement": false
+      },
+      "source_json_sha256": {
+        "c3_experiment_signature.json": "2b66c53c6d2cd2d58ad37aa166cdfa615f2490d37dc71d299299253e7bb486b5",
+        "config.json": "7549037fe24ed24aedbdc011ee4a98df4283b5d94802ebd22bc6974af4930c90",
+        "detector.json": "b9a7e2ba04a1cdd540bf33f791f69eabc2d622c3f15225ca08005f98c5ee950c",
+        "environment.json": "cae01687e64822f9b3f0129426074404e416f579d64f11933c13e10cb8ed75b8",
+        "manifest.json": "690cb48f28d14ad13fc0bb8f0a68c6b3ffd6bfa3c9eaaa5655a1b44140f4cdaf",
+        "metrics.json": "6e84d6bfb068bf21790238964a86b36ef8b021d2b7872ece0b5f0764913fa98a",
+        "per_image.json": "453790b160d5485493fee46616e88b3434f867fb02deca0ba309637e0a76965e",
+        "predictions.json": "4a3995349747295f165afe2dd56b8b85fabd7889fc64517f1c5ca641612e0b78",
+        "rate_summary.json": "3a6aa095c7287aefa6ff52c4f516302b9fa44add949322bb35fffb9c2821da2e",
+        "status.json": "c53e9111a25e1bc7a3e3d99467432279ee5267848114b84deb069d59b0f8429d"
+      }
+    },
+    {
+      "point": {
+        "run_dir": "/workspace/c3_neural_compression/var/issue36_same_rate_20261010/results/image_target07_eval",
+        "method": "c3_image",
+        "image_count": 20,
+        "original_pixel_pooled_bpp": 0.6854680605184454,
+        "original_pixel_per_image_mean_bpp": 0.6905415899748473,
+        "resized_nonpadding_per_image_mean_bpp": 0.22307930062810502,
+        "box_AP_percent": 44.03049290287311,
+        "box_AP50_percent": 62.475571397796806,
+        "codec_input_stage": "original_image",
+        "is_new_issue41_c3_measurement": false
+      },
+      "source_json_sha256": {
+        "c3_experiment_signature.json": "d1dcf4e6cecdf2268e3a53c8fd1fd96fa8e9ff3dcac6c6a1e47ecdd5ef53830c",
+        "config.json": "891e8bbaaf521107972188e1016dbc6864796b3048aa5c5f9b8448e5e9cf5fee",
+        "detector.json": "b9a7e2ba04a1cdd540bf33f791f69eabc2d622c3f15225ca08005f98c5ee950c",
+        "environment.json": "cae01687e64822f9b3f0129426074404e416f579d64f11933c13e10cb8ed75b8",
+        "manifest.json": "690cb48f28d14ad13fc0bb8f0a68c6b3ffd6bfa3c9eaaa5655a1b44140f4cdaf",
+        "metrics.json": "370d1677edd79e4e0b4c875121e897ab6de5312839266b75fc801730ed8f9273",
+        "per_image.json": "f074843f660483b988633289180c6e08e57b3dc172d42c0281fccb5fc3a56ed8",
+        "predictions.json": "4fd9f59b21b61df70213aa57a62302cc2866684ed1d31934e30ae2638871c2c1",
+        "rate_summary.json": "00ea1d3723879a6c7eb7c5859e28d39ac68210d5eccccf8ecf2ebcec37d3e07e",
+        "status.json": "c53e9111a25e1bc7a3e3d99467432279ee5267848114b84deb069d59b0f8429d"
+      }
+    },
+    {
+      "point": {
+        "run_dir": "/workspace/c3_neural_compression/var/issue36_same_rate_20261010/results/combined_target04_eval",
+        "method": "c3_combined",
+        "image_count": 20,
+        "original_pixel_pooled_bpp": 0.36549679504788596,
+        "original_pixel_per_image_mean_bpp": 0.3684471512441517,
+        "resized_nonpadding_per_image_mean_bpp": 0.1197155270254923,
+        "box_AP_percent": 45.006908375380675,
+        "box_AP50_percent": 66.23758749081607,
+        "codec_input_stage": "original_image",
+        "is_new_issue41_c3_measurement": false
+      },
+      "source_json_sha256": {
+        "c3_experiment_signature.json": "36b4d925da26696b5a1bf939c213c4f201b249c03b577cfcc727fcd3d10ae0a5",
+        "config.json": "07f9d3f02f2fc54f9de0d41147ada18a75ff96068d88c69e6f45a95d19e74f4a",
+        "detector.json": "b9a7e2ba04a1cdd540bf33f791f69eabc2d622c3f15225ca08005f98c5ee950c",
+        "environment.json": "cae01687e64822f9b3f0129426074404e416f579d64f11933c13e10cb8ed75b8",
+        "manifest.json": "690cb48f28d14ad13fc0bb8f0a68c6b3ffd6bfa3c9eaaa5655a1b44140f4cdaf",
+        "metrics.json": "e225d905217bcfb6e5f52bbece8082a1d32ca98dc8333ffebf2591c49664937d",
+        "per_image.json": "d58c0e4acdb1637b0579cc3ff7a61d717b5fbdb28cca8109d9345eafef78a38e",
+        "predictions.json": "035af527b18eefe8e9a1324db78882462ba247786cfebe8e0e506f35fd59d0e7",
+        "rate_summary.json": "1dbcaca49f476b91d347b070e978a311ce810fd656d7d5906ba2272690139b45",
+        "status.json": "c53e9111a25e1bc7a3e3d99467432279ee5267848114b84deb069d59b0f8429d"
+      }
+    },
+    {
+      "point": {
+        "run_dir": "/workspace/c3_neural_compression/var/issue36_same_rate_20261010/results/combined_target07_eval",
+        "method": "c3_combined",
+        "image_count": 20,
+        "original_pixel_pooled_bpp": 0.7092471098682214,
+        "original_pixel_per_image_mean_bpp": 0.71615798820213,
+        "resized_nonpadding_per_image_mean_bpp": 0.23215351302576762,
+        "box_AP_percent": 46.119247180869486,
+        "box_AP50_percent": 68.86262431022185,
+        "codec_input_stage": "original_image",
+        "is_new_issue41_c3_measurement": false
+      },
+      "source_json_sha256": {
+        "c3_experiment_signature.json": "16c425c910e9be83df3fef404232e3ef5b7e1b11e73c83702b983dbb5646a016",
+        "config.json": "b6f712f22daa59a04c16678bb46485ebef3f0210d29572e641ac4b14d6033155",
+        "detector.json": "b9a7e2ba04a1cdd540bf33f791f69eabc2d622c3f15225ca08005f98c5ee950c",
+        "environment.json": "cae01687e64822f9b3f0129426074404e416f579d64f11933c13e10cb8ed75b8",
+        "manifest.json": "690cb48f28d14ad13fc0bb8f0a68c6b3ffd6bfa3c9eaaa5655a1b44140f4cdaf",
+        "metrics.json": "b14dc3223ea7f2ef40f668f333ce6b254954e0118b554672e17b249bc5e0c141",
+        "per_image.json": "5e68d18f8d19563b09edba336111d5fa3c3692e9553a877143fb9b6a4d9233e2",
+        "predictions.json": "96cba194794cd38e002d4b2b2b8f50bb43acd0a2ae1b213b69784aa28b4f8057",
+        "rate_summary.json": "5fb1c995c8bf8488181bf96b27c0224bf8417680d192a48fdc693523780a113d",
+        "status.json": "c53e9111a25e1bc7a3e3d99467432279ee5267848114b84deb069d59b0f8429d"
+      }
+    }
+  ]
+}

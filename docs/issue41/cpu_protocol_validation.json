@@ -1,0 +1,359 @@
+{
+  "status": "CPU_preparation_passed_GPU_not_started",
+  "input_asset_hashes_verified": true,
+  "mapper_parity_images": 20,
+  "test_count": 151,
+  "test_result": "all passed",
+  "test_log_sha256": "5602e033aef81b20a893fe0a2e3572679081770d3a37a439320882859386f0b7",
+  "original_pixels": 5659540,
+  "mapped_pixels": 17724800,
+  "CUDA_VISIBLE_DEVICES": "",
+  "inference_executed": false,
+  "limitations": [
+    "No GPU codec optimization or learned detector inference in these CPU fixtures",
+    "No paper detector identity verification",
+    "Adapt AP/AP50 paper discrepancy remains unresolved"
+  ],
+  "images": [
+    {
+      "image_id": 474039,
+      "source_sha256": "45d245d4918364641df0d198cc0e66452fe23dfaaccd972bc7a1b1e5d880e951",
+      "original_hw": [
+        401,
+        640
+      ],
+      "mapped_hw": [
+        800,
+        1277
+      ],
+      "uint8_mapper_exact_parity": true,
+      "codec_input_protocol": "detector_input_v1",
+      "codec_input_height": 800,
+      "codec_input_width": 1277,
+      "mapped_rgb_uint8_sha256": "32043696eb34a22c45363ca900ee3fd173fd543cd035c9515be352399a1100db"
+    },
+    {
+      "image_id": 125778,
+      "source_sha256": "1b93c291b14ba4d8a559fcb08240d8d204e69f1b2e4c41ee41f13935646340dd",
+      "original_hw": [
+        480,
+        640
+      ],
+      "mapped_hw": [
+        800,
+        1067
+      ],
+      "uint8_mapper_exact_parity": true,
+      "codec_input_protocol": "detector_input_v1",
+      "codec_input_height": 800,
+      "codec_input_width": 1067,
+      "mapped_rgb_uint8_sha256": "e3f80c8a5b14f28b7f183536f1c17dbca929dd07594441de87cad2883f6bedec"
+    },
+    {
+      "image_id": 58539,
+      "source_sha256": "217377804c1aa61a53a209a38c5951b38de33d50d612a0ab299b3ff8912cde10",
+      "original_hw": [
+        421,
+        640
+      ],
+      "mapped_hw": [
+        800,
+        1216
+      ],
+      "uint8_mapper_exact_parity": true,
+      "codec_input_protocol": "detector_input_v1",
+      "codec_input_height": 800,
+      "codec_input_width": 1216,
+      "mapped_rgb_uint8_sha256": "c509b4cab0d05c825166ac81ffa9857121344c9022c6081995559f8f89299686"
+    },
+    {
+      "image_id": 492968,
+      "source_sha256": "d42bab612d9126b59a8fca904c81ec3e48246c55360c871862859cae7a48d0de",
+      "original_hw": [
+        425,
+        640
+      ],
+      "mapped_hw": [
+        800,
+        1205
+      ],
+      "uint8_mapper_exact_parity": true,
+      "codec_input_protocol": "detector_input_v1",
+      "codec_input_height": 800,
+      "codec_input_width": 1205,
+      "mapped_rgb_uint8_sha256": "174db90fa792ba0109576934ad132b95ee2a527689777d2d8b9378b80f3eed7d"
+    },
+    {
+      "image_id": 296284,
+      "source_sha256": "4445fd3eecd1ef707592f04cbf45a429e3e2a9fd4586b02458bc30c03ef1be74",
+      "original_hw": [
+        360,
+        270
+      ],
+      "mapped_hw": [
+        1067,
+        800
+      ],
+      "uint8_mapper_exact_parity": true,
+      "codec_input_protocol": "detector_input_v1",
+      "codec_input_height": 1067,
+      "codec_input_width": 800,
+      "mapped_rgb_uint8_sha256": "ef080380b5b495dc3c4ccd359d807735fd07888feba1299df406f69fe4ca83df"
+    },
+    {
+      "image_id": 544565,
+      "source_sha256": "2ac6b4e9e1b53277db20fab701366dbfa6271d5f0749fade0c3b8cf115d085bf",
+      "original_hw": [
+        640,
+        640
+      ],
+      "mapped_hw": [
+        800,
+        800
+      ],
+      "uint8_mapper_exact_parity": true,
+      "codec_input_protocol": "detector_input_v1",
+      "codec_input_height": 800,
+      "codec_input_width": 800,
+      "mapped_rgb_uint8_sha256": "38466e122270d0c7da71e51707775c809edfcc76395ab8180206a7f95ffb6b40"
+    },
+    {
+      "image_id": 124636,
+      "source_sha256": "55b77b7f71837b167505931989f68f88bd728ae64e2ff920de881b1cd288b44a",
+      "original_hw": [
+        480,
+        640
+      ],
+      "mapped_hw": [
+        800,
+        1067
+      ],
+      "uint8_mapper_exact_parity": true,
+      "codec_input_protocol": "detector_input_v1",
+      "codec_input_height": 800,
+      "codec_input_width": 1067,
+      "mapped_rgb_uint8_sha256": "aea621c539c023a6c74a74a74e2bf48f2a7dc199a3bf9a35cdb3972c97c35664"
+    },
+    {
+      "image_id": 373315,
+      "source_sha256": "f4cca49cbd47c286906d3893035be665a551a4cd19ddaef61d20cc17cdd17a26",
+      "original_hw": [
+        640,
+        477
+      ],
+      "mapped_hw": [
+        1073,
+        800
+      ],
+      "uint8_mapper_exact_parity": true,
+      "codec_input_protocol": "detector_input_v1",
+      "codec_input_height": 1073,
+      "codec_input_width": 800,
+      "mapped_rgb_uint8_sha256": "f09036fadfc6405e862d21be368979aa113772e6e3ae33b571c192dab1a4f528"
+    },
+    {
+      "image_id": 166259,
+      "source_sha256": "ae0cf5374adfa2c78f50e5fc58b51a18e8db2285f00912c2eca6a2af204857d1",
+      "original_hw": [
+        427,
+        640
+      ],
+      "mapped_hw": [
+        800,
+        1199
+      ],
+      "uint8_mapper_exact_parity": true,
+      "codec_input_protocol": "detector_input_v1",
+      "codec_input_height": 800,
+      "codec_input_width": 1199,
+      "mapped_rgb_uint8_sha256": "5f6d0ea1e69d46a788b1b1e83733584bb2753edce44bf2758f7d4d63111b8142"
+    },
+    {
+      "image_id": 142324,
+      "source_sha256": "6d28aca076f309360f392b53b4e9a85ec7ec3ee524cba7f8dac52e50d85dcc36",
+      "original_hw": [
+        480,
+        640
+      ],
+      "mapped_hw": [
+        800,
+        1067
+      ],
+      "uint8_mapper_exact_parity": true,
+      "codec_input_protocol": "detector_input_v1",
+      "codec_input_height": 800,
+      "codec_input_width": 1067,
+      "mapped_rgb_uint8_sha256": "4acca428ed54c740cd90ca789287aad27fe0ef5e866d45c7760952345bf747d0"
+    },
+    {
+      "image_id": 275198,
+      "source_sha256": "c34482da7ff6fc53d5e78dc433cc673ab601757761e07948f15450cc8214a483",
+      "original_hw": [
+        480,
+        640
+      ],
+      "mapped_hw": [
+        800,
+        1067
+      ],
+      "uint8_mapper_exact_parity": true,
+      "codec_input_protocol": "detector_input_v1",
+      "codec_input_height": 800,
+      "codec_input_width": 1067,
+      "mapped_rgb_uint8_sha256": "e1bb0e270e8cd9ca19d0d97159ff1fc3360eb79dcc086c2aa3fded290248d874"
+    },
+    {
+      "image_id": 256868,
+      "source_sha256": "ab716aabb5a40999712cd54718432222846c96c1d97729566e8c05ec4bff9e0b",
+      "original_hw": [
+        428,
+        640
+      ],
+      "mapped_hw": [
+        800,
+        1196
+      ],
+      "uint8_mapper_exact_parity": true,
+      "codec_input_protocol": "detector_input_v1",
+      "codec_input_height": 800,
+      "codec_input_width": 1196,
+      "mapped_rgb_uint8_sha256": "6476d13d40720ffac926c60b986b31b40797f0bd84c1285dc488988e0ce0398a"
+    },
+    {
+      "image_id": 344029,
+      "source_sha256": "2f0cd75fa54770e7af99879d114ca0e40980c041f1f9f36d09ebf6ea1e7317a2",
+      "original_hw": [
+        480,
+        640
+      ],
+      "mapped_hw": [
+        800,
+        1067
+      ],
+      "uint8_mapper_exact_parity": true,
+      "codec_input_protocol": "detector_input_v1",
+      "codec_input_height": 800,
+      "codec_input_width": 1067,
+      "mapped_rgb_uint8_sha256": "6523d577be9d45fe2fa3aad75e41fd41dded27a0623bd4d34ab0f5ee886d729f"
+    },
+    {
+      "image_id": 368684,
+      "source_sha256": "2e8ea0f8f880adc4665ec9e310220bfbe26c45daffca122a8ebff434d63cb3ab",
+      "original_hw": [
+        480,
+        640
+      ],
+      "mapped_hw": [
+        800,
+        1067
+      ],
+      "uint8_mapper_exact_parity": true,
+      "codec_input_protocol": "detector_input_v1",
+      "codec_input_height": 800,
+      "codec_input_width": 1067,
+      "mapped_rgb_uint8_sha256": "6098a78fc060a8a3098f257c72c1862ed7f83f365a419695f17149aea05cac28"
+    },
+    {
+      "image_id": 407943,
+      "source_sha256": "fd81b7cb10762771dd4e45ce75fa8fba56835ac9aa681930f5b4e23df8024696",
+      "original_hw": [
+        427,
+        640
+      ],
+      "mapped_hw": [
+        800,
+        1199
+      ],
+      "uint8_mapper_exact_parity": true,
+      "codec_input_protocol": "detector_input_v1",
+      "codec_input_height": 800,
+      "codec_input_width": 1199,
+      "mapped_rgb_uint8_sha256": "49ddd29986fec88222610fea4380cf1beafb3c40194895bc374210ef0bf8ad98"
+    },
+    {
+      "image_id": 137246,
+      "source_sha256": "05716a975c4fb2acbba9d4e45ae767c20a37cf9d8ea45fdf7f6ddbf85919403e",
+      "original_hw": [
+        333,
+        500
+      ],
+      "mapped_hw": [
+        800,
+        1201
+      ],
+      "uint8_mapper_exact_parity": true,
+      "codec_input_protocol": "detector_input_v1",
+      "codec_input_height": 800,
+      "codec_input_width": 1201,
+      "mapped_rgb_uint8_sha256": "ad9ad74c745adc67602cb7d88cb0f5e77896703b65f92f8d780ac66c3264a649"
+    },
+    {
+      "image_id": 207585,
+      "source_sha256": "6530da6b150e680ff646bdf792199fdda377385c6554bad2d0efbcf9db9daeb1",
+      "original_hw": [
+        480,
+        640
+      ],
+      "mapped_hw": [
+        800,
+        1067
+      ],
+      "uint8_mapper_exact_parity": true,
+      "codec_input_protocol": "detector_input_v1",
+      "codec_input_height": 800,
+      "codec_input_width": 1067,
+      "mapped_rgb_uint8_sha256": "04faf473f684d4daeaf67df08192fa314ffa7a2ecfcf30549fe41392d524f8f4"
+    },
+    {
+      "image_id": 302107,
+      "source_sha256": "70cd955351742b105e1870c5d71516f7a422e71b49117bded96faca225690a1b",
+      "original_hw": [
+        640,
+        427
+      ],
+      "mapped_hw": [
+        1199,
+        800
+      ],
+      "uint8_mapper_exact_parity": true,
+      "codec_input_protocol": "detector_input_v1",
+      "codec_input_height": 1199,
+      "codec_input_width": 800,
+      "mapped_rgb_uint8_sha256": "383638e4484b59311d00f37dede7bc67fe0a31adcfda0e6ce07cbe156754d8c6"
+    },
+    {
+      "image_id": 520301,
+      "source_sha256": "e04e39ceb5c3266e7492b0f3b0762ebf8dd5e762f479525bfaea412a64b49152",
+      "original_hw": [
+        640,
+        480
+      ],
+      "mapped_hw": [
+        1067,
+        800
+      ],
+      "uint8_mapper_exact_parity": true,
+      "codec_input_protocol": "detector_input_v1",
+      "codec_input_height": 1067,
+      "codec_input_width": 800,
+      "mapped_rgb_uint8_sha256": "47a1fe256e8e38ed250f265e271d404f629586489bdcb93d794c43afc8df645e"
+    },
+    {
+      "image_id": 192716,
+      "source_sha256": "9a3223f94d7aaf079d3831b10c07ee5a84f36071c55c633394dd5c93a67c9c07",
+      "original_hw": [
+        640,
+        518
+      ],
+      "mapped_hw": [
+        988,
+        800
+      ],
+      "uint8_mapper_exact_parity": true,
+      "codec_input_protocol": "detector_input_v1",
+      "codec_input_height": 988,
+      "codec_input_width": 800,
+      "mapped_rgb_uint8_sha256": "92befff831da244d77bf7a85e72e530ee65889006b2e78966ca59edefb949929"
+    }
+  ]
+}

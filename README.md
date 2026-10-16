@@ -320,3 +320,11 @@ either express or implied. See the licenses for the specific language governing
 permissions and limitations under those licenses.
 
 This is not an official Google product.
+
+## Issue 20 C3 / TransTIC preliminary comparison
+
+See [the fixed comparison protocol and GPU handoff](docs/issue20_comparison.md)
+and [the actual CPU validation record](docs/issue20_validation.md). The helpers
+freeze shared image IDs, preserve per-image estimated bits and all resize
+geometries, use one explicit Detectron2 checkpoint for evaluation, and reject
+partial/mixed results. CPU synthetic smokes are not COCO performance results.

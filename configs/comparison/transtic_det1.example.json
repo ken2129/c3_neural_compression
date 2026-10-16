@@ -1,0 +1,15 @@
+{
+  "manifest": "/absolute/path/to/frozen_manifest.json",
+  "condition": "transtic",
+  "device": "cuda",
+  "detector": {
+    "checkpoint": "/absolute/path/to/model_final_280758.pkl",
+    "sha256": "REPLACE_WITH_VERIFIED_64_CHARACTER_SHA256"
+  },
+  "transtic": {
+    "repository": "/absolute/path/to/TransTIC",
+    "checkpoint": "/absolute/path/to/det_1.pth.tar",
+    "sha256": "REPLACE_WITH_VERIFIED_64_CHARACTER_SHA256",
+    "quality": 1
+  }
+}

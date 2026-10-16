@@ -70,6 +70,7 @@ class Experiment(experiment.AbstractExperiment):
         video_idx=config.dataset.video_idx,
         annotation_file=config.dataset.get('annotation_file', None),
         subset_ids_file=config.dataset.get('subset_ids_file', None),
+        input_protocol=config.dataset.get('input_protocol', 'original_rgb'),
     )
 
   def get_opt(

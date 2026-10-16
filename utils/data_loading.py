@@ -16,6 +16,8 @@
 """Utils for loading and processing datasets."""
 
 import os
+import hashlib
+import io
 import pathlib
 import shutil
 from typing import Any, Callable
@@ -80,13 +82,16 @@ DATASET_ATTRIBUTES = {
 class COCO2017Subset(data.Dataset):
   """Fixed COCO2017 image subset selected by an image-ID manifest."""
 
-  def __init__(self, root, annotation_file, subset_ids_file, transform=None):
+  def __init__(self, root, annotation_file, subset_ids_file, transform=None,
+               input_protocol='original_rgb'):
     if not annotation_file or not subset_ids_file:
       raise ValueError('COCO2017 requires annotation_file and subset_ids_file.')
     image_ids = coco_detection.load_subset_ids(pathlib.Path(subset_ids_file))
     self.records, _ = coco_detection.build_image_records(
         pathlib.Path(root), pathlib.Path(annotation_file), image_ids
     )
+    from c3_neural_compression.evaluation import detector_input_protocol
+    self.input_protocol = detector_input_protocol.validate_protocol(input_protocol)
     self.transform = transform
 
   def __len__(self):
@@ -94,12 +99,30 @@ class COCO2017Subset(data.Dataset):
 
   def __getitem__(self, index):
     record = self.records[index]
-    image = folder.default_loader(str(record.path))
+    # Hash the exact bytes decoded, not a second read that can change while
+    # optimization is running. This provenance is copied into datum metrics.
+    encoded = record.path.read_bytes()
+    original_file_sha256 = hashlib.sha256(encoded).hexdigest()
+    with Image.open(io.BytesIO(encoded)) as source:
+      if source.size != (record.width, record.height):
+        raise ValueError(f'COCO image changed dimensions: {record.image_id}')
+      if self.input_protocol == 'detector_input_v1':
+        from PIL import ImageOps
+        image = ImageOps.exif_transpose(source).convert('RGB')
+      else:
+        image = source.convert('RGB')
+    protocol_metadata = {}
+    if self.input_protocol == 'detector_input_v1':
+      from c3_neural_compression.evaluation import detector_input_protocol
+      mapped = detector_input_protocol.map_rgb_uint8(image)
+      protocol_metadata = detector_input_protocol.mapped_metadata(mapped)
+      image = Image.fromarray(mapped, mode='RGB')
     if self.transform is not None:
       image = self.transform(image)
     return {'array': image, 'image_id': record.image_id,
             'file_name': record.file_name, 'original_width': record.width,
-            'original_height': record.height}
+            'original_height': record.height,
+            'original_file_sha256': original_file_sha256, **protocol_metadata}
 
 
 class Kodak(data.Dataset):
@@ -398,6 +421,7 @@ def load_dataset(
     video_idx: int | None = None,
     annotation_file: str | None = None,
     subset_ids_file: str | None = None,
+    input_protocol: str = 'original_rgb',
 ):
   """Pytorch dataset loaders.
 
@@ -427,6 +451,15 @@ def load_dataset(
       tfms.ToDtype(torch.float32, scale=True),
   ])
 
+  if input_protocol == 'detector_input_v1':
+    # Official mapper conversion divides float pixels by255; torchvision's
+    # scale=True uses reciprocal multiplication and differs by up to one ULP.
+    transform = tfms.Compose([
+        tfms.ToImage(),
+        tfms.Lambda(lambda im: im.permute((-2, -1, -3)).contiguous()),
+        tfms.Lambda(lambda im: im.to(torch.float32).div_(255.)),
+    ])
+
   # Load dataset
   if dataset_name.startswith('uvg'):
     patch_size = (num_frames, *spatial_patch_size)
@@ -453,7 +486,8 @@ def load_dataset(
     start_idx = 0
     end_idx = ds.num_images
   elif dataset_name.startswith('coco2017'):
-    ds = COCO2017Subset(root, annotation_file, subset_ids_file, transform)
+    ds = COCO2017Subset(root, annotation_file, subset_ids_file, transform,
+                        input_protocol=input_protocol)
     start_idx = 0
     end_idx = len(ds)
   else:
