@@ -1,0 +1,48 @@
+{
+  "attempts_including_failures": 3,
+  "points": [
+    {
+      "name": "cal_image_3",
+      "objective": "image",
+      "lambda": 0.0003333333333333333,
+      "bpp": 0.32940202466565927,
+      "wall_seconds": 195.98545754514635,
+      "bytes": 164866139,
+      "full20": false
+    },
+    {
+      "name": "cal_image_2",
+      "objective": "image",
+      "lambda": 0.001,
+      "bpp": 0.21632054507405662,
+      "wall_seconds": 192.5133488383144,
+      "bytes": 164759206,
+      "full20": false
+    },
+    {
+      "name": "cal_image_1",
+      "objective": "image",
+      "lambda": 0.003,
+      "bpp": 0.12040526435630995,
+      "wall_seconds": 191.82873037457466,
+      "bytes": 164631025,
+      "full20": false
+    }
+  ],
+  "selected": [
+    {
+      "objective": "image",
+      "target_bpp": 0.15,
+      "lambda": 0.0021374950350378733,
+      "selection": "bpp linear in log-lambda within measured bracket",
+      "AP_used": false
+    },
+    {
+      "objective": "image",
+      "target_bpp": 0.3,
+      "lambda": 0.00044354104522333906,
+      "selection": "bpp linear in log-lambda within measured bracket",
+      "AP_used": false
+    }
+  ]
+}

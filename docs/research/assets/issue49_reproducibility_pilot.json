@@ -1,0 +1,43 @@
+{
+  "stage": "fresh reproducibility pilot complete; fixed20 calibration running",
+  "reproducibility_scope": "One fixed calibration input per method; two independent fresh500-noise+maximum50-STE executions on the same GPU per method; shared evaluation GPU for all predictions",
+  "methods": [
+    {
+      "method": "C3",
+      "trained_params_exact": true,
+      "quantized_params_exact": true,
+      "PNG_exact": true,
+      "common_GPU0_predictions_exact": true,
+      "input_identity_exact": true,
+      "all_noise_checkpoint_hash_RNG_records_exact": true,
+      "estimated_bits_exact": true
+    },
+    {
+      "method": "C3 prime",
+      "trained_params_exact": true,
+      "quantized_params_exact": true,
+      "PNG_exact": true,
+      "common_GPU0_predictions_exact": true,
+      "input_identity_exact": true,
+      "all_noise_checkpoint_hash_RNG_records_exact": true,
+      "estimated_bits_exact": true
+    }
+  ],
+  "pilot_process_seconds": {
+    "image": [
+      192.3770783385262,
+      195.42024713847786
+    ],
+    "combined": [
+      270.5390787413344,
+      273.5817322926596
+    ]
+  },
+  "maximum_final_retained_MiB": 11.32046127319336,
+  "maximum_single_rolling_checkpoint_MiB": 15.61815071105957,
+  "measured_cumulative_GPU_hours_including_four_evaluations": 0.2649896271449203,
+  "full_maximum_scope_forecast_GPU_hours_with_allowance": 38.80964229729268,
+  "approved_GPU_hour_cap": 40,
+  "approved_result_retention_GiB": 8,
+  "interpretation": "Exact minimal reproducibility, not multi-seed performance evidence. One-image timings are used only for cost adjustment; they do not substitute for fixed20 mean rate. No fresh heldout AP measured yet."
+}

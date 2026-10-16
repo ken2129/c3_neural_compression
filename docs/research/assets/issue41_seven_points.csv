@@ -1,0 +1,8 @@
+method,lambda,bpp,box_AP_percent,box_AP50_percent,image_count,measurement_round,interpretation
+c3_combined,0.095949540990876,0.12814324773529776,44.24012610456409,62.62727459142828,20,initial80,same fixed20 exploratory measurement; not an independent or matched-rate test
+c3_combined,0.08204323269953812,0.14466573081889192,46.16150229285212,65.68056518135307,20,rate_correction,same fixed20 exploratory measurement; not an independent or matched-rate test
+c3_combined,0.030996315958971565,0.28587566073593174,44.79214142358955,65.49274764981898,20,initial80,same fixed20 exploratory measurement; not an independent or matched-rate test
+c3_image,0.003615825613264322,0.177081970330239,39.725801019009296,57.185994690853335,20,rate_correction,same fixed20 exploratory measurement; not an independent or matched-rate test
+c3_image,0.0021374950350378733,0.22676238679422184,41.473343274014915,59.667106505170274,20,initial80,same fixed20 exploratory measurement; not an independent or matched-rate test
+c3_image,0.0012944519535388896,0.28747736467672064,44.49607903912322,62.25007173526673,20,rate_correction,same fixed20 exploratory measurement; not an independent or matched-rate test
+c3_image,0.00044354104522333906,0.45639867491883246,46.018509541750355,66.73148177241451,20,initial80,same fixed20 exploratory measurement; not an independent or matched-rate test

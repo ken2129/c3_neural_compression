@@ -1,0 +1,139 @@
+{
+  "scope": "CPU_reaggregation_of_existing_results_no_new_inference",
+  "exact_manifest_and_detector_metadata_equal": true,
+  "interpretation": "C3 original-input points only change rate reporting here. They are not measurements of resize-before-compression protocol. External points retain official codec alignment and output precision. No paper AP reproduction claim.",
+  "runs": [
+    {
+      "method": "transtic",
+      "image_count": "20",
+      "original_pixel_pooled_bpp": "0.3509439430065209",
+      "original_pixel_per_image_mean_bpp": "0.38237996839568605",
+      "resized_nonpadding_per_image_mean_bpp": "0.1132401351560699",
+      "box_AP_percent": "47.4208221187449",
+      "box_AP50_percent": "66.45969434507276",
+      "codec_input_stage": "detector_resized_image",
+      "is_new_issue41_c3_measurement": "False"
+    },
+    {
+      "method": "transtic",
+      "image_count": "20",
+      "original_pixel_pooled_bpp": "0.5124043891762846",
+      "original_pixel_per_image_mean_bpp": "0.5572343679014347",
+      "resized_nonpadding_per_image_mean_bpp": "0.16524041058548553",
+      "box_AP_percent": "48.28354720174762",
+      "box_AP50_percent": "71.58550628372127",
+      "codec_input_stage": "detector_resized_image",
+      "is_new_issue41_c3_measurement": "False"
+    },
+    {
+      "method": "transtic",
+      "image_count": "20",
+      "original_pixel_pooled_bpp": "0.6731327901511209",
+      "original_pixel_per_image_mean_bpp": "0.7292953676176317",
+      "resized_nonpadding_per_image_mean_bpp": "0.2171948524260859",
+      "box_AP_percent": "49.49483304280065",
+      "box_AP50_percent": "71.43132962720166",
+      "codec_input_stage": "detector_resized_image",
+      "is_new_issue41_c3_measurement": "False"
+    },
+    {
+      "method": "transtic",
+      "image_count": "20",
+      "original_pixel_pooled_bpp": "1.0312329636386084",
+      "original_pixel_per_image_mean_bpp": "1.1070937861933476",
+      "resized_nonpadding_per_image_mean_bpp": "0.33303605247763807",
+      "box_AP_percent": "50.382321565875685",
+      "box_AP50_percent": "69.4807433698805",
+      "codec_input_stage": "detector_resized_image",
+      "is_new_issue41_c3_measurement": "False"
+    },
+    {
+      "method": "adapt_icmh",
+      "image_count": "20",
+      "original_pixel_pooled_bpp": "0.30146944000611137",
+      "original_pixel_per_image_mean_bpp": "0.33339228388201475",
+      "resized_nonpadding_per_image_mean_bpp": "0.0971864353952041",
+      "box_AP_percent": "48.51396344207103",
+      "box_AP50_percent": "66.22240846168037",
+      "codec_input_stage": "detector_resized_image",
+      "is_new_issue41_c3_measurement": "False"
+    },
+    {
+      "method": "adapt_icmh",
+      "image_count": "20",
+      "original_pixel_pooled_bpp": "0.41396856189118286",
+      "original_pixel_per_image_mean_bpp": "0.45664321040524564",
+      "resized_nonpadding_per_image_mean_bpp": "0.13311993893802135",
+      "box_AP_percent": "50.01032537379394",
+      "box_AP50_percent": "72.98184748163237",
+      "codec_input_stage": "detector_resized_image",
+      "is_new_issue41_c3_measurement": "False"
+    },
+    {
+      "method": "adapt_icmh",
+      "image_count": "20",
+      "original_pixel_pooled_bpp": "0.614880642560504",
+      "original_pixel_per_image_mean_bpp": "0.6741357895057581",
+      "resized_nonpadding_per_image_mean_bpp": "0.19766881669450295",
+      "box_AP_percent": "50.01252594462658",
+      "box_AP50_percent": "71.01940046752374",
+      "codec_input_stage": "detector_resized_image",
+      "is_new_issue41_c3_measurement": "False"
+    },
+    {
+      "method": "adapt_icmh",
+      "image_count": "20",
+      "original_pixel_pooled_bpp": "0.8673561294706593",
+      "original_pixel_per_image_mean_bpp": "0.9487963121612106",
+      "resized_nonpadding_per_image_mean_bpp": "0.2787703346695538",
+      "box_AP_percent": "52.70273985539803",
+      "box_AP50_percent": "72.88575822500604",
+      "codec_input_stage": "detector_resized_image",
+      "is_new_issue41_c3_measurement": "False"
+    },
+    {
+      "method": "c3_image",
+      "image_count": "20",
+      "original_pixel_pooled_bpp": "0.4020739601883777",
+      "original_pixel_per_image_mean_bpp": "0.40476660395895125",
+      "resized_nonpadding_per_image_mean_bpp": "0.1308436737437533",
+      "box_AP_percent": "36.18448881628529",
+      "box_AP50_percent": "53.59369902502941",
+      "codec_input_stage": "original_image",
+      "is_new_issue41_c3_measurement": "False"
+    },
+    {
+      "method": "c3_image",
+      "image_count": "20",
+      "original_pixel_pooled_bpp": "0.6854680605184454",
+      "original_pixel_per_image_mean_bpp": "0.6905415899748473",
+      "resized_nonpadding_per_image_mean_bpp": "0.22307930062810502",
+      "box_AP_percent": "44.03049290287311",
+      "box_AP50_percent": "62.475571397796806",
+      "codec_input_stage": "original_image",
+      "is_new_issue41_c3_measurement": "False"
+    },
+    {
+      "method": "c3_combined",
+      "image_count": "20",
+      "original_pixel_pooled_bpp": "0.36549679504788596",
+      "original_pixel_per_image_mean_bpp": "0.3684471512441517",
+      "resized_nonpadding_per_image_mean_bpp": "0.1197155270254923",
+      "box_AP_percent": "45.006908375380675",
+      "box_AP50_percent": "66.23758749081607",
+      "codec_input_stage": "original_image",
+      "is_new_issue41_c3_measurement": "False"
+    },
+    {
+      "method": "c3_combined",
+      "image_count": "20",
+      "original_pixel_pooled_bpp": "0.7092471098682214",
+      "original_pixel_per_image_mean_bpp": "0.71615798820213",
+      "resized_nonpadding_per_image_mean_bpp": "0.23215351302576762",
+      "box_AP_percent": "46.119247180869486",
+      "box_AP50_percent": "68.86262431022185",
+      "codec_input_stage": "original_image",
+      "is_new_issue41_c3_measurement": "False"
+    }
+  ]
+}

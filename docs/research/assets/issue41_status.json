@@ -1,0 +1,114 @@
+{
+  "status": "complete",
+  "fixed_commit": "0c3a60c703bd41956b6558d527470350bcc7dd5d",
+  "started_at_unix": 1791969418.5290768,
+  "finished_at_unix": 1791978770.9713392,
+  "calibration_gpu_seconds": 1912.3957138238475,
+  "gpu_seconds_completed": 14851.008811531588,
+  "result_bytes": 11440429717,
+  "limits": {
+    "calibration_gpu_seconds_including_smokes": 3600,
+    "calibration_bytes_including_smokes": 2147483648,
+    "max_candidates_per_method": 6,
+    "measurement_gpu_seconds_hard_ceiling": 28800,
+    "measurement_bytes": 17179869184,
+    "measurement_max_codec_conditions": 4,
+    "measurement_images_per_condition": 20
+  },
+  "peak_gpu_total_MiB_sampled": {
+    "0": 4180,
+    "1": 2409
+  },
+  "tasks": {
+    "cal_image_1_optimize": {
+      "status": "complete",
+      "exit_code": 0,
+      "wall_seconds": 191.82873037457466,
+      "gpu": 1
+    },
+    "cal_combined_3_optimize": {
+      "status": "complete",
+      "exit_code": 0,
+      "wall_seconds": 266.62760944478214,
+      "gpu": 0
+    },
+    "cal_image_2_optimize": {
+      "status": "complete",
+      "exit_code": 0,
+      "wall_seconds": 192.5133488383144,
+      "gpu": 1
+    },
+    "cal_combined_4_optimize": {
+      "status": "complete",
+      "exit_code": 0,
+      "wall_seconds": 267.18134528491646,
+      "gpu": 0
+    },
+    "cal_image_3_optimize": {
+      "status": "complete",
+      "exit_code": 0,
+      "wall_seconds": 195.98545754514635,
+      "gpu": 1
+    },
+    "cal_combined_5_optimize": {
+      "status": "complete",
+      "exit_code": 0,
+      "wall_seconds": 266.2292864918709,
+      "gpu": 0
+    },
+    "measure_image_150_optimize": {
+      "status": "complete",
+      "exit_code": 0,
+      "wall_seconds": 3153.9060343801975,
+      "gpu": 1
+    },
+    "measure_combined_150_optimize": {
+      "status": "complete",
+      "exit_code": 0,
+      "wall_seconds": 4294.176370621659,
+      "gpu": 0
+    },
+    "measure_image_150_evaluate": {
+      "status": "complete",
+      "exit_code": 0,
+      "wall_seconds": 6.723815037868917,
+      "gpu": 1
+    },
+    "measure_image_300_optimize": {
+      "status": "complete",
+      "exit_code": 0,
+      "wall_seconds": 3131.870117262937,
+      "gpu": 1
+    },
+    "measure_combined_150_evaluate": {
+      "status": "complete",
+      "exit_code": 0,
+      "wall_seconds": 6.723331491462886,
+      "gpu": 0
+    },
+    "measure_combined_300_optimize": {
+      "status": "complete",
+      "exit_code": 0,
+      "wall_seconds": 4242.946905924007,
+      "gpu": 0
+    },
+    "measure_image_300_evaluate": {
+      "status": "complete",
+      "exit_code": 0,
+      "wall_seconds": 6.773451689630747,
+      "gpu": 1
+    },
+    "measure_combined_300_evaluate": {
+      "status": "complete",
+      "exit_code": 0,
+      "wall_seconds": 6.622959289699793,
+      "gpu": 0
+    },
+    "collect_and_plot": {
+      "status": "complete",
+      "exit_code": 0,
+      "wall_seconds": 1.2658258341252804,
+      "gpu": 0
+    }
+  }
+}

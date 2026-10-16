@@ -1,0 +1,82 @@
+{
+  "input_protocol": "detector_input_v1",
+  "points": [
+    {
+      "method": "c3_combined",
+      "lambda": 0.095949540990876,
+      "bpp": 0.12814324773529776,
+      "box_AP_percent": 44.24012610456409,
+      "box_AP50_percent": 62.62727459142828,
+      "image_count": 20,
+      "measurement_round": "initial80",
+      "interpretation": "same fixed20 exploratory measurement; not an independent or matched-rate test"
+    },
+    {
+      "method": "c3_combined",
+      "lambda": 0.08204323269953812,
+      "bpp": 0.14466573081889192,
+      "box_AP_percent": 46.16150229285212,
+      "box_AP50_percent": 65.68056518135307,
+      "image_count": 20,
+      "measurement_round": "rate_correction",
+      "interpretation": "same fixed20 exploratory measurement; not an independent or matched-rate test"
+    },
+    {
+      "method": "c3_combined",
+      "lambda": 0.030996315958971565,
+      "bpp": 0.28587566073593174,
+      "box_AP_percent": 44.79214142358955,
+      "box_AP50_percent": 65.49274764981898,
+      "image_count": 20,
+      "measurement_round": "initial80",
+      "interpretation": "same fixed20 exploratory measurement; not an independent or matched-rate test"
+    },
+    {
+      "method": "c3_image",
+      "lambda": 0.003615825613264322,
+      "bpp": 0.177081970330239,
+      "box_AP_percent": 39.725801019009296,
+      "box_AP50_percent": 57.185994690853335,
+      "image_count": 20,
+      "measurement_round": "rate_correction",
+      "interpretation": "same fixed20 exploratory measurement; not an independent or matched-rate test"
+    },
+    {
+      "method": "c3_image",
+      "lambda": 0.0021374950350378733,
+      "bpp": 0.22676238679422184,
+      "box_AP_percent": 41.473343274014915,
+      "box_AP50_percent": 59.667106505170274,
+      "image_count": 20,
+      "measurement_round": "initial80",
+      "interpretation": "same fixed20 exploratory measurement; not an independent or matched-rate test"
+    },
+    {
+      "method": "c3_image",
+      "lambda": 0.0012944519535388896,
+      "bpp": 0.28747736467672064,
+      "box_AP_percent": 44.49607903912322,
+      "box_AP50_percent": 62.25007173526673,
+      "image_count": 20,
+      "measurement_round": "rate_correction",
+      "interpretation": "same fixed20 exploratory measurement; not an independent or matched-rate test"
+    },
+    {
+      "method": "c3_image",
+      "lambda": 0.00044354104522333906,
+      "bpp": 0.45639867491883246,
+      "box_AP_percent": 46.018509541750355,
+      "box_AP50_percent": 66.73148177241451,
+      "image_count": 20,
+      "measurement_round": "initial80",
+      "interpretation": "same fixed20 exploratory measurement; not an independent or matched-rate test"
+    }
+  ],
+  "counts": {
+    "c3_image": 4,
+    "c3_combined": 3
+  },
+  "primary_rate_definition": "mean(total_estimated_bits / detector_resized_nonpadding_pixels)",
+  "exact_manifest_and_evaluator_equality_passed": true,
+  "no_AP_interpolation_or_BD_rate_claim": true
+}

@@ -1,0 +1,29 @@
+{
+  "fixed_commit": "0c3a60c703bd41956b6558d527470350bcc7dd5d",
+  "status": "complete",
+  "calibration_gpu_seconds_including_prior_attempts": 1912.3957138238475,
+  "measurement_gpu_seconds_including_evaluation_and_collection": 14851.008811531588,
+  "execution_wall_seconds": 9352.442262411118,
+  "started_at_utc": "2026-10-14T09:16:58.529077+00:00",
+  "finished_at_utc": "2026-10-14T11:52:50.971339+00:00",
+  "measurement_directory_bytes_final": 11440429717,
+  "peak_gpu_total_MiB_sampled": {
+    "0": 4180,
+    "1": 2409
+  },
+  "memory_note": "Total GPU memory sampled, not guaranteed absolute maximum or per-process measurement",
+  "artifacts_sha256": {
+    "issue41_existing_rate_audit.json": "5f389ab11ffa1a2e04afa91a3195c75135f2c7eee9b18e3b6cd830f466a9a30d",
+    "issue41_comparison.pdf": "da9a48cf1ac4358254ae85cf32f2ef4e4d04585c893e45868b1993e08f8d1a12",
+    "issue41_cpu_protocol_validation.json": "d690498a248c119e1fe019f7e5d8a51b7ec7bbd161f866412755e2d4b672eed3",
+    "issue41_status.json": "1d698496cc45970b395b38d7278beec07a26d6557a5720e8e04e82f1008188c2",
+    "issue41_comparison.json": "29660f4e22aea1055a774b2a7dc5402d7646d5240325a0ee5a770e2718061a72",
+    "issue41_existing_rate_audit.csv": "3f891ee403d92d437164d8dd980a50f4a1359f1d08d95cc57d83679db4ebd553",
+    "issue41_measurement_plan.json": "d94929360700a41389437d6321a3887cd67f9ed8d1baffc71cfd81ef5470a0ed",
+    "issue41_selection_combined.json": "907f1c950f6307f1db15a98596a17d4e5f34d208d44a8616a9ddbf4754b3d7e8",
+    "issue41_comparison.png": "4a0f279dafd770a7b5511cdba7377faaa20756c85921fa9dc4e66727e6fead0f",
+    "issue41_selection_image.json": "5fbf70d71ecc7a20ca7afc60f732f60aa8cc236370c467246df39aa0dc7882dc",
+    "issue41_validation_summary.json": "095b52d1cd54d2596af89b6eac0b9bbe4012bbfc961c979d7ecc8f0bb7afbc0b",
+    "issue41_comparison.csv": "f74791d20f21c5c5595581559a687cf5275f35ff93b3c8057c11e21f65419dea"
+  }
+}

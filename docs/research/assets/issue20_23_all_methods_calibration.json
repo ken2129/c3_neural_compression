@@ -1,0 +1,202 @@
+{
+  "scope": "descriptive_fixed20_calibration_mixed_binary_provenance",
+  "points": [
+    {
+      "method": "c3_image",
+      "point": "0.003",
+      "estimated_bpp": 0.40167326197295294,
+      "box_ap_percent": 38.49477650552311,
+      "box_ap50_percent": 53.70647728514643,
+      "old_environment": true,
+      "run_dir": "/workspace/c3_neural_compression/var/issue20_minimal_download_20261010/completed/c3_image_rd3e3"
+    },
+    {
+      "method": "c3_image",
+      "point": "0.001",
+      "estimated_bpp": 0.6849748306620326,
+      "box_ap_percent": 44.41731494409875,
+      "box_ap50_percent": 65.49875365890811,
+      "old_environment": true,
+      "run_dir": "/workspace/c3_neural_compression/var/issue20_minimal_download_20261010/completed/c3_image_rd1e3"
+    },
+    {
+      "method": "c3_image",
+      "point": "0.0003",
+      "estimated_bpp": 1.0316445728935955,
+      "box_ap_percent": 46.52499703643754,
+      "box_ap50_percent": 66.67261854777574,
+      "old_environment": true,
+      "run_dir": "/workspace/c3_neural_compression/var/issue20_minimal_download_20261010/completed/c3_image_rd3e4"
+    },
+    {
+      "method": "c3_combined",
+      "point": "0.003",
+      "estimated_bpp": 1.1175964101170877,
+      "box_ap_percent": 44.88396324876917,
+      "box_ap50_percent": 67.8327011353998,
+      "old_environment": false,
+      "run_dir": "/workspace/c3_neural_compression/var/issue20_resume_20261010_retry1/results/c3_combined_rd3e3_eval"
+    },
+    {
+      "method": "c3_combined",
+      "point": "0.001",
+      "estimated_bpp": 1.3262505737857284,
+      "box_ap_percent": 45.03958413062775,
+      "box_ap50_percent": 66.25340055636208,
+      "old_environment": true,
+      "run_dir": "/workspace/c3_neural_compression/var/issue20_minimal_download_20261010/completed/c3_combined_rd1e3"
+    },
+    {
+      "method": "c3_combined",
+      "point": "0.0003",
+      "estimated_bpp": 1.4002924398794447,
+      "box_ap_percent": 43.64927634609656,
+      "box_ap50_percent": 60.95024048749374,
+      "old_environment": true,
+      "run_dir": "/workspace/c3_neural_compression/var/issue20_minimal_download_20261010/completed/c3_combined_rd3e4"
+    },
+    {
+      "method": "transtic",
+      "point": "1",
+      "estimated_bpp": 0.3509439430065209,
+      "box_ap_percent": 47.4208221187449,
+      "box_ap50_percent": 66.45969434507276,
+      "old_environment": false,
+      "run_dir": "/workspace/c3_neural_compression/var/issue20_resume_20261010_retry1/results/transtic_det1_eval"
+    },
+    {
+      "method": "transtic",
+      "point": "2",
+      "estimated_bpp": 0.5124043891762846,
+      "box_ap_percent": 48.28354720174762,
+      "box_ap50_percent": 71.58550628372127,
+      "old_environment": false,
+      "run_dir": "/workspace/c3_neural_compression/var/issue20_resume_20261010_retry1/results/transtic_det2_eval"
+    },
+    {
+      "method": "transtic",
+      "point": "3",
+      "estimated_bpp": 0.6731327901511209,
+      "box_ap_percent": 49.49483304280065,
+      "box_ap50_percent": 71.43132962720166,
+      "old_environment": false,
+      "run_dir": "/workspace/c3_neural_compression/var/issue20_resume_20261010_retry1/results/transtic_det3_eval"
+    },
+    {
+      "method": "transtic",
+      "point": "4",
+      "estimated_bpp": 1.0312329636386084,
+      "box_ap_percent": 50.382321565875685,
+      "box_ap50_percent": 69.4807433698805,
+      "old_environment": false,
+      "run_dir": "/workspace/c3_neural_compression/var/issue20_resume_20261010_retry1/results/transtic_det4_eval"
+    },
+    {
+      "method": "adapt_icmh",
+      "point": "1",
+      "estimated_bpp": 0.30146944000611137,
+      "box_ap_percent": 48.51396344207103,
+      "box_ap50_percent": 66.22240846168037,
+      "old_environment": false,
+      "run_dir": "/workspace/c3_neural_compression/var/issue23_calibration20_20261010/results/adapt_icmh_level1_eval"
+    },
+    {
+      "method": "adapt_icmh",
+      "point": "2",
+      "estimated_bpp": 0.41396856189118286,
+      "box_ap_percent": 50.01032537379394,
+      "box_ap50_percent": 72.98184748163237,
+      "old_environment": false,
+      "run_dir": "/workspace/c3_neural_compression/var/issue23_calibration20_20261010/results/adapt_icmh_level2_eval"
+    },
+    {
+      "method": "adapt_icmh",
+      "point": "3",
+      "estimated_bpp": 0.614880642560504,
+      "box_ap_percent": 50.01252594462658,
+      "box_ap50_percent": 71.01940046752374,
+      "old_environment": false,
+      "run_dir": "/workspace/c3_neural_compression/var/issue23_calibration20_20261010/results/adapt_icmh_level3_eval"
+    },
+    {
+      "method": "adapt_icmh",
+      "point": "4",
+      "estimated_bpp": 0.8673561294706593,
+      "box_ap_percent": 52.70273985539803,
+      "box_ap50_percent": 72.88575822500604,
+      "old_environment": false,
+      "run_dir": "/workspace/c3_neural_compression/var/issue23_calibration20_20261010/results/adapt_icmh_level4_eval"
+    }
+  ],
+  "manifest_equal": true,
+  "detector_provenance": [
+    {
+      "run_dir": "/workspace/c3_neural_compression/var/issue20_minimal_download_20261010/completed/c3_image_rd3e3",
+      "detector_differing_fields": [
+        "detectron2_installed_code"
+      ]
+    },
+    {
+      "run_dir": "/workspace/c3_neural_compression/var/issue20_minimal_download_20261010/completed/c3_image_rd1e3",
+      "detector_differing_fields": [
+        "detectron2_installed_code"
+      ]
+    },
+    {
+      "run_dir": "/workspace/c3_neural_compression/var/issue20_minimal_download_20261010/completed/c3_image_rd3e4",
+      "detector_differing_fields": [
+        "detectron2_installed_code"
+      ]
+    },
+    {
+      "run_dir": "/workspace/c3_neural_compression/var/issue20_resume_20261010_retry1/results/c3_combined_rd3e3_eval",
+      "detector_differing_fields": []
+    },
+    {
+      "run_dir": "/workspace/c3_neural_compression/var/issue20_minimal_download_20261010/completed/c3_combined_rd1e3",
+      "detector_differing_fields": [
+        "detectron2_installed_code"
+      ]
+    },
+    {
+      "run_dir": "/workspace/c3_neural_compression/var/issue20_minimal_download_20261010/completed/c3_combined_rd3e4",
+      "detector_differing_fields": [
+        "detectron2_installed_code"
+      ]
+    },
+    {
+      "run_dir": "/workspace/c3_neural_compression/var/issue20_resume_20261010_retry1/results/transtic_det1_eval",
+      "detector_differing_fields": []
+    },
+    {
+      "run_dir": "/workspace/c3_neural_compression/var/issue20_resume_20261010_retry1/results/transtic_det2_eval",
+      "detector_differing_fields": []
+    },
+    {
+      "run_dir": "/workspace/c3_neural_compression/var/issue20_resume_20261010_retry1/results/transtic_det3_eval",
+      "detector_differing_fields": []
+    },
+    {
+      "run_dir": "/workspace/c3_neural_compression/var/issue20_resume_20261010_retry1/results/transtic_det4_eval",
+      "detector_differing_fields": []
+    },
+    {
+      "run_dir": "/workspace/c3_neural_compression/var/issue23_calibration20_20261010/results/adapt_icmh_level1_eval",
+      "detector_differing_fields": []
+    },
+    {
+      "run_dir": "/workspace/c3_neural_compression/var/issue23_calibration20_20261010/results/adapt_icmh_level2_eval",
+      "detector_differing_fields": []
+    },
+    {
+      "run_dir": "/workspace/c3_neural_compression/var/issue23_calibration20_20261010/results/adapt_icmh_level3_eval",
+      "detector_differing_fields": []
+    },
+    {
+      "run_dir": "/workspace/c3_neural_compression/var/issue23_calibration20_20261010/results/adapt_icmh_level4_eval",
+      "detector_differing_fields": []
+    }
+  ],
+  "strict_collector_modified": false,
+  "interpretation": "Connecting lines only visual guides; no matched-rate/BD-rate/statistical superiority claim. Old C3 evaluation JSON only, original artifacts unavailable."
+}

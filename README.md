@@ -39,6 +39,19 @@ C3 builds on top of [COOL-CHIC](https://arxiv.org/abs/2212.05458) with official
 
 The rate-distortion values and MACs per pixel for C3 and other compression baselines can be found in the files under the `baselines` directory.
 
+## Research and experiment policy
+
+研究・実験の準備、GPU実行の役割分担、安全境界、データ・成果物の保管は[全体方針](docs/experiment_policy.md)にまとめています。個別の作業はIssue／PRで管理し、その時点の経過は以下の研究日記に残します。
+
+## Research diary
+
+研究の経過は、記録時点ごとに1本のMarkdownとして残します。構成は「目的／実施したこと／結果／考察／決定事項／未完了・次の作業」で揃え、次回は別の日時のファイルを追加し、過去の記録を残します。
+
+- [2026-10-10 17:32 JST: 比較方針・YOLOv8m転移計画・記録形式の整理](docs/research/2026-10-10_1732_JST.md)
+- [2026-10-14 11:02 JST: 4方式校正・#35初期診断・#36同一bpp帯比較の結果](docs/research/2026-10-14_1102_JST.md)
+
+- [2026-10-14 11:53 JST: 4方式の図・数値追加とIssue終了状況](docs/research/2026-10-14_1153_JST.md)
+
 ## Setup
 
 We recommend installing this package into a Python virtual environment.
