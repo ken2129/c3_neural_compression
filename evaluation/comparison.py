@@ -157,8 +157,10 @@ def aggregate(manifest, rows, condition):
           'images': ordered}
 
 
-def discover_c3(manifest, roots, condition):
+def discover_c3(manifest, roots, condition, input_protocol='original_rgb'):
   """Require one run/signature and precisely the selected ID set; no best retry."""
+  from c3_neural_compression.evaluation import detector_input_protocol as protocol
+  protocol.validate_protocol(input_protocol)
   expected = set(manifest['image_ids'])
   from c3_neural_compression.evaluation.comparison_attempt import validate_completed_attempt
   found, signature = {}, None
@@ -180,6 +182,8 @@ def discover_c3(manifest, roots, condition):
       weight = fields.get('machine_weight')
       if weight is None or (condition == 'c3_image' and weight != 0) or (condition == 'c3_combined' and weight <= 0):
         raise ValueError('C3 objective does not match requested condition')
+      if fields.get('codec_input_protocol', 'original_rgb') != input_protocol:
+        raise ValueError('C3 input protocol does not match requested evaluation')
       validate_bits(metrics.get('estimated_bits'), condition)
       found[image_id] = {'metrics': metrics, 'path': path.parent / 'reconstruction.png'}
   if set(found) != expected:
@@ -193,8 +197,21 @@ def discover_c3(manifest, roots, condition):
       raise ValueError(f"C3 original file SHA256 missing or mismatched: {row['image_id']}")
     if result['metrics']['datum_metadata'].get('file_name') != row['file_name']:
       raise ValueError('C3 file_name mismatch')
+    expected_hw = tuple(row['original_hw'])
+    if input_protocol == protocol.DETECTOR_INPUT:
+      expected_hw = protocol.shared_detector.expected_resized_shape(*row['original_hw'])
+      metadata = result['metrics']['datum_metadata']
+      if (metadata.get('codec_input_protocol') != input_protocol
+          or (metadata.get('codec_input_height'), metadata.get('codec_input_width')) != expected_hw
+          or result['metrics'].get('input_shape') != [*expected_hw, 3]):
+        raise ValueError('C3 mapped input provenance/dimensions mismatch')
+      from PIL import ImageOps
+      with Image.open(row['path']) as original:
+        mapped = protocol.map_rgb_uint8(ImageOps.exif_transpose(original).convert('RGB'))
+      if metadata.get('mapped_rgb_uint8_sha256') != protocol.mapped_metadata(mapped)['mapped_rgb_uint8_sha256']:
+        raise ValueError('C3 mapped input SHA256 mismatch')
     with Image.open(result['path']) as image:
-      if image.size != tuple(reversed(row['original_hw'])):
+      if image.size != tuple(reversed(expected_hw)):
         raise ValueError('C3 reconstruction dimensions mismatch')
       image.verify()
   return found, signature
