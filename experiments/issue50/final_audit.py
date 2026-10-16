@@ -68,7 +68,7 @@ def audit(root):
         for key in ('box_ap','box_ap50','box_ap75','box_ap_small','box_ap_medium','box_ap_large'):assert p[key]==metrics[key]*100
     assert all(read(p)['status']=='complete' for p in (private/'gpu_receipts').glob('*.json'))
     gpu=sum(read(p)['gpu_seconds'] for p in (private/'gpu_receipts').glob('*.json'));assert gpu<7200
-    changed=list((work/'experiments/issue50').glob('*.py'))+[work/'experiments/issue50/README.md',work/'docs/research/2026-10-16_issue50.md',work/'docs/research/2026-10-16_issue50_completion_audit.md']+list((work/'docs/research/assets').glob('issue50_four_method.*'))
+    changed=list((work/'experiments/issue50').glob('*.py'))+[work/'experiments/issue50/README.md',work/'docs/research/2026-10-16_four_method_comparison.md',work/'docs/research/2026-10-16_issue50_completion_audit.md']+list((work/'docs/research/assets').glob('issue50_four_method.*'))
     for path in changed:
         if path.suffix in ('.png','.pdf'):continue
         text=path.read_text();assert str(root) not in text

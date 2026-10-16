@@ -1,4 +1,10 @@
-# Issue 20: CPU preparation and GPU handoff
+# C3／TransTICの比較手順
+
+現行の運用は[研究ポリシー](experiment_policy.md)、現在のC3入力・rate規約は[圧縮前resize protocol](detector_input_protocol.md)を参照してください。実行基盤PR #22とprotocol PR #42は2026-10-16にmainへマージ済みです。実行時は採用sourceを固定し、過去の実行commitと現在のmainを同一と扱わないでください。
+
+以下は#20で採用した旧入力・旧rateの手順を保持したものです。元画素分母のpooled rate、当時の未選定環境・引き渡し案は歴史的条件であり、新しい比較の既定値ではありません。新規実験は対応Issueの確定計画を優先します。
+
+## 旧比較の固定条件と実行例（#20）
 
 This is a **new fixed implementation baseline**, not a reproduction of the
 summer-seminar checkpoints/results. Those original artifacts remain unverified.
@@ -61,7 +67,7 @@ python -m pytest -q c3_neural_compression/tests/test_comparison.py \
 
 Torch-dependent tests require CPU PyTorch. Synthetic/mock outputs never count as
 an actual codec checkpoint, detector inference, or COCO comparison result.
-See `issue20_validation.md` for the actually executed checks and dependency versions.
+See [当時のCPU検証記録](research/2026-10-04_cpu_validation.md) for the actually executed checks and dependency versions.
 
 ## GPU stage: assets, then smoke, then pilot
 
@@ -168,7 +174,7 @@ No interpolation/extrapolation or BD-rate claim is automated.
 - Do not infer an isolated effect of INR, feature loss, or general superiority
   from this whole-method comparison
 
-## Docker/SSH GPU handoff (target not chosen yet)
+## 当時のDocker／SSH引き渡しテンプレート（新環境を選ぶ場合のみ）
 
 Select the server/GPU first and confirm VRAM, driver, CUDA compatibility, COCO and
 checkpoint paths. Existing authentication stays on the user's Mac; do not copy
