@@ -1,4 +1,6 @@
-# Issue20 validation record (2026-10-04)
+# 比較基盤のCPU検証記録（2026-10-04）
+
+この文書は当時の検証記録です。現在の起動手順は[比較手順](../compression_comparison.md)、現在の運用は[研究ポリシー](../experiment_policy.md)を参照してください。以降の環境・未実施事項は2026-10-04時点の記録です。
 
 These checks ran on dot's CPU cloud workspace. No user server, Docker daemon,
 GPU, private SSH key, or full COCO image download was used.
@@ -58,7 +60,7 @@ Selected evaluator/config/adapter/report suite: **115 passed**, consisting of
 28 unchanged evaluation tests plus87 new tests. Includes real CPU tensor
 preprocessing, strict/negative cases, mock orchestration, real pycocotools with
 synthetic boxes, and expected empty/no-GT behavior. The exact command is in
-`issue20_comparison.md`. Python compile checks and `git diff --check` passed.
+`compression_comparison.md`. Python compile checks and `git diff --check` passed.
 
 The full repository suite was attempted. It did **not** run to completion:
 collection stopped in test_machine_checkpoint.py, test_machine_loss_config.py,

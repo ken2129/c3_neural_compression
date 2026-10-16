@@ -45,6 +45,8 @@ The rate-distortion values and MACs per pixel for C3 and other compression basel
 
 ## Research diary
 
+[研究記録の索引](docs/research/README.md)から、結果・準備記録・検証記録を内容別に参照できます。
+
 研究の経過は、記録時点ごとに1本のMarkdownとして残します。構成は「目的／実施したこと／結果／考察／決定事項／未完了・次の作業」で揃え、次回は別の日時のファイルを追加し、過去の記録を残します。
 
 - [2026-10-10 17:32 JST: 比較方針・YOLOv8m転移計画・記録形式の整理](docs/research/2026-10-10_1732_JST.md)
@@ -321,12 +323,12 @@ permissions and limitations under those licenses.
 
 This is not an official Google product.
 
-## Issue 20 C3 / TransTIC preliminary comparison
+## C3 / TransTIC comparison procedures
 
-See [the fixed comparison protocol and GPU handoff](docs/issue20_comparison.md)
-and [the actual CPU validation record](docs/issue20_validation.md). The helpers
+See [the comparison procedures and historical handoff](docs/compression_comparison.md)
+and [the historical CPU validation record](docs/research/2026-10-04_cpu_validation.md). The helpers
 freeze shared image IDs, preserve per-image estimated bits and all resize
 geometries, use one explicit Detectron2 checkpoint for evaluation, and reject
 partial/mixed results. CPU synthetic smokes are not COCO performance results.
 
-- [Issue26：YOLOv8mへの転移評価（20画像・各4点）](docs/research/2026-10-16_issue26_yolo_transfer.md)
+- [Issue26：YOLOv8mへの転移評価（20画像・各4点）](docs/research/2026-10-16_detector_transfer.md)

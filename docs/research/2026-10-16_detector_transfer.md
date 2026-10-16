@@ -1,4 +1,6 @@
-# Issue26：保存画像をYOLOv8mで再評価した転移pilot
+# 保存画像をYOLOv8mで再評価した転移pilot
+
+関連：[Issue #26](https://github.com/ken2129/c3_neural_compression/issues/26)。計画・進捗・終了状態はIssue、測定結果と再現条件は本記録を正本とします。
 
 #49の評価20画像・C3／C3′各4rateのPNG160枚とCOCO配布JPEG20枚を再利用し、YOLOv8mで計180入力を評価した。C3の再圧縮・再最適化・λ変更は行っていない。Detectron2の9評価は#49から再利用した。
 

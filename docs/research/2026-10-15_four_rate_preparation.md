@@ -1,4 +1,6 @@
-# Issue49: four-rate calibration and independent-subset preparation
+# 4rate校正・非重複評価の準備記録（2026-10-15）
+
+この文書は#49の準備当時の記録です。以下の未実行・未マージ・承認待ちは当時の状態であり、現在の実行状態ではありません。完了結果は[4rate比較の研究記録](2026-10-16_1041_JST.md)を参照してください。
 
 The new comparison is still in preparation. No new compression measurements or
 performance improvement are claimed in this record.
