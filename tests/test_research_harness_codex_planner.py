@@ -71,6 +71,8 @@ class CodexPlannerTests(unittest.TestCase):
 
     def test_fixed_read_only_flags_no_shell_interpolation(self):
         self.draft()
+        probe, _ = self.runtime.calls[0]
+        self.assertNotIn('--strict-config', probe)  # unsupported by Codex sandbox
         args, kw = self.runtime.calls[-1]
         for flag in ('--strict-config', '--ignore-user-config', '--ephemeral', '--output-schema'):
             self.assertIn(flag, args)

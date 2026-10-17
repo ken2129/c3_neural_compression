@@ -149,11 +149,11 @@ class CodexPlanner:
             schema.write_text(json.dumps(output_schema()), encoding='utf-8')
             # Runtime must mount only this scratch directory read-only for the
             # model's tools. CLI's own final output is returned through stdout.
-            common = (str(self.executable), '--strict-config', '-c', 'approval_policy="never"',
+            common = (str(self.executable), '-c', 'approval_policy="never"',
                       '-c', 'sandbox_mode="read-only"')
             self.runtime.run(common + ('sandbox', '/usr/bin/true'), stdin=b'', cwd=root,
                              timeout=10, max_output_bytes=4096)
-            argv = common + ('exec', '--ignore-user-config', '--ephemeral', '--skip-git-repo-check',
+            argv = common + ('--strict-config', 'exec', '--ignore-user-config', '--ephemeral', '--skip-git-repo-check',
                              '--sandbox', 'read-only', '--model', self.model,
                              '-c', 'features.shell_tool=false', '-c', 'features.multi_agent=false',
                              '-c', 'features.apps=false', '-c', 'features.hooks=false',
