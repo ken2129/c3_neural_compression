@@ -7,6 +7,9 @@ That boundary is NOT established by this module; live execution stays disabled.
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
+from contextvars import ContextVar
+import math
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -18,6 +21,36 @@ from .issue_intake import (Intake, PublicGitHub, classify, content_hash,
                            positive_int, timestamp)
 from .schema import ContractError, REPOSITORY, canonical, fields, loads
 from .store import SingleInstance
+
+_READ_DEADLINE = ContextVar('owner_approval_read_deadline', default=None)
+
+
+@contextmanager
+def approval_read_budget(seconds=5.0):
+    """Trusted per-refresh shared budget; never renew a nested deadline."""
+    if type(seconds) not in (int, float) or not math.isfinite(seconds) or not 0 < seconds <= 5:
+        raise ContractError('invalid approval read budget')
+    deadline = time.monotonic() + seconds
+    existing = _READ_DEADLINE.get()
+    if existing is not None:
+        deadline = min(deadline, existing)
+    token = _READ_DEADLINE.set(deadline)
+    try:
+        yield
+        approval_read_timeout(seconds)
+    finally:
+        _READ_DEADLINE.reset(token)
+
+
+def approval_read_timeout(default):
+    deadline = _READ_DEADLINE.get()
+    if deadline is None:
+        return default
+    remaining = deadline - time.monotonic()
+    if not math.isfinite(remaining) or remaining <= 0:
+        raise TimeoutError('approval read budget exhausted')
+    return min(default, remaining)
+
 
 OWNER_ID = 55587773
 OWNER_LOGIN = 'ken2129'
@@ -64,10 +97,21 @@ class GitHubOwnerComments:
             if cursor is not None:
                 command += ['-f', 'cursor=' + cursor]
             # Timeout applies to the gh process; no remote errors are echoed.
-            response = subprocess.run(command, capture_output=True, timeout=20, check=True)
-            if len(response.stdout) > MAX_BYTES:
+            if _READ_DEADLINE.get() is not None:
+                # Live periodic refresh uses the same bounded, manager-only
+                # process/output/cleanup path as REST, not communicate().
+                approval_read_timeout(20)
+                from .manager_github import ManagerGitHub
+                command[0] = ManagerGitHub._executable()
+                code, output = ManagerGitHub._run(command)
+                if code != 0:
+                    raise subprocess.CalledProcessError(code, 'fixed GitHub comment read')
+            else:
+                response = subprocess.run(command, capture_output=True, timeout=20, check=True)
+                output = response.stdout
+            if len(output) > MAX_BYTES:
                 raise ContractError('GraphQL response too large')
-            data = loads(response.stdout)
+            data = loads(output)
             if data.get('errors'):
                 raise ContractError('GraphQL returned errors')
             try:

@@ -18,11 +18,18 @@ from dataclasses import replace
 import json
 import os
 import shlex
+import subprocess
+from contextlib import redirect_stderr
+from io import StringIO
+from urllib.error import HTTPError
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
 
 import research_harness.app_server_adapter as adapter_module
+from research_harness.manager_runtime import (RecheckRejected, require_recheck_reply,
+    safe_recheck_failure)
+from research_harness.schema import ContractError
 
 from research_harness.app_server_adapter import (
     AppServerAdapter, AppServerBlocked, BoundedStdioTransport, CODEX_HOME,
@@ -593,7 +600,7 @@ class AppServerAdapterTest(unittest.TestCase):
                 self.run_fake(frames)
 
     def test_cancel_errors_and_unexpected_tools_block(self):
-        with self.assertRaisesRegex(AppServerBlocked, 'cancelled'):
+        with self.assertRaisesRegex(AppServerBlocked, 'recheck failed'):
             self.run_fake(recheck=Mock(side_effect=AppServerBlocked('cancelled')))
         for frame in (event('error', {'willRetry': True}),
                       {'id': 1, 'error': {'code': -1, 'message': 'do not log me'}}):
@@ -645,7 +652,7 @@ class AppServerDiagnosticTest(unittest.TestCase):
                  if isinstance(node, ast.Raise) and isinstance(node.exc, ast.Call)
                  and isinstance(node.exc.func, ast.Name) and node.exc.func.id == 'AppServerBlocked'
                  and node.exc.args and isinstance(node.exc.args[0], ast.Constant)]
-        self.assertEqual(len(sites), 83)
+        self.assertEqual(len(sites), 86)
         self.assertEqual(set(sites), set(adapter_module._BLOCK_REASON_CODES))
         codes = list(adapter_module._BLOCK_REASON_CODES.values())
         self.assertEqual(len(codes), len(set(codes)))
@@ -687,7 +694,10 @@ class AppServerDiagnosticTest(unittest.TestCase):
                         record[:4] + (1, False, False, False) + record[8:],
                         record[:4] + (False, True, False, False) + record[8:],
                         record[:3] + ('secret',) + record[4:],
-                        record[:8] + ('secret',), record[:8] + ([],)):
+                        record[:8] + ('secret',) + record[9:], record[:8] + ([],) + record[9:],
+                        record[:9] + ([], 'manager'),
+                        record[:9] + ('expired', 'secret'),
+                        record[:9] + ('none', 'manager')):
             adapter_module._DIAGNOSTIC_RECORDS[exc] = corrupt
             self.assertIsNone(safe_app_server_diagnostic(exc))
 
@@ -791,6 +801,112 @@ class AppServerDiagnosticTest(unittest.TestCase):
         self.assertFalse(any(outside[k] for k in adapter_module._DIAGNOSTIC_FIELDS[4:8]))
 
 
+class AppServerRecheckDiagnosticTest(unittest.TestCase):
+    def fail_recheck(self, failure, *, received=0):
+        request = fixed_app_server_request('configured-model-v1')
+        adapter = AppServerAdapter(enabled=True)
+        adapter.admit(request, admit_external=lambda request: None, recheck=lambda: None)
+        transport = FakeTransport()
+        total = len(transport.frames)
+        def recheck():
+            if total - len(transport.frames) >= received:
+                raise failure
+        with self.assertRaises(AppServerBlocked) as caught:
+            adapter.run(request, transport, recheck=recheck)
+        return caught.exception
+
+    def test_raw_trusted_check_failures_are_now_classified_without_exception_text(self):
+        secret = 'SECRET-never-export'
+        cases = [
+            (ContractError(secret), 'contract', 'approval_callback'),
+            (RecheckRejected('expired'), 'expired', 'manager'),
+            (RecheckRejected('changed'), 'changed', 'manager'),
+            (HTTPError('https://secret.invalid', 429, secret, {}, None),
+             'source_rate_limited', 'approval_callback'),
+            (TimeoutError(secret), 'source_timeout', 'approval_callback'),
+            (subprocess.TimeoutExpired(secret, 1, output=secret, stderr=secret),
+             'source_timeout', 'approval_callback'),
+            (subprocess.CalledProcessError(1, secret, output=secret, stderr=secret),
+             'source_command_failed', 'approval_callback'),
+            (OSError(secret), 'source_unavailable', 'approval_callback'),
+            (RuntimeError(secret), 'unknown', 'approval_callback')]
+        for failure, reason, origin in cases:
+            with self.subTest(reason=reason):
+                error = self.fail_recheck(failure)
+                detail = safe_app_server_diagnostic(error)
+                self.assertEqual(detail['reason'], 'APP_SERVER_RECHECK_FAILED')
+                self.assertEqual((detail['recheck_reason'], detail['recheck_origin']), (reason, origin))
+                self.assertNotIn(secret, json.dumps(detail))
+                self.assertEqual(str(error), 'trusted approval recheck failed')
+
+    def test_initial_streaming_and_final_rechecks_keep_precise_progress(self):
+        for received, phase, flags in [
+            (0, 'admission', [False, False, False, False]),
+            (1, 'thread_start_wait', [True, False, False, False]),
+            (5, 'stream', [True, True, True, False]),
+            (10, 'final_validate', [True, True, True, False])]:
+            detail = safe_app_server_diagnostic(self.fail_recheck(
+                RecheckRejected('source_rate_limited'), received=received))
+            self.assertEqual(detail['phase'], phase)
+            self.assertEqual([detail[k] for k in adapter_module._DIAGNOSTIC_FIELDS[4:8]], flags)
+            self.assertEqual(detail['recheck_reason'], 'source_rate_limited')
+
+    def test_closed_manager_reply_reproduces_previous_missing_detail_with_context(self):
+        from research_harness.uid_supervisor import report_failure
+        for reply, reason, origin in [
+            ({'approved': False, 'reason': 'changed', 'origin': 'manager'}, 'changed', 'manager'),
+            ({'approved': False, 'reason': 'source_timeout', 'origin': 'manager'},
+             'source_timeout', 'manager'),
+            ({'approved': False}, 'contract', 'launcher_ipc'),
+            ({'approved': False, 'reason': 'SECRET', 'origin': 'manager'}, 'contract', 'launcher_ipc')]:
+            try: require_recheck_reply(reply)
+            except ContractError as denied:
+                error = self.fail_recheck(denied, received=5)
+            output = StringIO()
+            with redirect_stderr(output): report_failure('app_server', 'turn', error)
+            record = json.loads(output.getvalue())
+            self.assertEqual(record['error_class'], 'contract')
+            self.assertEqual(record['app_server']['reason'], 'APP_SERVER_RECHECK_FAILED')
+            self.assertEqual(record['app_server']['recheck_reason'], reason)
+            self.assertEqual(record['app_server']['recheck_origin'], origin)
+            self.assertNotIn('observed_child_returncode', record)
+            self.assertNotIn('SECRET', output.getvalue())
+
+    def test_non_recheck_contract_keeps_context_without_false_approval_label(self):
+        for operation, phase in [('send', 'initialize_send'), ('receive', 'initialize_wait')]:
+            transport = FakeTransport()
+            setattr(transport, operation, Mock(side_effect=ContractError('SECRET')))
+            with self.assertRaises(AppServerBlocked) as caught:
+                AppServerAdapter(enabled=True).run(fixed_app_server_request('configured-model-v1'),
+                    transport, admit_external=lambda request: None, recheck=lambda: None)
+            detail = safe_app_server_diagnostic(caught.exception)
+            self.assertEqual(detail['reason'], 'APP_SERVER_BOUNDARY_CONTRACT')
+            self.assertEqual(detail['phase'], phase)
+            self.assertEqual((detail['recheck_reason'], detail['recheck_origin']), ('none', 'none'))
+            self.assertNotIn('SECRET', json.dumps(detail))
+
+    def test_unregistered_or_subclassed_boundary_errors_get_only_fixed_context(self):
+        class UntrustedError(AppServerBlocked):
+            pass
+        for error in (UntrustedError('SECRET'), AppServerBlocked.__new__(AppServerBlocked)):
+            transport = FakeTransport(); transport.receive = Mock(side_effect=error)
+            with self.assertRaises(AppServerBlocked) as caught:
+                AppServerAdapter(enabled=True).run(fixed_app_server_request('configured-model-v1'),
+                    transport, admit_external=lambda request: None, recheck=lambda: None)
+            detail = safe_app_server_diagnostic(caught.exception)
+            self.assertEqual(detail['reason'], 'APP_SERVER_BOUNDARY_CONTRACT')
+            self.assertEqual(detail['phase'], 'initialize_wait')
+            self.assertNotIn('SECRET', json.dumps(detail))
+
+    def test_process_control_exceptions_are_not_swallowed_or_reclassified(self):
+        request = fixed_app_server_request('configured-model-v1')
+        adapter = AppServerAdapter(enabled=True)
+        adapter.admit(request, admit_external=lambda request: None, recheck=lambda: None)
+        with self.assertRaises(KeyboardInterrupt):
+            adapter.run(request, FakeTransport(), recheck=Mock(side_effect=KeyboardInterrupt()))
+        self.assertEqual(safe_app_server_diagnostic(AppServerBlocked('outside'))['phase'], 'unscoped')
+
+
 class BoundedStdioTransportTest(unittest.TestCase):
     def pipes(self, stdout=b'', stderr=b''):
         stdin_read, stdin_write = os.pipe()
@@ -831,12 +947,21 @@ class BoundedStdioTransportTest(unittest.TestCase):
             with self.subTest(stdout=stdout), self.assertRaises(AppServerBlocked):
                 self.transport(process, **kwargs).receive()
 
+    def test_transport_recheck_source_failure_is_classified_before_reading(self):
+        process, _ = self.pipes(b'{}\n')
+        with self.assertRaises(AppServerBlocked) as caught:
+            self.transport(process, recheck=Mock(side_effect=RecheckRejected(
+                'source_timeout', origin='manager'))).receive()
+        detail = safe_app_server_diagnostic(caught.exception)
+        self.assertEqual(detail['reason'], 'APP_SERVER_RECHECK_FAILED')
+        self.assertEqual((detail['recheck_reason'], detail['recheck_origin']), ('source_timeout', 'manager'))
+
     def test_read_and_write_honor_deadline_and_cancellation(self):
         process, _ = self.pipes(b'{}\n')
         with self.assertRaisesRegex(AppServerBlocked, 'deadline'):
             self.transport(process, deadline=0).receive()
         process, _ = self.pipes()
-        with self.assertRaisesRegex(AppServerBlocked, 'cancel'):
+        with self.assertRaisesRegex(AppServerBlocked, 'recheck failed'):
             self.transport(process, recheck=Mock(side_effect=AppServerBlocked('cancel'))).send({})
 
 

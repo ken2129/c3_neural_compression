@@ -483,6 +483,20 @@ class FixedAppServerSupervisorTest(unittest.TestCase):
         self.assertEqual(json.loads(output.getvalue()), {
             'phase':'RUNTIME_BLOCKED','role':'unknown','stage':'unknown','error_class':'other'})
 
+    def test_pre_post_turn_typed_recheck_failure_is_preserved(self):
+        from research_harness.uid_supervisor import report_failure
+        from research_harness.manager_runtime import RecheckRejected
+        for stage in ('approval','barrier','postcheck'):
+            error=RecheckRejected('expired',origin='manager')
+            error.args=('SECRET',);error.reason='SECRET'
+            output=io.StringIO()
+            with patch('research_harness.uid_supervisor.sys.stderr',output):
+                report_failure('app_server',stage,error)
+            record=json.loads(output.getvalue())
+            self.assertEqual(record['approval_failure'],{'reason':'expired','origin':'manager'})
+            self.assertNotIn('SECRET',output.getvalue())
+            self.assertNotIn('app_server',record)
+
     def test_diagnostic_observed_exit_is_bounded_numeric_only(self):
         from research_harness.uid_supervisor import report_failure
         for value in (-25, None, True, 'SECRET', -129, 256):

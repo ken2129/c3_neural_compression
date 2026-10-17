@@ -9,7 +9,8 @@ import sys
 import time
 sys.path.insert(0,'/opt/service')
 from research_harness.deployment_contract import validate_dedicated_deployment
-from research_harness.manager_runtime import PipeRuntime,read_frame,write_frame
+from research_harness.manager_runtime import (PipeRuntime,RecheckRejected,
+    read_frame,write_frame,require_recheck_reply)
 from research_harness.restart_boundary import read_epoch,RestartEpoch
 from research_harness.schema import ContractError,loads,canonical
 from research_harness.service_state import ServiceState,initialize,validate_binding
@@ -175,9 +176,14 @@ def supervise():
                 model_mode=selected_plan['kind']=='codex-canary-v1'
                 if (frame['op']=='fixed_model')!=model_mode:raise ContractError('runtime kind mismatch')
                 def recheck():
-                    write_frame(control.stdin,{'op':'recheck'})
-                    response=read_frame(control.stdout)
-                    if set(response)!={'approved'} or response['approved'] is not True:raise ContractError('approval no longer valid')
+                    try:
+                        write_frame(control.stdin,{'op':'recheck'})
+                        response=read_frame(control.stdout)
+                    except OSError:
+                        raise RecheckRejected('source_unavailable',origin='launcher_ipc') from None
+                    except (ContractError,EOFError,ValueError,TypeError,RecursionError):
+                        raise RecheckRejected('contract',origin='launcher_ipc') from None
+                    require_recheck_reply(response)
                 supervisor=OwnedUIDSupervisor(LinuxUIDBackend(),controller_pid=control.pid)
                 if model_mode:
                     if model_request is None:raise ContractError('MODEL_PREFLIGHT_MISSING')

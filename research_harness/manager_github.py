@@ -26,6 +26,7 @@ from urllib.error import HTTPError
 
 from .issue_intake import MAX_PAGES, MAX_RESPONSE, PublicGitHub
 from .result_publisher import GhResultTransport
+from .owner_approval import approval_read_timeout
 from .schema import ContractError, REPOSITORY, loads
 
 MANAGER_UID = 10001
@@ -39,6 +40,10 @@ _LIST = '/issues?state=open&sort=created&direction=asc&per_page=100&page='
 
 class ManagerGitHubError(ContractError):
     """Sanitized setup, process, protocol or response failure."""
+
+
+class ManagerGitHubTimeout(ManagerGitHubError, TimeoutError):
+    """Fixed timeout classification without remote text."""
 
 
 class ManagerGitHubHTTPError(HTTPError):
@@ -127,6 +132,7 @@ class ManagerGitHub(PublicGitHub):
     @staticmethod
     def _run(command):
         """Bound both output streams while they arrive; no unbounded communicate."""
+        timeout = approval_read_timeout(MAX_SECONDS)
         environment = ManagerGitHub._environment()
         process = None
         completed = False
@@ -135,7 +141,7 @@ class ManagerGitHub(PublicGitHub):
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False,
                 cwd='/', env=environment, close_fds=True, start_new_session=True)
             output, total = bytearray(), 0
-            deadline = time.monotonic() + MAX_SECONDS
+            deadline = time.monotonic() + min(timeout, approval_read_timeout(MAX_SECONDS))
             with selectors.DefaultSelector() as selector:
                 for stream in (process.stdout, process.stderr):
                     os.set_blocking(stream.fileno(), False)
@@ -143,7 +149,7 @@ class ManagerGitHub(PublicGitHub):
                 while selector.get_map():
                     remaining = deadline - time.monotonic()
                     if remaining <= 0:
-                        raise ManagerGitHubError('GitHub manager read deadline exceeded')
+                        raise ManagerGitHubTimeout('GitHub manager read deadline exceeded')
                     for key, _ in selector.select(min(remaining, .1)):
                         try:
                             chunk = os.read(key.fd, min(65536, MAX_RESPONSE - total + 1))
@@ -159,10 +165,12 @@ class ManagerGitHub(PublicGitHub):
                             output.extend(chunk)
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                raise ManagerGitHubError('GitHub manager read deadline exceeded')
+                raise ManagerGitHubTimeout('GitHub manager read deadline exceeded')
             code = process.wait(timeout=remaining)
             completed = True
             return code, bytes(output)
+        except (TimeoutError, subprocess.TimeoutExpired):
+            raise ManagerGitHubTimeout('GitHub manager read deadline exceeded') from None
         except (OSError, subprocess.SubprocessError):
             raise ManagerGitHubError('GitHub manager read unavailable') from None
         finally:

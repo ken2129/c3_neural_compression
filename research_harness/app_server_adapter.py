@@ -23,6 +23,8 @@ import time
 
 from research_harness.codex_adapter import CanaryCandidate, CONFIG, WORKER_SCHEMA
 from research_harness.schema import ContractError, canonical, fields, loads
+from research_harness.manager_runtime import (RECHECK_REASONS, RECHECK_ORIGINS,
+                                               safe_recheck_failure)
 
 BINARY = '/opt/codex/bin/codex'
 WORKSPACE = '/work/canary'
@@ -103,6 +105,8 @@ _BLOCK_REASON_CODES = MappingProxyType({
     'external boundary admission cannot be a boolean flag': 'APP_SERVER_EXTERNAL_ADMISSION_BOOLEAN',
     'admitted app-server request binding mismatch': 'APP_SERVER_REQUEST_BINDING',
     'trusted approval recheck is required': 'APP_SERVER_RECHECK_REQUIRED',
+    'trusted approval recheck failed': 'APP_SERVER_RECHECK_FAILED',
+    'app-server boundary contract failed': 'APP_SERVER_BOUNDARY_CONTRACT',
     'invalid protocol object': 'APP_SERVER_PROTOCOL_OBJECT',
     'invalid protocol version': 'APP_SERVER_PROTOCOL_VERSION',
     'app-server requested an unsupported capability': 'APP_SERVER_SERVER_REQUEST',
@@ -162,7 +166,8 @@ _METHODS = frozenset(('none', 'unknown', 'initialize', 'initialized', 'thread/st
     'deprecationNotice', 'configWarning'))
 _CONFIG_WARNING_CATEGORIES = frozenset(('none', 'bundled_bwrap_fallback', 'unrecognized', 'malformed'))
 _DIAGNOSTIC_FIELDS = ('reason', 'phase', 'frame_kind', 'method', 'initialized',
-                      'thread_started', 'turn_accepted', 'final_validated', 'config_warning')
+                      'thread_started', 'turn_accepted', 'final_validated', 'config_warning',
+                      'recheck_reason', 'recheck_origin')
 _DIAGNOSTIC_CONTEXT = ContextVar('app_server_diagnostic', default=None)
 # Weak keys avoid retaining exception tracebacks. Records live outside mutable
 # exception attributes; neither forged attributes nor args affect the exporter.
@@ -175,10 +180,12 @@ class _DiagnosticState:
         self.initialized = self.thread_started = self.turn_accepted = self.final_validated = False
         self.rpc_method = 'none'
         self.config_warning = 'none'
+        self.recheck_reason = self.recheck_origin = 'none'
 
     def record(self, reason):
         return (reason, self.phase, self.frame_kind, self.method, self.initialized,
-                self.thread_started, self.turn_accepted, self.final_validated, self.config_warning)
+                self.thread_started, self.turn_accepted, self.final_validated, self.config_warning,
+                self.recheck_reason, self.recheck_origin)
 
 
 def _diagnosed(phase):
@@ -198,7 +205,14 @@ def _diagnosed(phase):
                     if (type(record) is tuple and len(record) == len(_DIAGNOSTIC_FIELDS)
                             and type(record[0]) is str and record[0] in _REASON_CODES):
                         _DIAGNOSTIC_RECORDS[exc] = _DIAGNOSTIC_CONTEXT.get().record(record[0])
-                raise
+                        raise
+                # Do not trust subclass attributes or constructor-bypass data.
+                # The trusted call boundary can still record a fixed failure.
+                raise AppServerBlocked('app-server boundary contract failed') from None
+            except ContractError:
+                # Schema/canonical helpers and trusted integrations may raise
+                # the base class. Preserve phase without exposing their text.
+                raise AppServerBlocked('app-server boundary contract failed') from None
             finally:
                 _DIAGNOSTIC_CONTEXT.reset(token)
         return call
@@ -222,6 +236,7 @@ def _diagnostic_clear_frame():
     if state is not None:
         state.frame_kind, state.method = 'none', 'none'
         state.config_warning = 'none'
+        state.recheck_reason = state.recheck_origin = 'none'
 
 
 def _diagnostic_frame(value):
@@ -230,6 +245,7 @@ def _diagnostic_frame(value):
         return
     state.frame_kind, state.method = 'unknown', 'unknown'
     state.config_warning = 'none'
+    state.recheck_reason = state.recheck_origin = 'none'
     if type(value) is not dict:
         return
     if 'method' in value:
@@ -276,12 +292,34 @@ def safe_app_server_diagnostic(exc):
     category = record[8]
     if type(category) is not str or len(category) > 32 or category not in _CONFIG_WARNING_CATEGORIES:
         return None
+    for value, allowed in zip(record[9:], (RECHECK_REASONS, RECHECK_ORIGINS)):
+        if type(value) is not str or len(value) > 32 or (value != 'none' and value not in allowed):
+            return None
+    if (record[9] == 'none') != (record[10] == 'none'):
+        return None
     flags = record[4:8]
     if any(type(flag) is not bool for flag in flags):
         return None
     if any(flags[index] and not flags[index - 1] for index in range(1, len(flags))):
         return None
     return dict(zip(_DIAGNOSTIC_FIELDS, record))
+
+
+@_diagnosed('unscoped')
+def _checked_recheck(callback):
+    """Attach fixed manager/source/IPC context to a failed trusted check.
+
+    This does not cache, retry or reinterpret approval. Process-control signals
+    still propagate as BaseException; ordinary callback failures stay blocked.
+    """
+    try:
+        callback()
+    except Exception as exc:
+        failure = safe_recheck_failure(exc, origin='approval_callback')
+        state = _DIAGNOSTIC_CONTEXT.get()
+        state.recheck_reason = failure['reason']
+        state.recheck_origin = failure['origin']
+        raise AppServerBlocked('trusted approval recheck failed') from None
 
 
 @dataclass(frozen=True)
@@ -392,7 +430,7 @@ class BoundedStdioTransport:
             raise
 
     def _check(self):
-        self.recheck()
+        _checked_recheck(self.recheck)
         remaining = self.deadline - self.clock()
         if remaining <= 0:
             raise AppServerBlocked('app-server deadline exceeded')
@@ -705,10 +743,10 @@ class AppServerAdapter:
             raise AppServerBlocked('EXTERNAL_BOUNDARY_ADMISSION_NOT_CONFIGURED')
         if self.used or self._admitted_request is not None:
             raise AppServerBlocked('app-server adapter cannot be reused')
-        recheck()
+        _checked_recheck(recheck)
         if admit_external(request) is not None:
             raise AppServerBlocked('external boundary admission cannot be a boolean flag')
-        recheck()
+        _checked_recheck(recheck)
         self._admitted_request = request
 
     @_diagnosed('admission')
@@ -724,13 +762,13 @@ class AppServerAdapter:
             raise AppServerBlocked('admitted app-server request binding mismatch')
         if not callable(recheck):
             raise AppServerBlocked('trusted approval recheck is required')
-        recheck()
+        _checked_recheck(recheck)
         self.used = True
         pending = []
 
         def receive():
             _diagnostic_clear_frame()
-            recheck()
+            _checked_recheck(recheck)
             value = transport.receive()
             _diagnostic_frame(value)
             if type(value) is not dict:
@@ -876,7 +914,7 @@ class AppServerAdapter:
                 if view == 'summary' and (
                         snapshot_ids != {final[0]} or last_summary_item_id != final[0]):
                     raise AppServerBlocked('summary does not match the streamed final candidate')
-                recheck()
+                _checked_recheck(recheck)
                 candidate = _candidate(final[1])
                 if candidate.outcome == 'success' and (command_event is None or command_event[1] != 0):
                     raise AppServerBlocked('success candidate lacks matching command completion')

@@ -1,9 +1,17 @@
 """Private protocol tests use in-memory text streams, never a live root launcher."""
 import io
 import json
+import subprocess
 import unittest
+from urllib.error import HTTPError, URLError
+import weakref
 
-from research_harness.manager_runtime import LIMIT, PipeRuntime, read_frame, write_frame
+from research_harness import manager_runtime
+from research_harness.manager_github import ManagerGitHubRateLimited
+from research_harness.manager_runtime import (LIMIT, PipeRuntime, RECHECK_REASONS,
+    RECHECK_ORIGINS, RecheckRejected, read_frame, write_frame,
+    safe_recheck_failure, require_recheck_reply)
+from research_harness.owner_approval import MissingApproval, RevokedApproval
 from research_harness.result_publisher import EXPECTED_CHECKSUM, ValidatedCanaryResult
 from research_harness.schema import ContractError, canonical
 from test_harness_restart_boundary import epoch
@@ -18,6 +26,141 @@ def encoded(value):
 
 def result_frame(**changes):
     return {'result': {**dict(checksum=EXPECTED_CHECKSUM, elapsed_seconds=.01, model_called=False), **changes}}
+
+
+SECRET='private-token https://secret.invalid/body stderr=private'
+
+
+class RecheckDiagnosticTests(unittest.TestCase):
+    def test_all_fixed_reasons_and_origins_round_trip_and_return_fresh_records(self):
+        self.assertIs(type(RECHECK_REASONS),frozenset)
+        self.assertIs(type(RECHECK_ORIGINS),frozenset)
+        for reason in RECHECK_REASONS:
+            for origin in RECHECK_ORIGINS:
+                with self.subTest(reason=reason,origin=origin):
+                    exc=RecheckRejected(reason,origin=origin)
+                    self.assertEqual(exc.args,('approval recheck rejected',))
+                    expected={'reason':reason,'origin':origin}
+                    actual=safe_recheck_failure(exc,origin='approval_callback')
+                    self.assertEqual(actual,expected)
+                    actual.update(reason=SECRET,origin=SECRET)
+                    self.assertEqual(safe_recheck_failure(exc),expected)
+
+    def test_invalid_constructor_enums_cannot_enter_exception_or_record(self):
+        class String(str):pass
+        for invalid in (SECRET,None,True,{},[],String('changed')):
+            for reason,origin in ((invalid,'manager'),('expired',invalid)):
+                exc=RecheckRejected(reason,origin=origin)
+                self.assertEqual(exc.args,('approval recheck rejected',))
+                self.assertEqual(safe_recheck_failure(exc),{'reason':'unknown','origin':'manager'})
+                self.assertNotIn(SECRET,str(exc))
+
+    def test_public_mutation_forged_instances_and_subclasses_are_not_authority(self):
+        original=RecheckRejected('expired')
+        original.args=(SECRET,)
+        original.reason=original.origin=original._record=SECRET
+        self.assertEqual(safe_recheck_failure(original),{'reason':'expired','origin':'manager'})
+        forged=RecheckRejected.__new__(RecheckRejected)
+        forged.reason='changed';forged.origin='manager';forged.args=(SECRET,)
+        class Subclass(RecheckRejected):pass
+        for exc in (forged,Subclass('changed')):
+            self.assertEqual(safe_recheck_failure(exc,origin='approval_callback'),
+                {'reason':'unknown','origin':'approval_callback'})
+        other=RuntimeError(SECRET)
+        other.reason='expired';other.origin='manager'
+        self.assertEqual(safe_recheck_failure(other),{'reason':'unknown','origin':'manager'})
+
+    def test_private_records_are_immutable_validated_and_weakly_held(self):
+        class String(str):pass
+        exc=RecheckRejected('changed')
+        self.assertIs(type(manager_runtime._RECHECK_FAILURES[exc]),tuple)
+        for record in (None,{},['changed','manager'],('changed',),
+                (SECRET,'manager'),('changed',SECRET),(String('changed'),'manager')):
+            manager_runtime._RECHECK_FAILURES[exc]=record
+            self.assertEqual(safe_recheck_failure(exc),{'reason':'unknown','origin':'manager'})
+        reference=weakref.ref(exc)
+        del exc
+        self.assertIsNone(reference())
+
+    def test_source_failure_types_only_never_messages_headers_or_payloads(self):
+        failures=[
+            (HTTPError(SECRET,429,SECRET,{'secret':SECRET},None),'source_rate_limited'),
+            (ManagerGitHubRateLimited(403),'source_rate_limited'),
+            (HTTPError(SECRET,403,SECRET,{'X-RateLimit-Remaining':'0'},None),'source_unavailable'),
+            (HTTPError(SECRET,500,SECRET,{},None),'source_unavailable'),
+            (HTTPError(SECRET,'429',SECRET,{},None),'source_unavailable'),
+            (TimeoutError(SECRET),'source_timeout'),
+            (subprocess.TimeoutExpired(SECRET,1,output=SECRET,stderr=SECRET),'source_timeout'),
+            (URLError(SECRET),'source_unavailable'),
+            (URLError(TimeoutError(SECRET)),'source_unavailable'),
+            (OSError(SECRET),'source_unavailable'),
+            (subprocess.CalledProcessError(1,SECRET,output=SECRET,stderr=SECRET),'source_command_failed'),
+            (MissingApproval(SECRET),'changed'),(RevokedApproval(SECRET),'changed'),
+            (ContractError(SECRET),'contract'),(RuntimeError(SECRET),'unknown'),
+            (RuntimeError('expired changed 429 rate limited timeout'),'unknown'),
+            (KeyboardInterrupt(SECRET),'unknown'),
+        ]
+        for exc,reason in failures:
+            with self.subTest(kind=type(exc).__name__,reason=reason):
+                actual=safe_recheck_failure(exc,origin='approval_callback')
+                self.assertEqual(actual,{'reason':reason,'origin':'approval_callback'})
+                self.assertNotIn(SECRET,json.dumps(actual))
+                self.assertEqual(safe_recheck_failure(exc,origin=SECRET),
+                    {'reason':'unknown','origin':'manager'})
+
+    def test_exception_chains_do_not_supply_a_reason(self):
+        exc=RuntimeError(SECRET)
+        exc.__cause__=RecheckRejected('expired')
+        self.assertEqual(safe_recheck_failure(exc),{'reason':'unknown','origin':'manager'})
+
+    def test_hostile_subclass_accessors_hashing_and_forged_dict_are_never_called(self):
+        class HostileHTTP(HTTPError):
+            def __getattribute__(self,name):
+                if name in ('__dict__','code','__class__'):
+                    raise AssertionError('must not read hostile attribute')
+                return super().__getattribute__(name)
+        class HostileDictionary(dict):
+            def get(self,*args):raise AssertionError('must not call forged dict')
+        class HostileRejected(RecheckRejected):
+            def __hash__(self):raise AssertionError('must not hash subclass')
+        class SpoofedError(RuntimeError):
+            @property
+            def __class__(self):return HTTPError
+        forged=HTTPError(SECRET,429,SECRET,{},None)
+        forged.__dict__=HostileDictionary(code=429)
+        for exc in (HostileHTTP(SECRET,429,SECRET,{},None),forged,
+                HostileRejected('expired'),SpoofedError(SECRET)):
+            self.assertEqual(safe_recheck_failure(exc),{'reason':'unknown','origin':'manager'})
+
+
+class RecheckReplyTests(unittest.TestCase):
+    def test_true_frame_is_exact_and_negative_frames_preserve_fixed_diagnostics(self):
+        self.assertIsNone(require_recheck_reply({'approved':True}))
+        for reason in RECHECK_REASONS:
+            for origin in RECHECK_ORIGINS:
+                with self.assertRaises(RecheckRejected) as caught:
+                    require_recheck_reply({'approved':False,'reason':reason,'origin':origin})
+                self.assertEqual(safe_recheck_failure(caught.exception),{'reason':reason,'origin':origin})
+
+    def test_old_boolean_denial_and_malformed_or_secret_fields_are_contract(self):
+        class Mapping(dict):pass
+        frames=[None,[],{},Mapping(approved=True),{'approved':1},{'approved':0},
+            {'approved':False},{'approved':True,'reason':'changed','origin':'manager'},
+            {'approved':False,'reason':'expired'},
+            {'approved':False,'reason':SECRET,'origin':'manager'},
+            {'approved':False,'reason':'changed','origin':SECRET},
+            {'approved':False,'reason':{},'origin':'manager'},
+            {'approved':False,'reason':'changed','origin':[]},
+            {'approved':False,'reason':'changed','origin':'manager','stderr':SECRET},
+            {'approved':True,'token':SECRET},
+            {'approved':0,'reason':'changed','origin':'manager'},
+        ]
+        for frame in frames:
+            with self.subTest(frame=frame),self.assertRaises(RecheckRejected) as caught:
+                require_recheck_reply(frame)
+            self.assertEqual(safe_recheck_failure(caught.exception),
+                {'reason':'contract','origin':'launcher_ipc'})
+            self.assertNotIn(SECRET,str(caught.exception))
 
 
 class Output(io.StringIO):
@@ -122,8 +265,27 @@ class PipeRuntimeTests(unittest.TestCase):
             raise ContractError('synthetic approval revoked')
         with self.assertRaises(ContractError):
             runtime.run(BINDING, deny)
-        self.assertEqual(outgoing.frames()[1:], [{'approved': False}])
+        self.assertEqual(outgoing.frames()[1:], [{'approved': False,'reason':'contract','origin':'manager'}])
         self.assertEqual(read_frame(incoming), result_frame())
+
+    def test_recheck_denial_preserves_reason_and_original_exception_without_payload(self):
+        failures=[RecheckRejected('expired'),RecheckRejected('refresh_stale'),
+            HTTPError(SECRET,429,SECRET,{},None),TimeoutError(SECRET),
+            ContractError(SECRET),RuntimeError(SECRET),KeyboardInterrupt(SECRET)]
+        for failure in failures:
+            with self.subTest(kind=type(failure).__name__):
+                runtime,incoming,outgoing=self.runtime([{'op':'recheck'},result_frame()])
+                calls=[]
+                def deny():
+                    calls.append('called')
+                    raise failure
+                with self.assertRaises(type(failure)) as caught:
+                    runtime.run(BINDING,deny)
+                self.assertIs(caught.exception,failure)
+                self.assertEqual(calls,['called'])
+                self.assertEqual(outgoing.frames()[1:],[dict(approved=False,**safe_recheck_failure(failure))])
+                self.assertEqual(read_frame(incoming),result_frame())
+                self.assertNotIn(SECRET,outgoing.getvalue())
 
     def test_result_cannot_include_model_output_commands_or_unknown_data(self):
         frames = [{'op': 'recheck', 'command': 'bad'}, {'op': 'shell'},

@@ -12,7 +12,8 @@ import unittest
 from unittest.mock import patch
 from research_harness.restart_boundary import RestartEpoch
 from research_harness.schema import ContractError,canonical
-from research_harness.manager_runtime import LIMIT
+from research_harness.manager_runtime import (LIMIT,RecheckRejected,
+    safe_recheck_failure,RECHECK_REASONS,RECHECK_ORIGINS)
 from test_harness_service_state import binding_fixture
 
 spec=importlib.util.spec_from_file_location('service_launcher',Path(__file__).resolve().parents[1]/'tools/research_service/launcher.py')
@@ -30,13 +31,14 @@ class Supervisor:
         recheck();return SimpleNamespace(checksum=333283335000,elapsed_seconds=.01)
 
 class LauncherTests(unittest.TestCase):
-    def invoke(self,frames):
+    def invoke(self,frames,*,raw_suffix=''):
         if any(frame.get('op')=='fixed_cpu' for frame in frames):
             plan=dict(kind='cpu-canary-v1',source_sha='b'*40,publish_result_pr=True)
             frames=[{'op':'prepare_plan','plan':plan},*frames]
             for frame in frames:
                 if frame.get('op')=='fixed_cpu':frame['binding']=dict(frame['binding'],plan_digest=hashlib.sha256(canonical(plan)).hexdigest())
-        control=SimpleNamespace(pid=22,stdin=FakePipe(),stdout=io.StringIO(''.join(json.dumps(v)+'\n' for v in frames)))
+        control=SimpleNamespace(pid=22,stdin=FakePipe(),stdout=io.StringIO(''.join(json.dumps(v)+'\n' for v in frames)+raw_suffix))
+        self.last_control=control
         with patch.object(launcher,'deployment',return_value={'container_id':'a'*64,'source_sha':'b'*40,'initialize_new_state':False}), \
              patch.object(launcher,'read_epoch',return_value=EPOCH), \
              patch.object(launcher.subprocess,'Popen',return_value=control) as popen, \
@@ -140,6 +142,76 @@ class LauncherTests(unittest.TestCase):
 
     def test_integer_approval_does_not_release_worker(self):
         with self.assertRaises(ContractError):self.invoke([{'op':'fixed_cpu','binding':binding_fixture()},{'approved':1}])
+
+    def assert_no_result(self):
+        sent=[json.loads(line) for line in self.last_control.stdin.saved.splitlines()]
+        self.assertFalse(any('result' in frame or 'model_result' in frame for frame in sent))
+        self.assertEqual(sent[-1],{'op':'recheck'})
+
+    def test_negative_reply_preserves_closed_reason_origin_and_never_completes_worker(self):
+        for reason in RECHECK_REASONS:
+            for origin in RECHECK_ORIGINS:
+                with self.subTest(reason=reason,origin=origin), \
+                     patch.object(launcher,'report_failure') as report:
+                    with self.assertRaises(RecheckRejected) as caught:
+                        self.invoke([{'op':'fixed_cpu','binding':binding_fixture()},
+                            {'approved':False,'reason':reason,'origin':origin}])
+                    self.assertEqual(safe_recheck_failure(caught.exception),{'reason':reason,'origin':origin})
+                    self.assertEqual(caught.exception.args,('approval recheck rejected',))
+                    self.assert_no_result()
+                    report.assert_called_once_with('launcher','cpu_runtime',caught.exception)
+
+    def test_malformed_negative_reply_eof_or_payload_never_leaks_diagnostics(self):
+        secret='private-token https://secret.invalid/body stderr=private'
+        frames=[{'approved':False},{'approved':True,'secret':secret},
+            {'approved':False,'reason':secret,'origin':'manager'},
+            {'approved':False,'reason':'changed','origin':secret},
+            {'approved':False,'reason':'expired','origin':'manager','stderr':secret},
+            {'approved':False,'reason':'expired'},
+            {'approved':0,'reason':'expired','origin':'manager'},
+            {'approved':True,'reason':'expired','origin':'manager'},
+            {'approved':False,'reason':[],'origin':'manager'}]
+        for frame in frames:
+            with self.subTest(frame=frame),patch.object(launcher,'report_failure'):
+                with self.assertRaises(RecheckRejected) as caught:
+                    self.invoke([{'op':'fixed_cpu','binding':binding_fixture()},frame])
+                self.assertEqual(safe_recheck_failure(caught.exception),
+                    {'reason':'contract','origin':'launcher_ipc'})
+                self.assertNotIn(secret,str(caught.exception))
+                self.assert_no_result()
+        for raw in ('','{"approved":','[]\n',
+                '{"approved":false,"approved":true}\n',
+                '{"approved":NaN}\n','x'*(LIMIT+1)+'\n','['*2000+']'*2000+'\n'):
+            with self.subTest(raw=raw[:40]),patch.object(launcher,'report_failure'):
+                with self.assertRaises(RecheckRejected) as caught:
+                    self.invoke([{'op':'fixed_cpu','binding':binding_fixture()}],raw_suffix=raw)
+                self.assertEqual(safe_recheck_failure(caught.exception),
+                    {'reason':'contract','origin':'launcher_ipc'})
+                self.assert_no_result()
+
+    def test_recheck_io_failures_have_fixed_launcher_origin(self):
+        secret='private-token https://secret.invalid/body stderr=private'
+        original_read=launcher.read_frame
+        original_write=launcher.write_frame
+        def fail_read(stream):
+            value=original_read(stream)
+            if value=={'approved':True}:raise OSError(secret)
+            return value
+        def fail_write(stream,value):
+            if value=={'op':'recheck'}:raise OSError(secret)
+            return original_write(stream,value)
+        for name,replacement in (('read_frame',fail_read),('write_frame',fail_write)):
+            with self.subTest(operation=name),patch.object(launcher,name,replacement), \
+                 patch.object(launcher,'report_failure'):
+                with self.assertRaises(RecheckRejected) as caught:
+                    self.invoke([{'op':'fixed_cpu','binding':binding_fixture()},{'approved':True}])
+                self.assertEqual(safe_recheck_failure(caught.exception),
+                    {'reason':'source_unavailable','origin':'launcher_ipc'})
+                self.assertNotIn(secret,str(caught.exception))
+                sent=[json.loads(line) for line in self.last_control.stdin.saved.splitlines()]
+                self.assertFalse(any('result' in frame or 'model_result' in frame for frame in sent))
+                self.assertEqual(sum(frame=={'op':'recheck'} for frame in sent),
+                    1 if name=='read_frame' else 0)
 
     def test_second_attempt_same_generation_is_rejected(self):
         with self.assertRaises(ContractError):self.invoke([

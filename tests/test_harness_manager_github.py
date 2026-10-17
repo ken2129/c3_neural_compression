@@ -11,7 +11,7 @@ from unittest.mock import Mock, patch
 from urllib.error import HTTPError
 
 from research_harness.manager_github import (
-    ManagerGitHub, ManagerGitHubError, ManagerGitHubHTTPError, ManagerGitHubRateLimited,
+    ManagerGitHub, ManagerGitHubError, ManagerGitHubHTTPError, ManagerGitHubRateLimited, ManagerGitHubTimeout,
 )
 from research_harness.schema import ContractError, REPOSITORY
 from research_harness.service import source_failure_report, source_retry_delay
@@ -252,8 +252,9 @@ class ManagerSubprocessTests(unittest.TestCase):
 
     def test_deadline_terminates_owned_session_without_more_reads(self):
         process, _, kill = self.run_fake(b'ignored', times=[0, 21])
-        with self.assertRaisesRegex(ManagerGitHubError, 'deadline'):
+        with self.assertRaisesRegex(ManagerGitHubTimeout, 'deadline') as caught:
             ManagerGitHub._run(['/usr/bin/gh', 'api'])
+        self.assertEqual(source_failure_report(caught.exception)['error_category'],'TIMEOUT')
         kill.assert_called_once_with(process.pid, signal.SIGKILL)
 
     def test_subprocess_errors_are_sanitized(self):

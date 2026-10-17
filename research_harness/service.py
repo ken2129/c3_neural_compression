@@ -4,17 +4,103 @@ The service accepts no arbitrary commands, repositories, GPU jobs or merges.
 Runtime and publisher are trusted manager code, never Issue-selected plugins.
 """
 import hashlib
+import math
 import re
 import time
 from urllib.error import HTTPError, URLError
-from .issue_intake import classify, content_hash, positive_int, MAX_TRACKED, SCAN_SECONDS
-from .owner_approval import inspect_once
+from .issue_intake import classify, content_hash, positive_int, timestamp, MAX_TRACKED, SCAN_SECONDS
+from .manager_runtime import RecheckRejected, safe_recheck_failure
+from .owner_approval import inspect_once, approval_read_budget
 from .model_result import ModelCanaryResult
 from .restart_boundary import RestartEpoch
 from .result_publisher import (PublicationRequest, ModelPublicationRequest,
                                PublicationState, ValidatedCanaryResult,
                                parse_publication_request)
 from .schema import ContractError, canonical, fields
+
+
+RUN_APPROVAL_REFRESH_SECONDS=5.0
+RUN_APPROVAL_CLOCK_SKEW_SECONDS=1.0
+
+
+class _RunApprovalRecheck:
+    """One run's protected, short-lived approval snapshot; never a permission.
+
+    Every callback checks local wall/monotonic expiry. Remote approval refresh
+    starts at most five seconds after the preceding refresh started, and a
+    refresh that returns after that freshness window is rejected. A shared 5s
+    source-read budget bounds the whole refresh; failing subprocess cleanup can
+    take up to 5s more. Cancellation observation may therefore take the remaining
+    cache window plus refresh/cleanup and callback scheduling, not just 5s. The
+    dedicated PID1 watchdog remains the hard bound (124s after arming). Ordinary
+    fresh pre/post-run and publication approval checks remain uncached.
+    """
+    def __init__(self,refresh,*,clock,monotonic):
+        self.refresh=refresh;self.clock=clock;self.monotonic=monotonic
+        self.active=False;self.expires=None;self.monotonic_expiry=None
+        self.last_wall=None;self.last_mono=None;self.clock_offset=None;self.next_refresh=None
+        if not all(callable(value) for value in (refresh,clock,monotonic)):
+            raise RecheckRejected('inactive_snapshot')
+        try:
+            wall,mono=self._observe()
+            self._refresh(wall,mono)
+        except BaseException:
+            self.close();raise
+
+    def _observe(self):
+        wall,mono=self.clock(),self.monotonic()
+        if (any(type(value) not in (int,float) or not math.isfinite(value) or value<0
+                for value in (wall,mono))
+            or self.last_wall is not None and wall<self.last_wall
+            or self.last_mono is not None and mono<self.last_mono):
+            raise RecheckRejected('clock_anomaly')
+        offset=wall-mono
+        if self.clock_offset is not None and abs(offset-self.clock_offset)>RUN_APPROVAL_CLOCK_SKEW_SECONDS:
+            raise RecheckRejected('clock_anomaly')
+        if self.clock_offset is None:self.clock_offset=offset
+        self.last_wall=wall;self.last_mono=mono
+        return wall,mono
+
+    def _unexpired(self,wall,mono):
+        if self.expires is None or self.monotonic_expiry is None:
+            raise RecheckRejected('inactive_snapshot')
+        if wall>=self.expires or mono>=self.monotonic_expiry:
+            raise RecheckRejected('expired')
+
+    def _refresh(self,wall,mono):
+        self.active=False
+        try:
+            with approval_read_budget(seconds=RUN_APPROVAL_REFRESH_SECONDS):
+                expires=self.refresh()
+        except Exception as exc:
+            detail=safe_recheck_failure(exc)
+            raise RecheckRejected(detail['reason'],origin=detail['origin']) from None
+        after_wall,after_mono=self._observe()
+        if type(expires) not in (int,float) or not math.isfinite(expires) or expires<=0:
+            raise RecheckRejected('inactive_snapshot')
+        if self.expires is not None and expires!=self.expires:
+            raise RecheckRejected('changed')
+        if after_mono-mono>=RUN_APPROVAL_REFRESH_SECONDS:
+            raise RecheckRejected('refresh_stale')
+        # Never extend lifetime if wall time stalls while monotonic time moves.
+        expiry=mono+(expires-wall)
+        self.monotonic_expiry=expiry if self.monotonic_expiry is None else min(self.monotonic_expiry,expiry)
+        self.expires=expires
+        self._unexpired(after_wall,after_mono)
+        self.next_refresh=mono+RUN_APPROVAL_REFRESH_SECONDS
+        self.active=True
+
+    def __call__(self):
+        if not self.active:raise RecheckRejected('inactive_snapshot')
+        try:
+            wall,mono=self._observe()
+            self._unexpired(wall,mono)
+            if mono>=self.next_refresh:self._refresh(wall,mono)
+        except BaseException:
+            self.close();raise
+
+    def close(self):
+        self.active=False
 
 
 
@@ -105,21 +191,30 @@ class Controller:
     launch/cleanup and invokes recheck during a run. A boolean from an Issue is
     never passed as a runtime permission. Tests use injected fake implementations.
     """
-    def __init__(self,state,issues,comments,runtime,publisher_factory,*,source_sha,clock=time.time):
+    def __init__(self,state,issues,comments,runtime,publisher_factory,*,source_sha,clock=time.time,monotonic=time.monotonic):
         self.state=state;self.issues=issues;self.comments=comments
         self.runtime=runtime;self.publisher_factory=publisher_factory
-        self.source_sha=source_sha;self.clock=clock
+        self.source_sha=source_sha;self.clock=clock;self.monotonic=monotonic
         self.generation_attempted=False
 
-    def _approved(self,number,expected=None):
+    def _approval_snapshot(self,number,expected=None):
         receipt=inspect_once(self.issues,self.comments,self.state.intake,number,self.clock)
         issue=self.issues.get_issue(number)
         status,request=classify(issue,self.clock())
+        if status=='EXPIRED':raise RecheckRejected('expired')
         if status!='PENDING_TRUSTED_APPROVAL' or content_hash(issue)!=receipt['content_sha256']:
-            raise ContractError('approval changed before controller admission')
+            raise RecheckRejected('changed')
         binding=canary_binding(issue,request,self.source_sha)
-        if expected is not None and binding!=expected:raise ContractError('approved binding changed')
-        return binding,validate_canary_plan(request['plan'],self.source_sha)
+        if expected is not None and binding!=expected:raise RecheckRejected('changed')
+        return binding,validate_canary_plan(request['plan'],self.source_sha),timestamp(request['expires_at'])
+
+    def _approved(self,number,expected=None):
+        try:
+            binding,plan,_=self._approval_snapshot(number,expected)
+        except Exception as exc:
+            detail=safe_recheck_failure(exc)
+            raise RecheckRejected(detail['reason'],origin=detail['origin']) from None
+        return binding,plan
 
     def approve(self,number,expected=None):
         return self._approved(number,expected)[0]
@@ -209,10 +304,14 @@ class Controller:
             self.approve(number,binding)
             if not self.state.claim(binding,epoch=epoch):raise ContractError('concurrent claim rejected')
             try:
-                self.approve(number,binding)
+                recheck=_RunApprovalRecheck(lambda:self._approval_snapshot(number,binding)[2],
+                    clock=self.clock,monotonic=self.monotonic)
                 dispatched=True
                 self.generation_attempted=True
-                result=self.runtime.run(binding,lambda:self.approve(number,binding))
+                try:
+                    result=self.runtime.run(binding,recheck)
+                finally:
+                    recheck.close()
                 _require_result(result,binding,plan)
                 self.approve(number,binding)
                 request_type=ModelPublicationRequest if model_plan else PublicationRequest
@@ -258,11 +357,13 @@ class Controller:
             try:
                 report=self.process(number);reports.append(report)
                 if report.get('restart_required'):break
-            except Exception:
+            except Exception as exc:
                 saved=self.state.get(number)
-                reports.append(dict(issue=number,phase=saved['phase'] if saved else 'BLOCKED_OR_UNCONFIGURED',
+                report=dict(issue=number,phase=saved['phase'] if saved else 'BLOCKED_OR_UNCONFIGURED',
                                     dispatched='unknown' if self.generation_attempted else False,
-                                    notification='UNCONFIGURED'))
+                                    notification='UNCONFIGURED')
+                if type(exc) is RecheckRejected:report['approval_failure']=safe_recheck_failure(exc)
+                reports.append(report)
                 if self.generation_attempted:break
         return reports
 

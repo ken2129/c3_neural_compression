@@ -30,6 +30,7 @@ import sys
 import time
 
 from research_harness.schema import ContractError
+from research_harness.manager_runtime import RecheckRejected, safe_recheck_failure
 from research_harness.codex_adapter import (CanaryCandidate, CanaryRequest, CliInspection, CodexAdapter,
                                             parse_candidate)
 from research_harness.app_server_adapter import (
@@ -71,6 +72,8 @@ def report_failure(role, stage, exc, *, child_returncode=None):
             'error_class': category}
         if type(child_returncode) is int and -128 <= child_returncode <= 255:
             record['observed_child_returncode'] = child_returncode
+        if type(exc) is RecheckRejected:
+            record['approval_failure'] = safe_recheck_failure(exc)
         detail = safe_app_server_diagnostic(exc)
         if detail is not None:
             record['app_server'] = detail
