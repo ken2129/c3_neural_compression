@@ -22,3 +22,7 @@ tools/research_service/**
 !research_harness/publication_recovery.py
 !tools/research_service/recover_publication.py
 !tools/research_service/Dockerfile.publication-recovery
+
+!research_harness/goal_result.py
+!research_harness/goal_artifacts.py
+!research_harness/goal_publisher.py

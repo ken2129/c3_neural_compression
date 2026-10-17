@@ -1,0 +1,568 @@
+{
+  "metadata": {
+    "version": "0.160.0",
+    "binary_sha256": "12eb3e81114588aca3b7998f4f19e8997b056aca08e57a7ca7c8a3ec8c652aad",
+    "real_app_server": true,
+    "actual_model_inference": false,
+    "authorization_header_present": false,
+    "scripted_loopback_responses": 3,
+    "capture_sandbox": "readOnly",
+    "external_egress_enforced": false,
+    "production_boundary_verified": false,
+    "commands_executed_successfully": false,
+    "normalizations": [
+      "Ephemeral home and workspace replaced by /work/codex-home and /work/goal.",
+      "Thread, session, turn, item and process identifiers replaced by stable fixture identifiers.",
+      "Cloud hostname, installation identifier and userAgent replaced by fixed fixture labels.",
+      "Absolute timestamps shifted to a fixed epoch, preserving differences and equality."
+    ],
+    "interpretation": "Official app-server emitted two failed command completions and a scripted incomplete final response. No sandbox setting was relaxed. Replay tests only wire handling; no model reasoning, code edit, command success, authorization or deployment isolation is proved."
+  },
+  "events": [
+    {
+      "id": 1,
+      "result": {
+        "userAgent": "fixture-client/0.160.0 (Linux; x86_64) fixture",
+        "codexHome": "/work/codex-home",
+        "platformFamily": "unix",
+        "platformOs": "linux"
+      }
+    },
+    {
+      "method": "remoteControl/status/changed",
+      "params": {
+        "status": "disabled",
+        "serverName": "fixture-host",
+        "installationId": "fixture-installation",
+        "environmentId": null
+      },
+      "emittedAtMs": 1700000000837
+    },
+    {
+      "id": 2,
+      "result": {
+        "thread": {
+          "id": "fixture-thread",
+          "environments": [
+            {
+              "environmentId": "local",
+              "cwd": "/work/goal",
+              "runtimeWorkspaceRoots": [
+                "/work/goal"
+              ]
+            }
+          ],
+          "extra": null,
+          "sessionId": "fixture-thread",
+          "forkedFromId": null,
+          "parentThreadId": null,
+          "preview": "",
+          "ephemeral": true,
+          "section": null,
+          "sectionEnteredAt": null,
+          "projectId": null,
+          "historyMode": "paginated",
+          "modelProvider": "mock_provider",
+          "model": "gpt-6.1-sol",
+          "reasoningEffort": null,
+          "createdAt": 1700000000,
+          "updatedAt": 1700000000,
+          "recencyAt": 1700000000,
+          "status": {
+            "type": "idle"
+          },
+          "path": null,
+          "cwd": "/work/goal",
+          "cliVersion": "0.160.0",
+          "originator": "c3-fixed-canary",
+          "source": "vscode",
+          "canAcceptDirectInput": true,
+          "threadSource": null,
+          "agentNickname": null,
+          "agentRole": null,
+          "gitInfo": null,
+          "name": null,
+          "daybreakEnabled": null,
+          "turns": []
+        },
+        "model": "gpt-6.1-sol",
+        "modelProvider": "mock_provider",
+        "serviceTier": null,
+        "disabledPluginIds": [],
+        "cwd": "/work/goal",
+        "runtimeWorkspaceRoots": [
+          "/work/goal"
+        ],
+        "instructionSources": [],
+        "approvalPolicy": "never",
+        "approvalsReviewer": "user",
+        "sandbox": {
+          "type": "readOnly",
+          "networkAccess": false
+        },
+        "activePermissionProfile": null,
+        "reasoningEffort": null,
+        "multiAgentMode": "explicitRequestOnly"
+      }
+    },
+    {
+      "method": "thread/started",
+      "params": {
+        "thread": {
+          "id": "fixture-thread",
+          "environments": [
+            {
+              "environmentId": "local",
+              "cwd": "/work/goal",
+              "runtimeWorkspaceRoots": [
+                "/work/goal"
+              ]
+            }
+          ],
+          "extra": null,
+          "sessionId": "fixture-thread",
+          "forkedFromId": null,
+          "parentThreadId": null,
+          "preview": "",
+          "ephemeral": true,
+          "section": null,
+          "sectionEnteredAt": null,
+          "projectId": null,
+          "historyMode": "paginated",
+          "modelProvider": "mock_provider",
+          "model": "gpt-6.1-sol",
+          "reasoningEffort": null,
+          "createdAt": 1700000000,
+          "updatedAt": 1700000000,
+          "recencyAt": 1700000000,
+          "status": {
+            "type": "idle"
+          },
+          "path": null,
+          "cwd": "/work/goal",
+          "cliVersion": "0.160.0",
+          "originator": "c3-fixed-canary",
+          "source": "vscode",
+          "canAcceptDirectInput": true,
+          "threadSource": null,
+          "agentNickname": null,
+          "agentRole": null,
+          "gitInfo": null,
+          "name": null,
+          "daybreakEnabled": null,
+          "turns": []
+        }
+      },
+      "emittedAtMs": 1700000000848
+    },
+    {
+      "id": 3,
+      "result": {
+        "turn": {
+          "id": "fixture-turn",
+          "items": [],
+          "itemsView": "notLoaded",
+          "status": "inProgress",
+          "error": null,
+          "startedAt": null,
+          "completedAt": null,
+          "durationMs": null
+        }
+      }
+    },
+    {
+      "method": "thread/status/changed",
+      "params": {
+        "threadId": "fixture-thread",
+        "status": {
+          "type": "active",
+          "activeFlags": []
+        }
+      },
+      "emittedAtMs": 1700000000853
+    },
+    {
+      "method": "turn/started",
+      "params": {
+        "threadId": "fixture-thread",
+        "turn": {
+          "id": "fixture-turn",
+          "items": [],
+          "itemsView": "notLoaded",
+          "status": "inProgress",
+          "error": null,
+          "startedAt": 1700000000,
+          "completedAt": null,
+          "durationMs": null
+        }
+      },
+      "emittedAtMs": 1700000000853
+    },
+    {
+      "method": "item/started",
+      "params": {
+        "item": {
+          "type": "userMessage",
+          "id": "fixture-item-0",
+          "clientId": null,
+          "content": [
+            {
+              "type": "text",
+              "text": "CPU-only no-model wire probe. Use two harmless printf calls, then return incomplete and summary as JSON.",
+              "text_elements": []
+            }
+          ]
+        },
+        "threadId": "fixture-thread",
+        "turnId": "fixture-turn",
+        "startedAtMs": 1700000000859
+      },
+      "emittedAtMs": 1700000000859
+    },
+    {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "userMessage",
+          "id": "fixture-item-0",
+          "clientId": null,
+          "content": [
+            {
+              "type": "text",
+              "text": "CPU-only no-model wire probe. Use two harmless printf calls, then return incomplete and summary as JSON.",
+              "text_elements": []
+            }
+          ]
+        },
+        "threadId": "fixture-thread",
+        "turnId": "fixture-turn",
+        "completedAtMs": 1700000000859
+      },
+      "emittedAtMs": 1700000000859
+    },
+    {
+      "method": "item/started",
+      "params": {
+        "item": {
+          "type": "commandExecution",
+          "id": "fixture-item-1",
+          "pluginId": null,
+          "scriptPath": null,
+          "command": "/bin/bash -c 'printf goal-probe-one'",
+          "cwd": "/work/goal",
+          "processId": "1000",
+          "source": "unifiedExecStartup",
+          "status": "inProgress",
+          "commandActions": [
+            {
+              "type": "unknown",
+              "command": "printf goal-probe-one"
+            }
+          ],
+          "aggregatedOutput": null,
+          "exitCode": null,
+          "durationMs": null
+        },
+        "threadId": "fixture-thread",
+        "turnId": "fixture-turn",
+        "startedAtMs": 1700000000925
+      },
+      "emittedAtMs": 1700000000926
+    },
+    {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "commandExecution",
+          "id": "fixture-item-1",
+          "pluginId": null,
+          "scriptPath": null,
+          "command": "/bin/bash -c 'printf goal-probe-one'",
+          "cwd": "/work/goal",
+          "processId": "1000",
+          "source": "unifiedExecStartup",
+          "status": "failed",
+          "commandActions": [
+            {
+              "type": "unknown",
+              "command": "printf goal-probe-one"
+            }
+          ],
+          "aggregatedOutput": "error building bubblewrap command: app-server socket directory must be a user-owned directory with mode 0700\n",
+          "exitCode": 1,
+          "durationMs": 0
+        },
+        "threadId": "fixture-thread",
+        "turnId": "fixture-turn",
+        "completedAtMs": 1700000001027
+      },
+      "emittedAtMs": 1700000001027
+    },
+    {
+      "method": "thread/tokenUsage/updated",
+      "params": {
+        "threadId": "fixture-thread",
+        "turnId": "fixture-turn",
+        "tokenUsage": {
+          "total": {
+            "totalTokens": 0,
+            "inputTokens": 0,
+            "cachedInputTokens": 0,
+            "cacheWriteInputTokens": 0,
+            "outputTokens": 0,
+            "reasoningOutputTokens": 0
+          },
+          "last": {
+            "totalTokens": 0,
+            "inputTokens": 0,
+            "cachedInputTokens": 0,
+            "cacheWriteInputTokens": 0,
+            "outputTokens": 0,
+            "reasoningOutputTokens": 0
+          },
+          "modelContextWindow": 258400
+        }
+      },
+      "emittedAtMs": 1700000001030
+    },
+    {
+      "method": "account/rateLimits/updated",
+      "params": {
+        "rateLimits": {
+          "limitId": "codex",
+          "limitName": null,
+          "normalModelSlug": null,
+          "primary": null,
+          "secondary": null,
+          "credits": null,
+          "individualLimit": null,
+          "spendControlReached": null,
+          "planType": null,
+          "rateLimitReachedType": null
+        }
+      },
+      "emittedAtMs": 1700000001030
+    },
+    {
+      "method": "item/started",
+      "params": {
+        "item": {
+          "type": "commandExecution",
+          "id": "fixture-item-2",
+          "pluginId": null,
+          "scriptPath": null,
+          "command": "/bin/bash -c 'printf goal-probe-two'",
+          "cwd": "/work/goal",
+          "processId": "1001",
+          "source": "unifiedExecStartup",
+          "status": "inProgress",
+          "commandActions": [
+            {
+              "type": "unknown",
+              "command": "printf goal-probe-two"
+            }
+          ],
+          "aggregatedOutput": null,
+          "exitCode": null,
+          "durationMs": null
+        },
+        "threadId": "fixture-thread",
+        "turnId": "fixture-turn",
+        "startedAtMs": 1700000001078
+      },
+      "emittedAtMs": 1700000001078
+    },
+    {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "commandExecution",
+          "id": "fixture-item-2",
+          "pluginId": null,
+          "scriptPath": null,
+          "command": "/bin/bash -c 'printf goal-probe-two'",
+          "cwd": "/work/goal",
+          "processId": "1001",
+          "source": "unifiedExecStartup",
+          "status": "failed",
+          "commandActions": [
+            {
+              "type": "unknown",
+              "command": "printf goal-probe-two"
+            }
+          ],
+          "aggregatedOutput": "error building bubblewrap command: app-server socket directory must be a user-owned directory with mode 0700\n",
+          "exitCode": 1,
+          "durationMs": 0
+        },
+        "threadId": "fixture-thread",
+        "turnId": "fixture-turn",
+        "completedAtMs": 1700000001179
+      },
+      "emittedAtMs": 1700000001179
+    },
+    {
+      "method": "thread/tokenUsage/updated",
+      "params": {
+        "threadId": "fixture-thread",
+        "turnId": "fixture-turn",
+        "tokenUsage": {
+          "total": {
+            "totalTokens": 0,
+            "inputTokens": 0,
+            "cachedInputTokens": 0,
+            "cacheWriteInputTokens": 0,
+            "outputTokens": 0,
+            "reasoningOutputTokens": 0
+          },
+          "last": {
+            "totalTokens": 0,
+            "inputTokens": 0,
+            "cachedInputTokens": 0,
+            "cacheWriteInputTokens": 0,
+            "outputTokens": 0,
+            "reasoningOutputTokens": 0
+          },
+          "modelContextWindow": 258400
+        }
+      },
+      "emittedAtMs": 1700000001180
+    },
+    {
+      "method": "account/rateLimits/updated",
+      "params": {
+        "rateLimits": {
+          "limitId": "codex",
+          "limitName": null,
+          "normalModelSlug": null,
+          "primary": null,
+          "secondary": null,
+          "credits": null,
+          "individualLimit": null,
+          "spendControlReached": null,
+          "planType": null,
+          "rateLimitReachedType": null
+        }
+      },
+      "emittedAtMs": 1700000001180
+    },
+    {
+      "method": "item/started",
+      "params": {
+        "item": {
+          "type": "agentMessage",
+          "id": "fixture-item-3",
+          "text": "{\"outcome\": \"incomplete\", \"summary\": \"Scripted no-model wire probe only; command execution and production goal are not verified.\"}",
+          "phase": null,
+          "memoryCitation": null,
+          "delivery": null,
+          "questions": null
+        },
+        "threadId": "fixture-thread",
+        "turnId": "fixture-turn",
+        "startedAtMs": 1700000001194
+      },
+      "emittedAtMs": 1700000001195
+    },
+    {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "agentMessage",
+          "id": "fixture-item-3",
+          "text": "{\"outcome\": \"incomplete\", \"summary\": \"Scripted no-model wire probe only; command execution and production goal are not verified.\"}",
+          "phase": null,
+          "memoryCitation": null,
+          "delivery": null,
+          "questions": null
+        },
+        "threadId": "fixture-thread",
+        "turnId": "fixture-turn",
+        "completedAtMs": 1700000001194
+      },
+      "emittedAtMs": 1700000001195
+    },
+    {
+      "method": "thread/tokenUsage/updated",
+      "params": {
+        "threadId": "fixture-thread",
+        "turnId": "fixture-turn",
+        "tokenUsage": {
+          "total": {
+            "totalTokens": 0,
+            "inputTokens": 0,
+            "cachedInputTokens": 0,
+            "cacheWriteInputTokens": 0,
+            "outputTokens": 0,
+            "reasoningOutputTokens": 0
+          },
+          "last": {
+            "totalTokens": 0,
+            "inputTokens": 0,
+            "cachedInputTokens": 0,
+            "cacheWriteInputTokens": 0,
+            "outputTokens": 0,
+            "reasoningOutputTokens": 0
+          },
+          "modelContextWindow": 258400
+        }
+      },
+      "emittedAtMs": 1700000001195
+    },
+    {
+      "method": "account/rateLimits/updated",
+      "params": {
+        "rateLimits": {
+          "limitId": "codex",
+          "limitName": null,
+          "normalModelSlug": null,
+          "primary": null,
+          "secondary": null,
+          "credits": null,
+          "individualLimit": null,
+          "spendControlReached": null,
+          "planType": null,
+          "rateLimitReachedType": null
+        }
+      },
+      "emittedAtMs": 1700000001195
+    },
+    {
+      "method": "thread/status/changed",
+      "params": {
+        "threadId": "fixture-thread",
+        "status": {
+          "type": "idle"
+        }
+      },
+      "emittedAtMs": 1700000001195
+    },
+    {
+      "method": "turn/completed",
+      "params": {
+        "threadId": "fixture-thread",
+        "turn": {
+          "id": "fixture-turn",
+          "items": [
+            {
+              "type": "agentMessage",
+              "id": "fixture-item-3",
+              "text": "{\"outcome\": \"incomplete\", \"summary\": \"Scripted no-model wire probe only; command execution and production goal are not verified.\"}",
+              "phase": null,
+              "memoryCitation": null,
+              "delivery": null,
+              "questions": null
+            }
+          ],
+          "itemsView": "summary",
+          "status": "completed",
+          "error": null,
+          "startedAt": 1700000000,
+          "completedAt": 1700000001,
+          "durationMs": 343
+        }
+      },
+      "emittedAtMs": 1700000001195
+    }
+  ]
+}

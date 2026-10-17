@@ -130,7 +130,12 @@ class ServiceState:
             elif phase in ('INTERRUPTED','RESULT_AWAITING_RESTART'):raise ContractError('missing prior runtime epoch')
             if publication is not None:
                 from .result_publisher import PublicationState
-                state=PublicationState.from_dict(loads(publication))
+                from .goal_result import GoalPublicationRequest
+                if type(request) is GoalPublicationRequest:
+                    from .goal_publisher import GoalPublicationState
+                    state=GoalPublicationState.from_dict(loads(publication))
+                else:
+                    state=PublicationState.from_dict(loads(publication))
                 if state.request_digest!=request.digest or state.branch!=request.branch:raise ContractError('saved publisher state mismatch')
             if phase=='PUBLISHED' and (publication is None or state.phase!='PUBLISHED'):
                 raise ContractError('published run missing verified PR state')

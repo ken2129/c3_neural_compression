@@ -241,7 +241,7 @@ class ModelPublicationRequest(PublicationRequest):
 
 
 def parse_publication_request(value):
-    """Load exactly one of the two closed persisted result formats.
+    """Load a closed persisted result format; this grants no publication authority.
 
     This selects only a data schema, never a runtime or publication permission.
     CPU records retain their original shape; model records carry their explicit
@@ -251,6 +251,9 @@ def parse_publication_request(value):
     result = value['result']
     if type(result) is not dict:
         raise ContractError('closed publication result object required')
+    if result.get('schema') == 'c3-goal-result-v1':
+        from .goal_result import GoalPublicationRequest
+        return GoalPublicationRequest.from_dict(value)
     if 'schema' in result:
         if type(result['schema']) is not str or result['schema'] != MODEL_RESULT_SCHEMA:
             raise ContractError('unsupported publication result schema')

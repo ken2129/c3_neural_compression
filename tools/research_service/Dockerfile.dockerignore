@@ -28,3 +28,7 @@ tools/research_service/**
 !research_harness/model_result.py
 
 !research_harness/manager_github.py
+
+!research_harness/goal_result.py
+!research_harness/goal_artifacts.py
+!research_harness/goal_publisher.py

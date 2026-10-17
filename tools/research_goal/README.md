@@ -1,0 +1,70 @@
+# 新しい goal-only CPU 実行経路
+
+この経路は canary の固定 Python コマンドを使用しません。Codex が承認済みの目的・完了条件・入力・書込範囲・予算を受け取り、複数のコマンド、実装、検証、修正を選びます。GPU、依存追加、外部サービスへの操作は目的範囲に含めません。公開は別の内容承認後に下書き PR で行います。
+
+**現状: ローカルのモデルなしテストのみ。新 Docker image の build・実環境の起動・モデル実行は未確認です。** 既存 canary の実証をこの経路の実証と読み替えません。この手順を代理実行する場合は、環境変更・資格情報の永続設定を含む必要な本人承認を先に取得してください。
+
+## 1. 本人が設定と認証の移送を確認する
+
+レビューした新 runtime commit の clean checkout を用意します。旧 canary の container/volume/履歴は変更・流用しません。入力の commit は runtime commit と別に指定できます。
+
+`python3 -B tools/research_goal/prepare.py --template > goal-profile.json` で、無効状態の設定を作成します。本人が以下を確認してから編集します。
+
+- `enabled: true` は新しい自由 CPU コマンド経路の明示有効化です。
+- `input_source_sha`: 承認する公開入力が存在する commit。
+- `runtime_source_sha`: 実装をレビューした現在の checkout commit。
+- `model`: 明示的な固定モデル ID。`-latest` は受け付けません。
+- `resource_limits`: operator 上限。例は wall 900 秒、CPU **各プロセス** 600 秒、aggregate memory 1 GiB、64 PID、work 256 MiB、出力 1 MiB。aggregate CPU は 1 CPU quota です。モデル処理は wall 終了の 20 秒前まで、残りは終了処理・保護コピー用です。
+- `risk_acknowledgements` の 5 項目すべてを理解した場合だけ `true` にします。
+  - `arbitrary_cpu_commands`: 固定 canary を超える CPU コマンド選択
+  - `worker_model_auth_readable`: worker が自身のモデル認証を読める
+  - `unrestricted_bridge_egress`: bridge の外向き通信は制限されない
+  - `writable_runtime_homes_and_ipc`: 承認された成果物 scope のほか、runtime home と private IPC に書き込める
+  - `usage_without_hard_cost_cap`: 金額のハード上限はない
+
+これらは残るリスクへの同意であり、プロンプトで防げることの証明ではありません。モデル認証が読めることと unrestricted egress の組合せを、一般的な悪意あるコードに安全な隔離だと考えないでください。
+
+初版の実 supervisor が扱える aggregate 上限は 1 GiB・64 PID・256 MiB work です。初回 plan の aggregate 予算は作成する container の実割当と一致させます。wall/CPU は canary の 120 秒/10 秒に固定されません。より大きい割当には別の実装検証と本人承認が必要です。
+
+本人が別途ログインして準備した専用の Codex `auth.json` と GitHub CLI `hosts.yml` を指定します。両方とも private regular file（mode 0600、hardlink なし）である必要があります。installer は ambient HOME、旧 container、既存 canary volume、環境変数から資格情報を探しません。指定した二つのファイルだけを新しい manager-owned persistent volume に移送します。資格情報を Issue/チャット/profile/plan に貼らないでください。
+
+## 2. 同じ goal plan を用いて一度だけ準備・起動する
+
+`goal-plan.json` は `codex-goal-v1` の plan オブジェクトそのものです。必須項目は `source_sha`, `publish_result_pr: true`, `model`, `sandbox_mode: "externalSandbox"`, `external_network: "enabled"`, `max_seconds`, `model_usage_approved: true`, `goal`, `completion_criteria`, `inputs`, `write_scope`, `resource_budget` です。
+
+`inputs` は入力 commit 内の regular file の相対パスだけです。installer はその Git blob を読み、immutable image 内に内容 hash とともに封入します。`write_scope` は新規の専用成果物ディレクトリとし、入力と重ねません。例えば公開 Issue 50 の JSON/CSV を読み、集計用コードと JSON/Markdown を `docs/research/generated/issue50-goal-review` 以下に生成する目的にできます。コマンドや実装言語を plan で固定する必要はありません。
+
+本人が新 image・新 volume・bridge・資格情報の永続利用を承認した後、次の一つの installer を実行します。
+
+```sh
+python3 -B tools/research_goal/prepare.py \
+  --approve-new-goal-deployment \
+  --project c3-goal-review-001 \
+  --profile goal-profile.json --plan goal-plan.json \
+  --codex-auth-file /PRIVATE/PATH/auth.json \
+  --github-hosts-file /PRIVATE/PATH/hosts.yml
+```
+
+このコマンドは committed runtime と指定した入力だけから一時 build context を作り、新しい container と `goal-control` volume を作成し、host inspect/volume consumers/UID・mode・転送 bytes を確認して起動します。同名 container/volume が存在すれば拒否します。既存 deployment への fallback、削除、volume 初期化し直しはありません。失敗した新 deployment も自動削除しません。
+
+`enabled: false` または同意不足の profile は Docker 操作前に拒否します。起動後に profile が無効化・欠落・破損した場合、launcher は子プロセスを起動せず `GOAL_BLOCKED_STARTUP` で待機します。本人が設定を修復してから明示的に restart するまで、再試行しません。
+
+起動に成功しても、その時点では goal 実行の owner 承認はありません。準備に使った plan と同じ plan を、新しい実行用 Issue の `c3-execution-request` ブロックへ入れ、既存の owner receipt 手順で内容 hash・plan digest・期限を承認します。タイトルだけで実行されません。参照: `docs/research_issue_intake.md` と `docs/research_owner_approval.md`。
+
+## 3. 進行・候補・公開を確認する
+
+installer が表示する container ID を使って `docker logs --tail 30 CONTAINER_ID` で確認します。ログは固定診断と status のみで、モデルの任意文・成果物本文・資格情報は転記しません。
+
+1. owner 承認を再検証し、source/model/resources/UID/namespace/入力 hash/書込 scope を preflight します。
+2. durable な単回 claim の後に実行します。期限切れ・変更・取消・不明な応答は fail closed。途中失敗でも同じ claim を再実行しません。
+3. 成果物の immutable bytes を manager-owned quarantine に atomic rename・fsync し、path/hash/binding を検証します。これはコピー元全体の静止や研究成功の証明ではありません。
+4. 候補は `RESULT_AWAITING_RESTART` で private に保存します。PID1 終了・新しい namespace の確認後にのみ `AWAITING_CONTENT_REVIEW` になります。
+5. 本人が private 候補の exact files・path・mode・source/base と digest を確認します。状態 DB と quarantine は新 volume の `/control/state`・`/control/quarantine` 内です。owner の端末へ `docker cp CONTAINER_ID:/control/quarantine ./goal-review` で取り出して確認できます。JSON の `content_base64` は内容であり、生成コードを manager/root として実行して確認しないでください。
+6. 同じ Issue に、未編集の本人コメントで `c3-goal-publication-approval-v1` を作成します。必須 binding は `repository`, `issue`, `request_digest`, `candidate_digest`, `issue_content_sha256`, `source_sha`, `base_sha` と `expires_at`, `decision: "approve-publication"` です。実行承認を内容承認へ流用しません。公開取消は同じ binding の `decision: "cancel-publication"` です。
+7. fresh な内容承認の後だけ exact file diff を単一 commit として draft PR にします。private summary は PR 本文に転記しません。merge は行いません。外部 write の成否不明時は journal を保持し、同じ write を推測で再送しません。
+
+新規 goal の実機起動を行うまでは、「朝すぐ本番運用できると実証済み」とは扱わないでください。最初は公開入力だけの小さい CPU 集計で、この一連の経路を本人承認の下で確認します。
+
+通知接続は未設定で、実イベントの dot 宛て疎通も未確認です。ログや PR 作成の成功を通知成功とは扱いません。
+
+旧経路の PR #78 の手動復旧と PR #80 の自動失敗結果は、新 goal 経路の成功実績ではありません。
