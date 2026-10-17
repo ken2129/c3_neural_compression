@@ -5,6 +5,7 @@ must supply authentic Docker inspect results and a complete list of volume
 consumers, then protect the resulting manifest from the worker. No Docker
 socket is exposed to the service. Host administrators remain trusted.
 """
+import posixpath
 import re
 from .schema import ContractError
 
@@ -22,7 +23,11 @@ def validate_dedicated_deployment(inspect,consumers,*,source_sha,volume_name,vol
         if host['PidMode']!='' or host['IpcMode'] not in ('private','none'):raise ValueError()
         if host['CgroupnsMode']!='private':raise ValueError()
         if type(host['CapAdd']) is not list or type(host['CapDrop']) is not list:raise ValueError()
-        if set(host['CapAdd'] or [])!={'SETUID','SETGID'} or set(host['CapDrop'] or [])!={'ALL'}:raise ValueError()
+        # Docker versions differ in whether capability names include CAP_.
+        if any(type(cap) is not str for key in ('CapAdd','CapDrop') for cap in host[key]):raise ValueError()
+        capabilities=lambda key: {cap.removeprefix('CAP_') for cap in host[key]}
+        if any(len(capabilities(key))!=len(host[key]) for key in ('CapAdd','CapDrop')):raise ValueError()
+        if capabilities('CapAdd')!={'SETUID','SETGID'} or capabilities('CapDrop')!={'ALL'}:raise ValueError()
         if host['SecurityOpt']!=['no-new-privileges:true']:raise ValueError()
         if host['NetworkMode']!='bridge':raise ValueError()
         if config['Entrypoint']!=['python','-I','-B','/opt/service/launcher.py'] or config['Cmd'] not in (None,[]):raise ValueError()
@@ -31,16 +36,22 @@ def validate_dedicated_deployment(inspect,consumers,*,source_sha,volume_name,vol
         if host['Runtime']!='runc' or host['DeviceCgroupRules'] not in (None,[]):raise ValueError()
         if host['Tmpfs']!={'/work':'rw,noexec,nosuid,nodev,size=256m,mode=0700,uid=10002,gid=10002'}:raise ValueError()
         if type(host['MemorySwap']) is not int or host['MemorySwap']!=host['Memory']:raise ValueError()
-        if any(host[key] not in (None,[]) for key in ('Binds','Devices','DeviceRequests')):raise ValueError()
+        # -v records a named volume in Binds as well as the resolved Mounts.
+        if host['Binds'] not in (None,[],[volume_name+':/control'],[volume_name+':/control:rw']):raise ValueError()
+        if any(host[key] not in (None,[]) for key in ('Devices','DeviceRequests')):raise ValueError()
         if any(type(host[key]) is not int for key in ('Memory','PidsLimit','NanoCpus')):raise ValueError()
         if not 0<host['Memory']<=1024**3 or not 0<host['PidsLimit']<=64 or not 0<host['NanoCpus']<=10**9:raise ValueError()
         mounts=inspect['Mounts']
-        if len(mounts)!=1:raise ValueError()
+        if type(mounts) is not list or len(mounts)!=1:raise ValueError()
         mount=mounts[0]
         if mount['Type']!='volume' or mount['Name']!=volume_name or mount['Destination']!='/control' or mount['RW'] is not True:raise ValueError()
         if (type(volume_inspect) is not dict or volume_inspect['Name']!=volume_name
             or volume_inspect['Driver']!='local' or volume_inspect['Scope']!='local'
             or volume_inspect['Options'] not in (None,{})):raise ValueError()
+        source=mount['Source'];mountpoint=volume_inspect['Mountpoint']
+        if (type(source) is not str or type(mountpoint) is not str
+            or not source.startswith('/') or source.startswith('//') or '\x00' in source
+            or posixpath.normpath(source)!=source or source!=mountpoint):raise ValueError()
         if type(consumers) is not list or len(consumers)!=1 or consumers[0]!=ident:raise ValueError()
     except (KeyError,TypeError,ValueError,AttributeError):
         raise ContractError('dedicated deployment facts are incomplete or do not match') from None

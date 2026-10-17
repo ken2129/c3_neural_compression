@@ -9,11 +9,13 @@ from research_harness.schema import ContractError
 CONTAINER_ID = 'a' * 64
 SOURCE_SHA = 'b' * 40
 VOLUME_NAME = 'dedicated-controller-state'
+VOLUME_MOUNTPOINT = '/var/lib/docker/volumes/' + VOLUME_NAME + '/_data'
 WORK_TMPFS = 'rw,noexec,nosuid,nodev,size=256m,mode=0700,uid=10002,gid=10002'
 
 
 def volume_fixture():
-    return {'Name': VOLUME_NAME, 'Driver': 'local', 'Scope': 'local', 'Options': None}
+    return {'Name': VOLUME_NAME, 'Driver': 'local', 'Scope': 'local', 'Options': None,
+            'Mountpoint': VOLUME_MOUNTPOINT}
 
 
 def inspect_fixture():
@@ -51,7 +53,7 @@ def inspect_fixture():
             'NanoCpus': 500_000_000,
         },
         'Mounts': [{'Type': 'volume', 'Name': VOLUME_NAME,
-                    'Destination': '/control', 'RW': True}],
+                    'Source': VOLUME_MOUNTPOINT, 'Destination': '/control', 'RW': True}],
     }
 
 
@@ -214,6 +216,48 @@ class DeploymentContractTests(unittest.TestCase):
                                            ['SETUID', 'SETGID', 'KILL']))
         self.reject_host_values('CapDrop', (None, [], ['NET_RAW'], ['ALL', 'KILL']))
 
+    def test_docker_capability_prefix_spellings_are_accepted(self):
+        for add in (['CAP_SETGID', 'CAP_SETUID'], ['SETUID', 'CAP_SETGID']):
+            for drop in (['ALL'], ['CAP_ALL']):
+                with self.subTest(add=add, drop=drop):
+                    facts = inspect_fixture()
+                    facts['HostConfig'].update(CapAdd=add, CapDrop=drop)
+                    self.validate(facts)
+
+    def test_capability_normalization_does_not_expand_allowed_sets(self):
+        self.reject_host_values('CapAdd', (
+            ['CAP_SETUID'], ['CAP_ALL'], ['CAP_SETUID', 'CAP_SETGID', 'CAP_SYS_ADMIN'],
+            ['CAP_CAP_SETUID', 'CAP_SETGID'], ['cap_setuid', 'CAP_SETGID'],
+            ['CAP_SETUID', 'CAP_SETGID', None], [[], 'SETGID'],
+            ['SETUID', 'SETGID', 'CAP_SETUID'], ['SETUID', 'SETGID', 'SETGID'],
+        ))
+        self.reject_host_values('CapDrop', (['CAP_ALL', 'CAP_KILL'], ['CAP_CAP_ALL'],
+                                             ['ALL', 'CAP_ALL'], ['ALL', 'ALL']))
+
+    def test_only_approved_named_volume_bind_representations_are_accepted(self):
+        for binds in (None, [], [VOLUME_NAME + ':/control'], [VOLUME_NAME + ':/control:rw']):
+            with self.subTest(binds=binds):
+                facts = inspect_fixture()
+                facts['HostConfig'].update(Binds=binds, CapAdd=['CAP_SETGID', 'CAP_SETUID'])
+                self.validate(facts)
+        self.reject_host_values('Binds', (
+            [VOLUME_NAME + ':/control:ro'], ['other:/control'],
+            [VOLUME_NAME + ':/other'], [VOLUME_NAME + ':/control:rw,z'],
+            [VOLUME_NAME + ':/control', '/tmp:/extra'],
+            [VOLUME_NAME + ':/control'] * 2, [VOLUME_MOUNTPOINT + ':/control'],
+            VOLUME_NAME + ':/control', (VOLUME_NAME + ':/control',),
+        ))
+
+    def test_named_volume_bind_cannot_override_actual_mount_validation(self):
+        for key, value in (('Type', 'bind'), ('Name', 'other'), ('RW', False),
+                           ('Source', '/tmp'), ('Destination', '/other')):
+            with self.subTest(field=key):
+                facts = inspect_fixture()
+                facts['HostConfig']['Binds'] = [VOLUME_NAME + ':/control:rw']
+                facts['Mounts'][0][key] = value
+                with self.assertRaises(ContractError):
+                    self.validate(facts)
+
     def test_capability_fields_require_arrays(self):
         self.reject_host_values('CapAdd', ({'SETUID': True, 'SETGID': True},
                                            ('SETUID', 'SETGID')))
@@ -304,6 +348,7 @@ class DeploymentContractTests(unittest.TestCase):
             'Name': ('another-volume', '', None),
             'Destination': ('/control/', '/work', '/', None),
             'RW': (False, 1, 'true', None),
+            'Source': ('/tmp', '', None, True, VOLUME_MOUNTPOINT + '/'),
         }.items():
             for value in values:
                 with self.subTest(field=key, value=value):
@@ -334,6 +379,7 @@ class DeploymentContractTests(unittest.TestCase):
             'Name': ('another-volume', None),
             'Driver': ('nfs', 'third-party-plugin', None),
             'Scope': ('global', None),
+            'Mountpoint': ('/tmp', '', None, True, VOLUME_MOUNTPOINT + '/'),
             'Options': ({'type': 'none', 'o': 'bind', 'device': '/'},
                         {'type': 'nfs', 'device': 'server:/private'},
                         [], '', False),
@@ -349,6 +395,17 @@ class DeploymentContractTests(unittest.TestCase):
                 del volume[key]
                 with self.assertRaises(ContractError):
                     self.validate(inspect_fixture(), volume_inspect=volume)
+
+    def test_matching_paths_still_require_normalized_absolute_source(self):
+        for path in ('', 'relative/_data', '/var/../tmp', '/var/./data',
+                     '/var//data', '//var/data', '/var/data/', '/var/data\x00',
+                     None, True, [], {}):
+            with self.subTest(path=path):
+                facts = inspect_fixture()
+                volume = volume_fixture()
+                facts['Mounts'][0]['Source'] = volume['Mountpoint'] = path
+                with self.assertRaises(ContractError):
+                    self.validate(facts, volume_inspect=volume)
 
     def test_missing_or_malformed_volume_inspect_rejected(self):
         for volume in (None, [], '', True, {}):
