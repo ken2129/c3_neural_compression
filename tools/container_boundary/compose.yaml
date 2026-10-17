@@ -1,0 +1,20 @@
+# Diagnostic only. No real credentials, repository/data mounts, model or GPU.
+services:
+  boundary-check:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    user: "0:0"
+    init: true
+    read_only: true
+    network_mode: none
+    cap_drop: [ALL]
+    cap_add: [SETUID, SETGID]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 16
+    mem_limit: 128m
+    cpus: 0.5
+    restart: "no"
+    tmpfs:
+      - /control:rw,noexec,nosuid,nodev,size=1m,mode=0700,uid=10001,gid=10001
+      - /work:rw,noexec,nosuid,nodev,size=1m,mode=0700,uid=10002,gid=10002
