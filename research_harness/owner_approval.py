@@ -93,6 +93,7 @@ def matching_receipt(issue, comments, now):
     if type(comments) is not list:
         raise ContractError('comments array required')
     matches = []
+    invalid = False
     for comment in comments:
         if type(comment) is not dict:
             raise ContractError('invalid comment metadata')
@@ -105,29 +106,36 @@ def matching_receipt(issue, comments, now):
             continue
         if type(body) is not dict or body.get('schema') != SCHEMA or body.get('request_id') != request['approval_ref']:
             continue
-        required_meta = {'id', 'body', 'createdAt', 'updatedAt', 'lastEditedAt', 'isMinimized', 'author', 'editor'}
-        if not required_meta <= comment.keys():
-            raise ContractError('approval edit metadata unavailable')
-        if type(comment['id']) is not str or not comment['id'] or len(comment['id']) > 200:
-            raise ContractError('invalid comment node identity')
-        timestamp(comment['createdAt']); timestamp(comment['updatedAt'])
-        if (comment['lastEditedAt'] is not None or comment['editor'] is not None
-                or comment['isMinimized'] is not False):
-            raise ContractError('edited/hidden approval rejected')
-        fields(body, ('schema', 'request_id', 'repository', 'issue', 'plan_version',
-                      'content_sha256', 'expires_at', 'decision'))
-        if (body['repository'] != REPOSITORY or type(body['issue']) is not int or body['issue'] != issue['number']
-                or type(body['plan_version']) is not int or body['plan_version'] != request['plan_version']
-                or body['content_sha256'] != content_hash(issue)
-                or body['expires_at'] != request['expires_at']):
-            raise ContractError('approval binding mismatch')
-        if timestamp(body['expires_at']) <= now:
-            raise ContractError('approval expired')
-        if body['decision'] == 'cancel-execution':
-            raise RevokedApproval('execution approval revoked')
-        if body['decision'] != 'approve-execution':
-            raise ContractError('not an execution approval')
-        matches.append((comment, body))
+        try:
+            required_meta = {'id', 'body', 'createdAt', 'updatedAt', 'lastEditedAt', 'isMinimized', 'author', 'editor'}
+            if not required_meta <= comment.keys():
+                raise ContractError('approval edit metadata unavailable')
+            if type(comment['id']) is not str or not comment['id'] or len(comment['id']) > 200:
+                raise ContractError('invalid comment node identity')
+            timestamp(comment['createdAt']); timestamp(comment['updatedAt'])
+            if (comment['lastEditedAt'] is not None or comment['editor'] is not None
+                    or comment['isMinimized'] is not False):
+                raise ContractError('edited/hidden approval rejected')
+            fields(body, ('schema', 'request_id', 'repository', 'issue', 'plan_version',
+                          'content_sha256', 'expires_at', 'decision'))
+            if (body['repository'] != REPOSITORY or type(body['issue']) is not int or body['issue'] != issue['number']
+                    or type(body['plan_version']) is not int or body['plan_version'] != request['plan_version']
+                    or body['content_sha256'] != content_hash(issue)
+                    or body['expires_at'] != request['expires_at']):
+                raise ContractError('approval binding mismatch')
+            if timestamp(body['expires_at']) <= now:
+                raise ContractError('approval expired')
+            if body['decision'] == 'cancel-execution':
+                raise RevokedApproval('execution approval revoked')
+            if body['decision'] != 'approve-execution':
+                raise ContractError('not an execution approval')
+            matches.append((comment, body))
+        except RevokedApproval:
+            raise
+        except ContractError:
+            invalid = True
+    if invalid:
+        raise ContractError('invalid matching approval record')
     if len(matches) != 1:
         raise ContractError('exactly one unedited owner approval required')
     return matches[0]

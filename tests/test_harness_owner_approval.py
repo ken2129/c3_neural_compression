@@ -105,6 +105,15 @@ class OwnerApprovalTests(unittest.TestCase):
                 with self.assertRaises(ContractError):inspect_once(Client([data]),Comments(comment),db,100,lambda:NOW)
             finally:db.close()
 
+    def test_preapproval_cancel_not_hidden_by_earlier_invalid_record(self):
+        from research_harness.owner_approval import RevokedApproval
+        _, issue, comment = issue_and_comment()
+        bad = dict(comment, editor={'login':OWNER_LOGIN})
+        body=json.loads(comment['body']);body['decision']='cancel-execution'
+        cancel=dict(comment,id='IC_cancel',body=json.dumps(body))
+        for records in [[bad,cancel],[cancel,bad]]:
+            with self.assertRaises(RevokedApproval):matching_receipt(issue,records,NOW)
+
     def test_graphql_missing_metadata_errors_and_pagination(self):
         def response(nodes, more=False, cursor=None):
             return type('Result',(),{'stdout':json.dumps({'data':{'repository':{'issue':{'number':100,'comments':{'nodes':nodes,'pageInfo':{'hasNextPage':more,'endCursor':cursor}}}}}}).encode()})()
