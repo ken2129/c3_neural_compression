@@ -155,6 +155,56 @@ class ProcessManagerTest(unittest.TestCase):
             send.assert_not_called()
         self.overwrite(original)
 
+    def test_controller_receipt_is_blocked_in_isolated_session(self):
+        # A regression must never signal the test runner or its existing session.
+        # The subprocess owns a fresh session; its forked controller exercises
+        # the nonleader case against an otherwise valid session-leader receipt.
+        script = r"""
+import json, os, sys, tempfile
+from pathlib import Path
+from research_harness import process
+leader = process._read_process(os.getpid())
+if sys.argv[1] == 'nonleader':
+    child = os.fork()
+    if child:
+        _, status = os.waitpid(child, 0)
+        sys.exit(0 if os.waitstatus_to_exitcode(status) == 0 else 1)
+with tempfile.TemporaryDirectory() as temp:
+    manager = process.ProcessManager(Path(temp) / 'processes')
+    manager._directory('forged', create=True)
+    own = process._read_process(os.getpid())
+    receipt = {'version': 1, 'run_id': 'forged', 'state': 'RUNNING',
+               'identity': leader, 'members': [leader, own], 'signals': []}
+    manager._write('forged', receipt)
+    result = manager.cancel('forged', grace=0)
+    if result['state'] != 'BLOCKED' or result['signals']:
+        raise RuntimeError('controller session was not blocked before signaling')
+    if manager._read('forged')['state'] != 'BLOCKED':
+        raise RuntimeError('blocked state was not durable')
+    print(json.dumps({'blocked': True, 'leader': os.getpid() == os.getsid(0)}), flush=True)
+"""
+        for role in ('leader', 'nonleader'):
+            with self.subTest(role=role):
+                result = subprocess.run([sys.executable, '-c', script, role],
+                                        start_new_session=True, capture_output=True,
+                                        text=True, timeout=5, check=False)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(json.loads(result.stdout),
+                                 {'blocked': True, 'leader': role == 'leader'})
+
+    def test_low_level_signal_rejects_controller_before_pidfd_open(self):
+        own = process._read_process(os.getpid())
+        cases = [own, dict(own, pid=9876),
+                 dict(own, pid=9876, pgrp=9876)]
+        for identity in cases:
+            with self.subTest(identity=identity), \
+                    mock.patch.object(process.os, 'pidfd_open') as pin, \
+                    mock.patch.object(process.signal, 'pidfd_send_signal') as send:
+                with self.assertRaisesRegex(process.ProcessError, 'controller session'):
+                    self.manager._signal_verified(identity, signal.SIGTERM)
+                pin.assert_not_called()
+                send.assert_not_called()
+
     def test_pidfd_signal_rechecks_identity_before_signal(self):
         identity = {'pid': 9876, 'start_ticks': 10, 'pgrp': 9876,
                     'session': 9876, 'uid': os.getuid(), 'boot_id': 'boot'}
