@@ -28,27 +28,20 @@
 
 ## 実行前の条件
 
-1. 公式ベース `node:22-bookworm-slim` の manifest digest を Docker Registry の読み取りで確認し、Dockerfile/Composeの既定値に固定しました（値は sources.json）。APTパッケージは未固定なので、ビルド後のイメージIDとパッケージバージョンも記録します。
+1. 公式ベース `node:22-bookworm-slim` の manifest digest を Docker Registry の読み取りで確認し、Dockerfileに固定しました（値は sources.json）。APTパッケージは未固定なので、ビルド後のイメージIDを記録します（APTパッケージ一覧の保存は未実装です）。
 2. ビルド時には公式配布元への通信・ダウンロードが発生します。ここではビルドしていません。
-3. 下記の seccomp/AppArmor 適用はセキュリティ設定の変更です。対象・内容を確認し明示的に承認されるまでは実行しません。AppArmorのホストへの登録には適切な管理権限が必要です。
+3. 専用seccompの適用は新規コンテナのセキュリティ設定の変更です。対象・内容を確認し明示的に承認されるまでは実行しません。この手順にAppArmorの登録・変更は含みません。
 4. 公式の汎用プロファイルを固定取得しましたが、これが研究用の厳密な最小権限設定だと認定したものではありません。差分レビューと実機試験が必要です。
 
 ## 承認後の診断手順
 
-まず構成の表示とビルドを行い、標準設定で比較します。設定表示に秘密は含めないでください。
+保護チェックとログ保存を含むスクリプトから実行します。このディレクトリで、承認された範囲に合わせて次を使います。
 
 ```sh
-docker compose --env-file /dev/null -p uchishiba-codex-sandbox-check -f compose.yaml --profile diagnostic config
-docker compose --env-file /dev/null -p uchishiba-codex-sandbox-check -f compose.yaml --profile diagnostic build sandbox-check
-docker compose --env-file /dev/null -p uchishiba-codex-sandbox-check -f compose.yaml --profile diagnostic run --rm sandbox-check
+bash run_checks.sh --allow-seccomp-candidate
 ```
 
-専用seccomp候補の適用が承認された場合だけ、次を実行します。AppArmorは標準のままなので、ここで失敗してもseccomp候補が無効だったとは断定できません。
-
-```sh
-docker compose --env-file /dev/null -p uchishiba-codex-sandbox-check -f compose.yaml -f compose.seccomp-candidate.yaml --profile diagnostic config
-docker compose --env-file /dev/null -p uchishiba-codex-sandbox-check -f compose.yaml -f compose.seccomp-candidate.yaml --profile diagnostic run --rm sandbox-check
-```
+標準設定を先に試し、既知のnamespace拒否だけが出た場合に専用seccomp候補を1回試します。AppArmorは標準のままなので、ここで失敗してもseccomp候補が無効だったとは断定できません。個別のComposeコマンドだけで実行すると既存資源・空き容量などの確認を飛ばすため、このスクリプトを使ってください。
 
 結果が `sandbox_true_exit=0` なら sandbox 起動の第一段階だけ成功です。実験データの隔離、書込み拒否、プロセス回収、モデル接続、料金上限、GitHub連携は別途検証が必要です。失敗したら出力を保存して止め、privileged・SYS_ADMIN・unconfined・sandbox無効化に切り替えません。
 
@@ -75,11 +68,11 @@ seccomp候補は namespace/mount関連の複数syscallを許可します。`unsh
 
 Dockerクライアント設定から認証付きプロキシURLが自動継承されるのを避けるため、HTTP_PROXY/HTTPS_PROXY/FTP_PROXY/ALL_PROXY/NO_PROXYと小文字版を、build argsと実行時environmentで空文字に固定しています。ホストのDocker設定・環境変数の中身は出力しません。プロキシ必須の環境でビルドが失敗しても、認証情報を追加して回避せず停止します。
 
-Composeは必ず明記した `-f` と専用project名で実行し、自動的な compose.override.yaml 読込みを避けます。`--env-file /dev/null` を指定し、実行前のconfig表示で、意図しないmount・権限・通信・追加serviceがないことを確認してください。同名projectが既にあれば再利用せず停止します。
+Composeは必ず明記した `-f` と専用project名で実行し、自動的な compose.override.yaml 読込みを避けます。`--env-file /dev/null` を指定し、実行前のconfig表示で、意図しないmount・権限・通信・追加serviceがないことを確認してください。同名projectが既にあれば再利用せず、この診断スクリプトを終了します。既存コンテナは停止・変更しません。
 
 ## ホスト実行用のまとめスクリプト
 
-承認された診断を行う場合、このディレクトリで `bash run_checks.sh --allow-seccomp-candidate` を実行できます。Dockerデータ領域の空き容量を表示し、2GiB未満なら中止する目安の保護があります。これはビルド使用量の上限や十分性の保証ではありません。既存の同名プロジェクトがあれば停止します。標準設定の結果を記録し、既知のnamespace拒否（終了コード1と診断マーカー付き）で失敗した場合だけ、明示した候補許可フラグに従い専用seccompで再試験します。タイムアウト・OOM・起動失敗・その他のエラーでは再試験しません。各終了コードとログの保存場所を表示します。AppArmor変更、再試験の繰返し、他コンテナの停止、pruneは行いません。
+承認された診断を行う場合、このディレクトリで `bash run_checks.sh --allow-seccomp-candidate` を実行できます。Dockerデータ領域の空き容量を表示し、2GiB未満なら中止する目安の保護があります。これはビルド使用量の上限や十分性の保証ではありません。既存の同名プロジェクトがあれば診断スクリプト自身を終了します。既存コンテナは停止・変更しません。標準設定の結果を記録し、既知のnamespace拒否（終了コード1と診断マーカー付き）で失敗した場合だけ、明示した候補許可フラグに従い専用seccompで再試験します。タイムアウト・OOM・起動失敗・その他のエラーでは再試験しません。各終了コードとログの保存場所を表示します。AppArmor変更、再試験の繰返し、他コンテナの停止、pruneは行いません。
 
 `--allow-seccomp-candidate` を省略すると標準設定の試験だけで終了します。再試験や設定適用は読み戻したログと承認範囲を確認して行ってください。
 
