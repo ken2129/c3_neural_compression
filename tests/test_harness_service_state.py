@@ -216,6 +216,47 @@ class ServiceStateTests(unittest.TestCase):
                 with self.assertRaisesRegex(ContractError, 'invalid epoch policy'):
                     ServiceState(self.root, require_epochs=policy)
 
+    def test_read_only_policy_requires_exact_boolean(self):
+        self.close_state()
+        for policy in (None, 0, 1, 'true'):
+            with self.subTest(policy=policy):
+                with self.assertRaisesRegex(ContractError, 'invalid read-only policy'):
+                    ServiceState(self.root, read_only=policy)
+
+    def test_read_only_state_validates_and_reads_without_allowing_database_mutation(self):
+        _, after = self.epoch_claim()
+        self.state.save_result(70, self.request, await_restart=True)
+        original = self.state.get(70)
+        self.close_state()
+        def files():
+            return {str(path.relative_to(self.root)): path.read_bytes()
+                    for path in self.root.rglob('*') if path.is_file()}
+        before_files = files()
+        validate = ServiceState._validate_runs
+        def validated_read_only(state):
+            self.assertEqual(state.db.execute('PRAGMA query_only').fetchone(), (1,))
+            validate(state)
+        with patch.object(ServiceState, '_validate_runs', validated_read_only):
+            self.state = ServiceState(self.root, require_epochs=True, read_only=True)
+        self.assertEqual(self.state.get(70), original)
+        with self.assertRaises(sqlite3.OperationalError):
+            self.state.confirm_restart(70, after, deployment_contract_verified=True)
+        with self.assertRaises(sqlite3.OperationalError):
+            self.state.db.execute("UPDATE service_runs SET phase='BLOCKED' WHERE issue=70")
+        self.state.db.rollback()
+        # mode=ro also denies writes if trusted code disables query_only.
+        self.state.db.execute('PRAGMA query_only=OFF')
+        with self.assertRaises(sqlite3.OperationalError):
+            self.state.db.execute("UPDATE service_runs SET phase='BLOCKED' WHERE issue=70")
+        self.state.db.rollback()
+        self.assertEqual(self.state.get(70), original)
+        self.close_state()
+        self.assertEqual(files(), before_files)
+        # Ordinary construction retains its existing writable behavior.
+        self.state = ServiceState(self.root, require_epochs=True)
+        self.state.confirm_restart(70, after, deployment_contract_verified=True)
+        self.assertEqual(self.state.get(70)['phase'], 'RESULT_READY')
+
     def test_claim_is_durable_and_duplicate_does_not_replace_witness(self):
         self.claimed()
         self.assertEqual(self.state.pending_claims(), [70])
@@ -650,11 +691,15 @@ class ServiceStateTests(unittest.TestCase):
                     self.state.save_result(70, changed)
                 self.assertEqual(self.state.get(70)['phase'], 'CLAIMED')
 
-    def test_result_base_must_match_frozen_source_commit(self):
+    def test_result_publication_base_can_differ_from_immutable_execution_source(self):
         self.claimed()
-        with self.assertRaises(ContractError):
-            self.state.save_result(70, replace(self.request, base_sha='0' * 40))
-        self.assertEqual(self.state.get(70)['phase'], 'CLAIMED')
+        request = replace(self.request, base_sha='c' * 40)
+        self.state.save_result(70, request)
+        saved = self.reopen().get(70)
+        self.assertEqual(saved['phase'], 'RESULT_READY')
+        self.assertEqual(saved['binding'], self.binding)
+        self.assertEqual(saved['result'], request.to_dict())
+        self.assertEqual(saved['result']['result']['source_sha'], self.binding['source_sha'])
 
     def test_reopen_revalidates_every_saved_result_binding_field(self):
         self.result_ready()
@@ -684,9 +729,21 @@ class ServiceStateTests(unittest.TestCase):
     def test_reopen_revalidates_saved_base_commit(self):
         self.result_ready()
         self.close_state()
-        changed = replace(self.request, base_sha='0' * 40)
-        self.raw_update('UPDATE service_runs SET result=?',
-                        (canonical(changed.to_dict()).decode(),))
+        for base in (None, True, '', 'main', 'c' * 12, 'C' * 40, 'c' * 40 + '\n'):
+            with self.subTest(base=base):
+                changed = self.request.to_dict()
+                changed['base_sha'] = base
+                self.raw_update('UPDATE service_runs SET result=?', (canonical(changed).decode(),))
+                self.assert_reopen_rejected()
+
+    def test_publication_journal_digest_binds_the_saved_base_independently_of_source(self):
+        self.claimed()
+        request = replace(self.request, base_sha='c' * 40)
+        self.state.save_result(70, request)
+        self.state.save_publication(70, PublicationState(request.digest, request.branch))
+        self.close_state()
+        changed = replace(request, base_sha='d' * 40)
+        self.raw_update('UPDATE service_runs SET result=?', (canonical(changed.to_dict()).decode(),))
         self.assert_reopen_rejected()
 
     def test_unknown_publication_resumes_without_claiming_again(self):

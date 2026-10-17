@@ -302,7 +302,8 @@ class ManagerStartupTests(unittest.TestCase):
                  patch.object(launcher.sys, 'stdout', outgoing), \
                  patch('research_harness.manager_github.ManagerGitHub', return_value=object()), \
                  patch('research_harness.owner_approval.GitHubOwnerComments', return_value=object()), \
-                 patch('research_harness.result_publisher.GhResultTransport', return_value=object()), \
+                 patch('research_harness.result_publisher.GhResultTransport',
+                       return_value=SimpleNamespace(base_sha=lambda: 'c' * 40)), \
                  patch('research_harness.service.Controller',
                        return_value=SimpleNamespace(once=lambda: reports)):
                 launcher.manager()

@@ -126,7 +126,8 @@ class ModelControllerTests(unittest.TestCase):
 
     def make_controller(self):
         self.controller = Controller(self.state, self.source, self.source, self.runtime,
-            self.publishers, source_sha=SOURCE_SHA, clock=lambda: FIXTURE_NOW)
+            self.publishers, source_sha=SOURCE_SHA, publication_base_getter=lambda: SOURCE_SHA,
+            clock=lambda: FIXTURE_NOW)
 
     def reopen(self):
         self.state.close()
@@ -166,6 +167,33 @@ class ModelControllerTests(unittest.TestCase):
         self.assertEqual(self.publishers.transport.events, ['branch', 'content', 'pr'])
         self.reopen()
         self.assertTrue(self.controller.process(ISSUE)['historical'])
+        self.assertEqual(self.publishers.calls, 1)
+
+    def test_model_preserves_separate_pinned_main_across_restart_without_base_getter(self):
+        calls = []
+        def main_base():
+            self.assertEqual(self.runtime.preflights, 0)
+            self.assertEqual(self.runtime.prepared, [])
+            self.assertIsNone(self.state.get(ISSUE))
+            calls.append('main')
+            return 'c' * 40
+        self.controller.publication_base_getter = main_base
+        self.assertEqual(self.controller.process(ISSUE)['phase'], 'RESULT_AWAITING_RESTART')
+        original = self.state.get(ISSUE)
+        self.assertEqual(original['binding']['source_sha'], SOURCE_SHA)
+        self.assertEqual(original['result']['result']['source_sha'], SOURCE_SHA)
+        self.assertEqual(original['result']['base_sha'], 'c' * 40)
+        self.runtime.epoch = replace(self.runtime.epoch, pid1_start_ticks=2000)
+        self.reopen()
+        self.controller.publication_base_getter = None
+        report = self.controller.process(ISSUE)
+        self.assertEqual(report['phase'], 'PUBLISHED')
+        self.assertFalse(report['dispatched'])
+        saved = self.state.get(ISSUE)
+        self.assertEqual(saved['binding'], original['binding'])
+        self.assertEqual(saved['result'], original['result'])
+        self.assertEqual(calls, ['main'])
+        self.assertEqual(self.runtime.runs, 1)
         self.assertEqual(self.publishers.calls, 1)
 
     def test_missing_prepare_callback_blocks_before_preflight_and_claim(self):

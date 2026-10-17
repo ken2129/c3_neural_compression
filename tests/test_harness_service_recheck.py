@@ -231,7 +231,8 @@ class ControllerRecheckTests(unittest.TestCase):
         self.runtime = BurstRuntime()
         self.publishers = PublisherFactory()
         self.controller = Controller(self.state, self.source, self.source, self.runtime,
-            self.publishers, source_sha=SOURCE_SHA, clock=lambda: self.clock.wall,
+            self.publishers, source_sha=SOURCE_SHA, publication_base_getter=lambda: SOURCE_SHA,
+            clock=lambda: self.clock.wall,
             monotonic=lambda: self.clock.mono)
 
     def test_each_fresh_snapshot_is_three_rest_reads_and_one_comment_scan(self):
@@ -319,7 +320,8 @@ class ControllerRecheckTests(unittest.TestCase):
         self.source = ModelSource()
         self.runtime = ModelRuntime()
         self.controller = Controller(self.state, self.source, self.source, self.runtime,
-            self.publishers, source_sha=SOURCE_SHA, clock=lambda: self.clock.wall,
+            self.publishers, source_sha=SOURCE_SHA, publication_base_getter=lambda: SOURCE_SHA,
+            clock=lambda: self.clock.wall,
             monotonic=lambda: self.clock.mono)
 
     def test_model_final_approval_has_shared_budget_without_changing_other_fresh_checks(self):

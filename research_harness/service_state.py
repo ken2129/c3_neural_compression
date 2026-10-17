@@ -31,7 +31,9 @@ def validate_binding(value):
 
 
 def validate_request(request,value):
-    if request.issue_content_sha256!=value['issue_content_sha256'] or request.base_sha!=value['source_sha']:
+    # The closed request validates its publication base independently. It is
+    # not the installed execution source, which remains bound in the result.
+    if request.issue_content_sha256!=value['issue_content_sha256']:
         raise ContractError('saved publication binding mismatch')
     for key in ('issue_number','request_id','run_id','plan_digest','source_sha'):
         if getattr(request.result,key)!=value[key]:raise ContractError('saved result binding mismatch')
@@ -58,8 +60,9 @@ def initialize(root):
 
 
 class ServiceState:
-    def __init__(self,root,*,require_epochs=False):
+    def __init__(self,root,*,require_epochs=False,read_only=False):
         if type(require_epochs) is not bool:raise ContractError('invalid epoch policy')
+        if type(read_only) is not bool:raise ContractError('invalid read-only policy')
         self.require_epochs=require_epochs
         self.root=Path(root);private(self.root,True)
         private(self.root/'claims',True)
@@ -71,10 +74,12 @@ class ServiceState:
         self._lock.__enter__()
         try:
             private(self.root/'manager.lock')
-            self.db=sqlite3.connect((self.root/'state.sqlite').as_uri()+'?mode=rw',uri=True)
+            mode='ro' if read_only else 'rw'
+            self.db=sqlite3.connect((self.root/'state.sqlite').as_uri()+'?mode='+mode,uri=True)
         except BaseException:
             self._lock.__exit__(None,None,None);raise
         try:
+            if read_only:self.db.execute('PRAGMA query_only=ON')
             if self.db.execute('PRAGMA integrity_check').fetchall()!=[('ok',)] or self.db.execute('PRAGMA user_version').fetchone()!=(1,):
                 raise ContractError('service database invalid')
             actual=dict(self.db.execute("SELECT name,sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%'"))

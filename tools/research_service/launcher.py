@@ -80,7 +80,8 @@ def manager():
     try:
         transport=GhResultTransport(enabled=True,manager_credentials_isolated=True,runtime_verified=True)
         controller=Controller(state,ManagerGitHub(),GitHubOwnerComments(),runtime,
-            lambda persist:GitHubResultPublisher(transport,persist_state=persist),source_sha=hello['source_sha'])
+            lambda persist:GitHubResultPublisher(transport,persist_state=persist),source_sha=hello['source_sha'],
+            publication_base_getter=transport.base_sha)
         while True:
             try:reports=controller.once()
             except Exception as exc:reports=[source_failure_report(exc)]

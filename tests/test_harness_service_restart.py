@@ -49,7 +49,8 @@ class ServiceRestartTests(unittest.TestCase):
 
     def make_controller(self):
         self.controller = Controller(self.state, self.source, self.source, self.runtime, self.publishers,
-                                     source_sha=SOURCE_SHA, clock=lambda: self.now)
+                                     source_sha=SOURCE_SHA, publication_base_getter=lambda: SOURCE_SHA,
+                                     clock=lambda: self.now)
 
     def reopen(self):
         self.state.close()

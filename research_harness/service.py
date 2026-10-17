@@ -191,10 +191,12 @@ class Controller:
     launch/cleanup and invokes recheck during a run. A boolean from an Issue is
     never passed as a runtime permission. Tests use injected fake implementations.
     """
-    def __init__(self,state,issues,comments,runtime,publisher_factory,*,source_sha,clock=time.time,monotonic=time.monotonic):
+    def __init__(self,state,issues,comments,runtime,publisher_factory,*,source_sha,
+                 publication_base_getter=None,clock=time.time,monotonic=time.monotonic):
         self.state=state;self.issues=issues;self.comments=comments
         self.runtime=runtime;self.publisher_factory=publisher_factory
         self.source_sha=source_sha;self.clock=clock;self.monotonic=monotonic
+        self.publication_base_getter=publication_base_getter
         self.generation_attempted=False
 
     def _approval_snapshot(self,number,expected=None):
@@ -293,6 +295,15 @@ class Controller:
         else:
             # Missing runtime setup does not consume a durable execution claim.
             plan=self.approved_plan(number,binding)
+            # Pin main through a trusted fixed-repository reader before the
+            # runtime/watchdog or durable claim. The execution source remains
+            # owner-approved source_sha; saved runs retain their original base.
+            if not callable(self.publication_base_getter):
+                raise ContractError('trusted publication base reader required')
+            publication_base_sha=self.publication_base_getter()
+            if (type(publication_base_sha) is not str
+                    or re.fullmatch(r'[0-9a-f]{40}',publication_base_sha) is None):
+                raise ContractError('full publication base commit required')
             model_plan=plan['kind']=='codex-canary-v1'
             prepare=getattr(self.runtime,'prepare_plan',None)
             if model_plan and not callable(prepare):
@@ -321,7 +332,7 @@ class Controller:
                 else:
                     self.approve(number,binding)
                 request_type=ModelPublicationRequest if model_plan else PublicationRequest
-                request=request_type(result,self.source_sha,binding['issue_content_sha256'])
+                request=request_type(result,publication_base_sha,binding['issue_content_sha256'])
                 self.state.save_result(number,request,await_restart=epoch is not None)
                 if epoch is not None:
                     return dict(issue=number,phase='RESULT_AWAITING_RESTART',dispatched=True,

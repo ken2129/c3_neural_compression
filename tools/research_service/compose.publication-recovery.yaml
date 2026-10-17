@@ -1,0 +1,34 @@
+# Explicit approval required: stop the original dedicated service, disable its
+# restart policy, and authorize this one-shot manager's access to its volume.
+# This never mounts a Docker socket or launches a model/experiment worker.
+services:
+  publication-recovery:
+    build:
+      context: ../..
+      dockerfile: tools/research_service/Dockerfile.publication-recovery
+      args:
+        SOURCE_SHA: ${C3_SOURCE_SHA:?set reviewed recovery commit}
+    labels:
+      c3.purpose: publication-only-recovery
+      c3.source-sha: ${C3_SOURCE_SHA:?set reviewed recovery commit}
+    user: "10001:10001"
+    init: false
+    read_only: true
+    network_mode: bridge
+    ipc: private
+    cgroup: private
+    runtime: runc
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 64
+    mem_limit: 1g
+    memswap_limit: 1g
+    cpus: 1
+    restart: "no"
+    volumes:
+      - original-control:/control
+    command: ["--once"]
+volumes:
+  original-control:
+    external: true
+    name: ${C3_ORIGINAL_CONTROL_VOLUME:?set verified original volume}

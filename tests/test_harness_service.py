@@ -146,7 +146,8 @@ class ControllerIntegrationTests(unittest.TestCase):
 
     def make_controller(self):
         self.controller = Controller(self.state, self.source, self.source, self.runtime, self.publishers,
-                                     source_sha=SOURCE_SHA, clock=lambda: self.now)
+                                     source_sha=SOURCE_SHA, publication_base_getter=lambda: SOURCE_SHA,
+                                     clock=lambda: self.now)
 
     def restart(self):
         self.state.close()
@@ -158,6 +159,61 @@ class ControllerIntegrationTests(unittest.TestCase):
         self.assertEqual(self.publishers.calls, 0)
         self.assertIsNone(self.state.get(self.source.issue['number']))
         self.assertEqual(list((self.root / 'claims').iterdir()), [])
+
+    def test_publication_base_is_pinned_before_runtime_without_changing_execution_source(self):
+        calls = []
+        def base():
+            self.assertIsNone(self.state.get(ISSUE))
+            self.assertEqual(self.runtime.preflights, 0)
+            self.assertEqual(self.runtime.runs, 0)
+            calls.append('main')
+            return 'c' * 40
+        self.controller.publication_base_getter = base
+        def no_more_reads():
+            self.assertEqual(calls, ['main'])
+            self.controller.publication_base_getter = lambda: (_ for _ in ()).throw(
+                AssertionError('base must not be refreshed during or after execution'))
+        self.runtime.on_run = no_more_reads
+        report = self.controller.process(ISSUE)
+        self.assertEqual(report['phase'], 'PUBLISHED')
+        saved = self.state.get(ISSUE)
+        self.assertEqual(saved['binding']['source_sha'], SOURCE_SHA)
+        self.assertEqual(saved['result']['result']['source_sha'], SOURCE_SHA)
+        self.assertEqual(saved['result']['base_sha'], 'c' * 40)
+        self.assertEqual(self.runtime.seen_bindings[0], saved['binding'])
+        self.assertEqual(calls, ['main'])
+
+    def test_missing_invalid_or_failed_base_reader_never_claims_or_starts_runtime(self):
+        for getter in (None, True, 'c' * 40):
+            with self.subTest(getter=getter):
+                self.controller.publication_base_getter = getter
+                with self.assertRaises(ContractError):
+                    self.controller.process(ISSUE)
+                self.assert_no_dispatch()
+        for value in (None, True, 1, '', 'main', 'c' * 12, 'C' * 40, 'c' * 40 + '\n'):
+            with self.subTest(base=value):
+                self.controller.publication_base_getter = lambda: value
+                with self.assertRaises(ContractError):
+                    self.controller.process(ISSUE)
+                self.assert_no_dispatch()
+        self.controller.publication_base_getter = lambda: (_ for _ in ()).throw(TimeoutError('offline'))
+        with self.assertRaises(TimeoutError):
+            self.controller.process(ISSUE)
+        self.assert_no_dispatch()
+        self.assertEqual(self.runtime.preflights, 0)
+
+    def test_main_drift_blocks_publication_without_repinning_or_changing_source(self):
+        self.controller.publication_base_getter = lambda: 'c' * 40
+        self.publishers.configure_transport = lambda transport: setattr(transport, 'base', 'd' * 40)
+        report = self.controller.process(ISSUE)
+        self.assertEqual(report['phase'], 'RESULT_READY')
+        self.assertEqual(report['publication_phase'], 'BLOCKED')
+        self.assertEqual(report['publication_reason'], 'BASE_CHANGED')
+        self.assertEqual(self.publishers.transport.events, [])
+        saved = self.state.get(ISSUE)
+        self.assertEqual(saved['result']['base_sha'], 'c' * 40)
+        self.assertEqual(saved['result']['result']['source_sha'], SOURCE_SHA)
+        self.assertEqual(self.runtime.runs, 1)
 
     def test_success_saves_validated_result_before_pr_and_keeps_notification_separate(self):
         def before_publish(request):
@@ -298,7 +354,8 @@ class ControllerIntegrationTests(unittest.TestCase):
                         source, runtime, factory = ServiceSource(), FakeRuntime(), PublisherFactory()
                         now = [FIXTURE_NOW]
                         controller = Controller(state, source, source, runtime, factory,
-                                                source_sha=SOURCE_SHA, clock=lambda: now[0])
+                                                source_sha=SOURCE_SHA, publication_base_getter=lambda: SOURCE_SHA,
+                                                clock=lambda: now[0])
                         runtime.on_run = source.revoke if condition == 'cancel' else lambda: now.__setitem__(0, timestamp(source.request['expires_at']))
                         with self.assertRaises(ContractError):
                             controller.process(ISSUE)
@@ -483,7 +540,8 @@ class ControllerIntegrationTests(unittest.TestCase):
                         source, runtime, factory = ServiceSource(), FakeRuntime(), PublisherFactory()
                         runtime.result_transform = transform
                         controller = Controller(state, source, source, runtime, factory,
-                                                source_sha=SOURCE_SHA, clock=lambda: FIXTURE_NOW)
+                                                source_sha=SOURCE_SHA, publication_base_getter=lambda: SOURCE_SHA,
+                                                clock=lambda: FIXTURE_NOW)
                         with self.assertRaises(ContractError):
                             controller.process(ISSUE)
                         self.assertEqual(state.get(ISSUE)['phase'], 'BLOCKED')
@@ -534,7 +592,8 @@ class ControllerIntegrationTests(unittest.TestCase):
                         source.request['plan'].update(changeset)
                         source.render(refresh_receipt=True)
                         controller = Controller(state, source, source, runtime, factory,
-                                                source_sha=SOURCE_SHA, clock=lambda: FIXTURE_NOW)
+                                                source_sha=SOURCE_SHA, publication_base_getter=lambda: SOURCE_SHA,
+                                                clock=lambda: FIXTURE_NOW)
                         with self.assertRaises(ContractError):
                             controller.process(ISSUE)
                         self.assertIsNone(state.get(ISSUE))
