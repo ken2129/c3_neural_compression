@@ -130,6 +130,18 @@ class Controller:
 
     def process(self,number):
         old=self.state.get(number)
+        if old and old['phase']=='CLAIMED':
+            current_epoch=getattr(self.runtime,'current_epoch',None)
+            if callable(current_epoch):
+                self.state.interrupt_after_restart(number,current_epoch(),
+                    deployment_contract_verified=getattr(self.runtime,'deployment_contract_verified',False))
+                old=self.state.get(number)
+        if old and old['phase']=='INTERRUPTED':
+            # Historical status needs no new execution/publication approval. A
+            # changed epoch proves interruption under the deployment contract,
+            # not whether the former worker started or completed its work.
+            return dict(issue=number,phase='INTERRUPTED',dispatched=False,duplicate=True,
+                        notification='UNCONFIGURED',historical=True,outcome='unknown')
         if old and old['phase']=='RESULT_AWAITING_RESTART':
             self.state.confirm_restart(number,self.runtime.current_epoch(),
                 deployment_contract_verified=self.runtime.deployment_contract_verified)

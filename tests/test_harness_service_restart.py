@@ -158,17 +158,113 @@ class ServiceRestartTests(unittest.TestCase):
     def test_interrupted_claim_never_reexecutes_even_after_valid_new_epoch(self):
         binding = self.controller.approve(ISSUE)
         self.assertTrue(self.state.claim(binding, epoch=epoch()))
+        witness = self.root / 'claims' / (str(ISSUE) + '.json')
+        original_witness, original_inode = witness.read_bytes(), witness.stat().st_ino
         self.runtime.epoch = self.newer_epoch()
         self.reopen()
+        self.assertEqual(self.state.get(ISSUE)['phase'], 'CLAIMED')
         report = self.controller.process(ISSUE)
-        self.assertEqual(report['phase'], 'CLAIMED')
+        self.assertEqual(report['phase'], 'INTERRUPTED')
+        self.assertEqual(report['outcome'], 'unknown')
+        self.assertTrue(report['historical'])
         self.assertFalse(report['dispatched'])
         self.assertTrue(report['duplicate'])
         self.assertEqual(self.runtime.runs, 0)
         self.assertEqual(self.runtime.preflights, 0)
-        self.assertEqual(self.runtime.current_calls, 0)
+        self.assertEqual(self.runtime.current_calls, 1)
         self.assertEqual(self.publishers.calls, 0)
+        self.assertEqual(self.saved_epoch(), (epoch().to_dict(), self.newer_epoch().to_dict()))
+        self.assertEqual(self.state.get(ISSUE), dict(binding=binding, phase='INTERRUPTED',
+                                                   result=None, publication=None))
+        self.assertFalse(self.state.claim(binding, epoch=self.newer_epoch()))
+        self.assertEqual((witness.read_bytes(), witness.stat().st_ino),
+                         (original_witness, original_inode))
+        self.reopen()
+        self.runtime.epoch = epoch(pid_namespace_inode=4026533003, pid1_start_ticks=3000)
+        self.assertEqual(self.controller.process(ISSUE), report)
+        self.assertEqual(self.runtime.current_calls, 1)
+        self.assertEqual(self.saved_epoch(), (epoch().to_dict(), self.newer_epoch().to_dict()))
+
+    def test_same_epoch_reopen_leaves_unfinished_claim_unchanged(self):
+        binding = self.controller.approve(ISSUE)
+        self.state.claim(binding, epoch=epoch())
+        for _ in range(2):
+            self.reopen()
+            report = self.controller.process(ISSUE)
+            self.assertEqual(report['phase'], 'CLAIMED')
+            self.assertFalse(report['dispatched'])
+            self.assertEqual(self.saved_epoch(), (epoch().to_dict(), None))
+            self.assertEqual(self.runtime.runs, 0)
+            self.assertEqual(self.publishers.calls, 0)
+
+    def test_interruption_requires_complete_verified_restart_evidence(self):
+        binding = self.controller.approve(ISSUE)
+        self.state.claim(binding, epoch=epoch())
+        changed = [epoch(), replace(self.newer_epoch(), container_id='f' * 64),
+                   replace(self.newer_epoch(), boot_id=OTHER_BOOT),
+                   replace(epoch(), pid1_start_ticks=2000),
+                   replace(epoch(), pid_namespace_inode=4026533002),
+                   replace(self.newer_epoch(), pid1_start_ticks=999)]
+        for value in changed:
+            with self.subTest(epoch=value):
+                self.runtime.epoch = value
+                self.reopen()
+                self.assertEqual(self.controller.process(ISSUE)['phase'], 'CLAIMED')
+                self.assertEqual(self.saved_epoch(), (epoch().to_dict(), None))
+        self.runtime.epoch = self.newer_epoch()
+        for verified in (False, None, 1, 'verified'):
+            with self.subTest(contract=verified):
+                self.runtime.deployment_contract_verified = verified
+                self.assertEqual(self.controller.process(ISSUE)['phase'], 'CLAIMED')
+                self.assertEqual(self.saved_epoch(), (epoch().to_dict(), None))
+        self.assertEqual(self.runtime.runs, 0)
+        self.assertEqual(self.runtime.preflights, 0)
+        self.assertEqual(self.publishers.calls, 0)
+
+    def test_missing_epoch_cannot_mark_claim_interrupted(self):
+        binding = self.controller.approve(ISSUE)
+        self.state.claim(binding, epoch=epoch())
+        self.runtime.epoch = None
+        with self.assertRaises(ContractError):
+            self.controller.process(ISSUE)
+        self.assertEqual(self.state.get(ISSUE)['phase'], 'CLAIMED')
         self.assertEqual(self.saved_epoch(), (epoch().to_dict(), None))
+        self.assertEqual(self.runtime.runs, 0)
+        self.assertEqual(self.publishers.calls, 0)
+
+    def test_interruption_is_historical_even_when_approval_or_source_changed(self):
+        binding = self.controller.approve(ISSUE)
+        self.state.claim(binding, epoch=epoch())
+        self.runtime.epoch = self.newer_epoch()
+        self.reopen()
+        self.now = timestamp(self.source.request['expires_at']) + 1
+        self.source.revoke()
+        self.controller.source_sha = 'c' * 40
+        with patch.object(self.source, 'get_issue', side_effect=AssertionError('no new admission')):
+            report = self.controller.process(ISSUE)
+            self.assertEqual(self.controller.process(ISSUE), report)
+        self.assertEqual(report['phase'], 'INTERRUPTED')
+        self.assertEqual(report['outcome'], 'unknown')
+        self.assertEqual(self.state.get(ISSUE)['binding'], binding)
+        self.assertEqual(self.runtime.runs, 0)
+        self.assertEqual(self.runtime.preflights, 0)
+        self.assertEqual(self.publishers.calls, 0)
+
+    def test_interrupted_history_does_not_restart_generation_or_starve_scan(self):
+        binding = self.controller.approve(ISSUE)
+        self.state.claim(binding, epoch=epoch())
+        self.runtime.epoch = self.newer_epoch()
+        self.source.candidates = [ISSUE, ISSUE + 1]
+        self.reopen()
+        with patch.object(self.controller, 'process', wraps=self.controller.process) as process:
+            reports = self.controller.once()
+        self.assertEqual(process.call_count, 2)
+        self.assertEqual(reports[0]['phase'], 'INTERRUPTED')
+        self.assertEqual(reports[0]['outcome'], 'unknown')
+        self.assertTrue(all(report['dispatched'] is False for report in reports))
+        self.assertTrue(all(not report.get('restart_required') for report in reports))
+        self.assertEqual(self.runtime.runs, 0)
+        self.assertEqual(self.publishers.calls, 0)
 
     def test_failed_claim_stays_blocked_after_new_epoch(self):
         self.runtime.run_error = RuntimeError('synthetic interrupted execution')

@@ -1,4 +1,8 @@
-"""Fake protocol and local pipes only: no Codex, auth, UID changes or models.
+"""Offline protocol replay and local pipes: no auth, UID changes or models.
+
+The separate recorded failure fixture comes from real0.160 with localhost
+scripted responses and read-only mode; it does not demonstrate a successful
+command, production externalSandbox, authentication, or real inference.
 
 Wire fixtures follow the official rust-v0.160.0 generated types, including the
 notification envelope timestamp and nullable message phase (not live captures):
@@ -8,18 +12,22 @@ The complete fixture also follows app-server/src/{lib,bespoke_event_handling,
 thread_state}.rs (see source references alongside the fixture below).
 """
 from copy import deepcopy
+import ast
+import inspect
 from dataclasses import replace
 import json
 import os
 import shlex
 from types import SimpleNamespace
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
+
+import research_harness.app_server_adapter as adapter_module
 
 from research_harness.app_server_adapter import (
     AppServerAdapter, AppServerBlocked, BoundedStdioTransport, CODEX_HOME,
     PROMPT, WORKSPACE, fixed_app_server_request, validate_app_server_request,
-    SHELL_BODIES,
+    SHELL_BODIES, safe_app_server_diagnostic,
 )
 
 
@@ -135,6 +143,25 @@ class FakeTransport:
     def receive(self):
         if not self.frames: raise AppServerBlocked('fake transport closed')
         return self.frames.pop(0)
+
+
+class RecordedProtocolTest(unittest.TestCase):
+    def test_actual_0160_loopback_failure_is_a_failure_candidate(self):
+        from pathlib import Path
+        record = json.loads((Path(__file__).parent / 'fixtures' /
+            'codex_0160_recorded_failure.json').read_text())
+        # Real 0.160 emitted these frames from scripted localhost responses.
+        # No authentication/inference/tool call; readonly, not externalSandbox.
+        # Only paths and generated identities were normalized. Never count this
+        # accepted failure candidate as an executed or successful canary.
+        transport = FakeTransport(record['frames'])
+        result = AppServerAdapter(enabled=True).run(
+            fixed_app_server_request('gpt-6.1-sol'), transport,
+            admit_external=lambda request: None, recheck=lambda: None)
+        self.assertEqual(result.candidate.outcome, 'failure')
+        self.assertIsNone(result.candidate.reported_checksum)
+        self.assertIsNone(result.observed_command)
+        self.assertIsNone(result.command_exit_code)
 
 
 class AppServerAdapterTest(unittest.TestCase):
@@ -510,6 +537,169 @@ class AppServerAdapterTest(unittest.TestCase):
             adapter.run(replace(self.request), FakeTransport(), recheck=lambda: None)
         adapter.run(self.request, FakeTransport(), recheck=lambda: None)
         admit.assert_called_once_with(self.request)
+
+
+class AppServerDiagnosticTest(unittest.TestCase):
+    def failure(self, frames, *, transport=None):
+        with self.assertRaises(AppServerBlocked) as caught:
+            AppServerAdapter(enabled=True).run(
+                fixed_app_server_request('configured-model-v1'),
+                transport if transport is not None else FakeTransport(frames),
+                admit_external=lambda request: None, recheck=lambda: None)
+        detail = safe_app_server_diagnostic(caught.exception)
+        self.assertIsNotNone(detail)
+        self.assertLessEqual(len(json.dumps(detail)), 512)
+        return detail
+
+    def test_every_literal_raise_has_a_unique_stable_reason(self):
+        tree = ast.parse(inspect.getsource(adapter_module))
+        sites = [node.exc.args[0].value for node in ast.walk(tree)
+                 if isinstance(node, ast.Raise) and isinstance(node.exc, ast.Call)
+                 and isinstance(node.exc.func, ast.Name) and node.exc.func.id == 'AppServerBlocked'
+                 and node.exc.args and isinstance(node.exc.args[0], ast.Constant)]
+        self.assertEqual(len(sites), 82)
+        self.assertEqual(set(sites), set(adapter_module._BLOCK_REASON_CODES))
+        codes = list(adapter_module._BLOCK_REASON_CODES.values())
+        self.assertEqual(len(codes), len(set(codes)))
+        for message in sites:
+            detail = safe_app_server_diagnostic(AppServerBlocked(message))
+            self.assertEqual(detail['reason'], adapter_module._BLOCK_REASON_CODES[message])
+            self.assertNotEqual(detail['reason'], 'APP_SERVER_CONTRACT_OTHER')
+
+    def test_unknown_exception_values_and_forged_attributes_do_not_escape(self):
+        secret = 'sk-secret-do-not-export'
+        exc = AppServerBlocked(secret)
+        baseline = safe_app_server_diagnostic(exc)
+        self.assertEqual(baseline['reason'], 'APP_SERVER_CONTRACT_OTHER')
+        exc.args = (secret, {'event': secret})
+        exc.diagnostic = {'reason': secret}
+        exc._diagnostic = secret
+        exc.phase = secret
+        first = safe_app_server_diagnostic(exc)
+        first['reason'] = secret
+        first['payload'] = secret
+        self.assertEqual(safe_app_server_diagnostic(exc), baseline)
+        self.assertNotIn(secret, json.dumps(safe_app_server_diagnostic(exc)))
+        self.assertIsNone(safe_app_server_diagnostic(AppServerBlocked.__new__(AppServerBlocked)))
+        self.assertIsNone(safe_app_server_diagnostic(ValueError(secret)))
+        class Hostile(AppServerBlocked):
+            def __getattribute__(self, name): raise AssertionError('must not inspect subclass')
+        self.assertIsNone(safe_app_server_diagnostic(Hostile(secret)))
+        class HostileValue:
+            def __str__(self): raise AssertionError('must not stringify')
+            def __repr__(self): raise AssertionError('must not stringify')
+            def __hash__(self): raise AssertionError('must not hash')
+        self.assertEqual(safe_app_server_diagnostic(AppServerBlocked(HostileValue()))['reason'],
+                         'APP_SERVER_CONTRACT_OTHER')
+
+    def test_defensive_export_rejects_corrupted_internal_records(self):
+        exc = AppServerBlocked('invalid app-server identifier')
+        record = adapter_module._DIAGNOSTIC_RECORDS[exc]
+        for corrupt in ({'reason': 'secret'}, ('secret',) + record[1:],
+                        record[:4] + (1, False, False, False),
+                        record[:4] + (False, True, False, False),
+                        record[:3] + ('secret',) + record[4:]):
+            adapter_module._DIAGNOSTIC_RECORDS[exc] = corrupt
+            self.assertIsNone(safe_app_server_diagnostic(exc))
+
+    def test_initialization_thread_and_turn_failures_have_distinct_milestones(self):
+        frames = transcript(); frames[0]['result']['codexHome'] = 'secret-home'
+        detail = self.failure(frames)
+        self.assertEqual((detail['reason'], detail['phase'], detail['frame_kind'], detail['method']),
+            ('APP_SERVER_INITIALIZE_CONFIGURATION', 'initialize_validate', 'response', 'initialize'))
+        self.assertEqual([detail[k] for k in adapter_module._DIAGNOSTIC_FIELDS[4:]], [False]*4)
+        frames = transcript(); frames[2]['result']['instructionSources'] = ['secret-path']
+        detail = self.failure(frames)
+        self.assertEqual((detail['reason'], detail['phase'], detail['method']),
+            ('APP_SERVER_THREAD_CONFIGURATION', 'thread_start_validate', 'thread/start'))
+        self.assertEqual([detail[k] for k in adapter_module._DIAGNOSTIC_FIELDS[4:]],
+                         [True, False, False, False])
+        frames = transcript(); frames[4]['result']['turn']['status'] = 'failed'
+        detail = self.failure(frames)
+        self.assertEqual((detail['reason'], detail['phase'], detail['method']),
+            ('APP_SERVER_TURN_START_STATUS', 'turn_start_validate', 'turn/start'))
+        self.assertEqual([detail[k] for k in adapter_module._DIAGNOSTIC_FIELDS[4:]],
+                         [True, True, False, False])
+
+    def test_buffered_frame_is_classified_when_validated(self):
+        frames = transcript()
+        frames.insert(0, event('configWarning', {'message': 'sk-secret-do-not-export'}))
+        detail = self.failure(frames)
+        self.assertEqual((detail['reason'], detail['phase'], detail['frame_kind'], detail['method']),
+            ('APP_SERVER_PRE_INITIALIZE_ACTIVITY', 'initialize_validate', 'notification', 'configWarning'))
+        self.assertNotIn('sk-secret', json.dumps(detail))
+        frames = transcript()
+        frames.insert(1, event('configWarning', {'message': 'sk-secret-do-not-export'}))
+        detail = self.failure(frames)
+        self.assertEqual((detail['reason'], detail['phase'], detail['frame_kind'], detail['method']),
+            ('APP_SERVER_PRE_TURN_ACTIVITY', 'thread_start_validate', 'notification', 'configWarning'))
+        self.assertNotIn('sk-secret', json.dumps(detail))
+
+    def test_stream_and_final_rejection_context(self):
+        frames = transcript(); frames[5]['params']['item']['command'] = 'secret-command'
+        detail = self.failure(frames)
+        self.assertEqual((detail['reason'], detail['phase'], detail['method']),
+                         ('APP_SERVER_COMMAND_MISMATCH', 'stream', 'item/started'))
+        self.assertEqual([detail[k] for k in adapter_module._DIAGNOSTIC_FIELDS[4:]],
+                         [True, True, True, False])
+        frames = transcript(); frames[-1]['params']['turn']['items'] = []
+        detail = self.failure(frames)
+        self.assertEqual((detail['reason'], detail['phase'], detail['method']),
+            ('APP_SERVER_SUMMARY_MISMATCH', 'final_validate', 'turn/completed'))
+        self.assertFalse(detail['final_validated'])
+
+    def test_known_server_requests_errors_and_unknown_methods_are_content_free(self):
+        secret = 'sk-secret-do-not-export'
+        for incoming, kind, method, reason in [
+            ({'id': secret, 'method': 'item/commandExecution/requestApproval', 'params': {'secret': secret}},
+             'request', 'item/commandExecution/requestApproval', 'APP_SERVER_SERVER_REQUEST'),
+            ({'id': 3, 'error': {'code': -32000, 'message': secret, 'data': secret}},
+             'response', 'turn/start', 'APP_SERVER_SERVER_ERROR'),
+            (event('error', {'message': secret}), 'notification', 'error', 'APP_SERVER_SERVER_ERROR'),
+            (event(secret, {'threadId': 'thread-1', 'turnId': 'turn-1', 'secret': secret}),
+             'notification', 'unknown', 'APP_SERVER_NOTIFICATION_UNSUPPORTED')]:
+            frames = transcript(); frames.insert(5, incoming)
+            detail = self.failure(frames)
+            self.assertEqual((detail['frame_kind'], detail['method'], detail['reason']),
+                             (kind, method, reason))
+            self.assertNotIn(secret, json.dumps(detail))
+
+    def test_send_wait_and_preconstructed_transport_failure_are_distinct(self):
+        for failed_method, phase in [('initialize', 'initialize_send'),
+                                     ('thread/start', 'thread_start_send'),
+                                     ('turn/start', 'turn_start_send')]:
+            transport = FakeTransport()
+            original = transport.send
+            def send(message):
+                if message.get('method') == failed_method:
+                    raise AppServerBlocked('app-server input pipe failed')
+                original(message)
+            transport.send = send
+            detail = self.failure(None, transport=transport)
+            self.assertEqual(detail['phase'], phase)
+            self.assertEqual((detail['frame_kind'], detail['method']), ('none', 'none'))
+        for prefix, phase in [(0, 'initialize_wait'), (1, 'thread_start_wait'), (3, 'turn_start_wait')]:
+            transport = FakeTransport(transcript()[:prefix])
+            error = AppServerBlocked('app-server closed before protocol completion')
+            original = transport.receive
+            def receive():
+                if not transport.frames: raise error
+                return original()
+            transport.receive = receive
+            detail = self.failure(None, transport=transport)
+            self.assertEqual(detail['phase'], phase)
+            self.assertEqual(detail['reason'], 'APP_SERVER_EARLY_EOF')
+            self.assertEqual((detail['frame_kind'], detail['method']), ('none', 'none'))
+
+    def test_success_milestones_and_context_reset(self):
+        with patch.object(adapter_module, 'AppServerCandidate',
+                          side_effect=AppServerBlocked('post-validation test failure')):
+            detail = self.failure(transcript())
+        self.assertTrue(all(detail[k] for k in adapter_module._DIAGNOSTIC_FIELDS[4:]))
+        self.assertEqual(detail['phase'], 'final_validate')
+        outside = safe_app_server_diagnostic(AppServerBlocked('invalid app-server identifier'))
+        self.assertEqual(outside['phase'], 'unscoped')
+        self.assertFalse(any(outside[k] for k in adapter_module._DIAGNOSTIC_FIELDS[4:]))
 
 
 class BoundedStdioTransportTest(unittest.TestCase):

@@ -10,6 +10,10 @@ Sources: openai/codex tag rust-v0.160.0, app-server-protocol/schema/typescript/
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from contextvars import ContextVar
+from functools import wraps
+from types import MappingProxyType
+from weakref import WeakKeyDictionary
 import math
 import os
 import re
@@ -43,8 +47,224 @@ PROMPT = (
 )
 
 
+# Fixed reason vocabulary: values are diagnostic identifiers, not exception text.
+# Keep existing codes stable; the AST coverage test rejects unmapped raise sites.
+_BLOCK_REASON_CODES = MappingProxyType({
+    'an explicitly approved pinned model is required': 'APP_SERVER_MODEL_NOT_PINNED',
+    'only the fixed app-server canary configuration is accepted': 'APP_SERVER_FIXED_REQUEST_REQUIRED',
+    'nonfinite or excessively nested app-server JSON': 'APP_SERVER_JSON_DEPTH_OR_NONFINITE',
+    'invalid bounded transport contract': 'APP_SERVER_TRANSPORT_CONTRACT',
+    'separate binary stdio pipes are required': 'APP_SERVER_STDIO_PIPES_REQUIRED',
+    'app-server deadline exceeded': 'APP_SERVER_DEADLINE_EXCEEDED',
+    'app-server input pipe failed': 'APP_SERVER_INPUT_PIPE_FAILED',
+    'combined app-server output exceeds its limit': 'APP_SERVER_OUTPUT_LIMIT',
+    'app-server frame exceeds its limit': 'APP_SERVER_FRAME_LIMIT',
+    'app-server request exceeds its limit': 'APP_SERVER_REQUEST_LIMIT',
+    'app-server exited while writing': 'APP_SERVER_EXITED_WRITING',
+    'app-server closed before protocol completion': 'APP_SERVER_EARLY_EOF',
+    'invalid or excessive app-server frames': 'APP_SERVER_FRAME_COUNT_OR_FORMAT',
+    'invalid app-server JSON frame': 'APP_SERVER_JSON_FRAME_INVALID',
+    'app-server frame must be an object': 'APP_SERVER_FRAME_NOT_OBJECT',
+    'invalid app-server identifier': 'APP_SERVER_IDENTIFIER_INVALID',
+    'expected an app-server object': 'APP_SERVER_OBJECT_REQUIRED',
+    'invalid app-server notification': 'APP_SERVER_NOTIFICATION_INVALID',
+    'invalid app-server notification timestamp': 'APP_SERVER_NOTIFICATION_TIMESTAMP',
+    'invalid app-server telemetry fields': 'APP_SERVER_TELEMETRY_FIELDS',
+    'invalid account telemetry': 'APP_SERVER_ACCOUNT_TELEMETRY',
+    'remote control is not disabled or telemetry is malformed': 'APP_SERVER_REMOTE_CONTROL_STATE',
+    'invalid rate-limit telemetry': 'APP_SERVER_RATE_LIMIT_TELEMETRY',
+    'invalid rate-limit window telemetry': 'APP_SERVER_RATE_WINDOW_TELEMETRY',
+    'invalid credits telemetry': 'APP_SERVER_CREDITS_TELEMETRY',
+    'invalid spend-limit telemetry': 'APP_SERVER_SPEND_LIMIT_TELEMETRY',
+    'invalid or failed thread status': 'APP_SERVER_THREAD_STATUS',
+    'invalid thread status flags': 'APP_SERVER_THREAD_STATUS_FLAGS',
+    'invalid token-usage telemetry': 'APP_SERVER_TOKEN_USAGE',
+    'invalid model-verification telemetry': 'APP_SERVER_MODEL_VERIFICATION',
+    'invalid safety-buffering telemetry': 'APP_SERVER_SAFETY_BUFFERING',
+    'invalid item-delta telemetry': 'APP_SERVER_ITEM_DELTA',
+    'malformed command event': 'APP_SERVER_COMMAND_MALFORMED',
+    'shell wrapper body is not the literal CPU canary': 'APP_SERVER_SHELL_BODY',
+    'command event differs from the literal CPU canary': 'APP_SERVER_COMMAND_MISMATCH',
+    'invalid final message': 'APP_SERVER_FINAL_MESSAGE',
+    'invalid canary candidate JSON': 'APP_SERVER_CANDIDATE_JSON',
+    'invalid canary candidate': 'APP_SERVER_CANDIDATE_SCHEMA',
+    'APP_SERVER_DISABLED': 'APP_SERVER_DISABLED',
+    'EXTERNAL_BOUNDARY_ADMISSION_NOT_CONFIGURED': 'APP_SERVER_EXTERNAL_ADMISSION_MISSING',
+    'app-server adapter cannot be reused': 'APP_SERVER_ADAPTER_REUSED',
+    'external boundary admission cannot be a boolean flag': 'APP_SERVER_EXTERNAL_ADMISSION_BOOLEAN',
+    'admitted app-server request binding mismatch': 'APP_SERVER_REQUEST_BINDING',
+    'trusted approval recheck is required': 'APP_SERVER_RECHECK_REQUIRED',
+    'invalid protocol object': 'APP_SERVER_PROTOCOL_OBJECT',
+    'invalid protocol version': 'APP_SERVER_PROTOCOL_VERSION',
+    'app-server requested an unsupported capability': 'APP_SERVER_SERVER_REQUEST',
+    'app-server reported a protocol or turn error': 'APP_SERVER_SERVER_ERROR',
+    'mismatched app-server response': 'APP_SERVER_RESPONSE_MISMATCH',
+    'too many notifications before response': 'APP_SERVER_PRE_RESPONSE_LIMIT',
+    'app-server initialization configuration mismatch': 'APP_SERVER_INITIALIZE_CONFIGURATION',
+    'unexpected activity before initialization': 'APP_SERVER_PRE_INITIALIZE_ACTIVITY',
+    'thread configuration or instruction sources mismatch': 'APP_SERVER_THREAD_CONFIGURATION',
+    'unexpected activity before the fixed turn': 'APP_SERVER_PRE_TURN_ACTIVITY',
+    'turn did not start in progress': 'APP_SERVER_TURN_START_STATUS',
+    'unexpected thread notification': 'APP_SERVER_THREAD_NOTIFICATION',
+    'notification thread mismatch': 'APP_SERVER_THREAD_MISMATCH',
+    'notification turn mismatch': 'APP_SERVER_TURN_MISMATCH',
+    'unexpected or failed turn notification': 'APP_SERVER_TURN_NOTIFICATION',
+    'duplicate or invalid turn start': 'APP_SERVER_TURN_START_DUPLICATE',
+    'turn completed without a valid final candidate': 'APP_SERVER_FINAL_CANDIDATE_MISSING',
+    'turn completed with unfinished items': 'APP_SERVER_UNFINISHED_ITEMS',
+    'invalid completed-turn items': 'APP_SERVER_FINAL_ITEMS',
+    'conflicting or unobserved final item snapshot': 'APP_SERVER_SNAPSHOT_CONFLICT',
+    'incomplete final item snapshot': 'APP_SERVER_SNAPSHOT_INCOMPLETE',
+    'summary does not match the streamed final candidate': 'APP_SERVER_SUMMARY_MISMATCH',
+    'success candidate lacks matching command completion': 'APP_SERVER_COMMAND_COMPLETION_MISSING',
+    'command event and candidate checksum do not agree': 'APP_SERVER_CHECKSUM_MISMATCH',
+    'item turn mismatch or event before turn start': 'APP_SERVER_ITEM_TURN_OR_ORDER',
+    'unexpected canary tool or item': 'APP_SERVER_ITEM_TYPE',
+    'malformed agent message phase or text': 'APP_SERVER_AGENT_MESSAGE',
+    'duplicate item start': 'APP_SERVER_ITEM_START_DUPLICATE',
+    'more than one command was attempted': 'APP_SERVER_MULTIPLE_COMMANDS',
+    'missing item start or duplicate item completion': 'APP_SERVER_ITEM_COMPLETION_ORDER',
+    'canary command did not complete': 'APP_SERVER_COMMAND_NOT_COMPLETED',
+    'ambiguous multiple final candidates': 'APP_SERVER_MULTIPLE_CANDIDATES',
+    'delta item identity or lifecycle mismatch': 'APP_SERVER_DELTA_LIFECYCLE',
+    'unsupported app-server notification': 'APP_SERVER_NOTIFICATION_UNSUPPORTED',
+})
+_OTHER_REASON = 'APP_SERVER_CONTRACT_OTHER'
+_REASON_CODES = frozenset((*_BLOCK_REASON_CODES.values(), _OTHER_REASON))
+_PHASES = frozenset(('unscoped', 'admission', 'initialize_send', 'initialize_wait',
+    'initialize_validate', 'thread_start_send', 'thread_start_wait',
+    'thread_start_validate', 'turn_start_send', 'turn_start_wait',
+    'turn_start_validate', 'stream', 'final_validate'))
+_FRAME_KINDS = frozenset(('none', 'unknown', 'request', 'response', 'notification'))
+# A classification vocabulary only: membership never admits a request or event.
+_METHODS = frozenset(('none', 'unknown', 'initialize', 'initialized', 'thread/start',
+    'turn/start', 'error', 'account/updated', 'account/rateLimits/updated',
+    'remoteControl/status/changed', 'thread/started', 'thread/status/changed',
+    'thread/tokenUsage/updated', 'turn/started', 'turn/completed',
+    'model/verification', 'model/safetyBuffering/updated', 'item/started',
+    'item/completed', 'item/agentMessage/delta', 'item/reasoning/summaryTextDelta',
+    'item/reasoning/textDelta', 'item/reasoning/summaryPartAdded',
+    'item/commandExecution/outputDelta', 'item/commandExecution/terminalInteraction',
+    'item/commandExecution/requestApproval', 'item/fileChange/requestApproval',
+    'item/tool/requestUserInput', 'mcpServer/elicitation/request',
+    'item/permissions/requestApproval', 'item/tool/call',
+    'account/chatgptAuthTokens/refresh', 'attestation/generate',
+    'applyPatchApproval', 'execCommandApproval', 'warning',
+    'deprecationNotice', 'configWarning'))
+_DIAGNOSTIC_FIELDS = ('reason', 'phase', 'frame_kind', 'method', 'initialized',
+                      'thread_started', 'turn_accepted', 'final_validated')
+_DIAGNOSTIC_CONTEXT = ContextVar('app_server_diagnostic', default=None)
+# Weak keys avoid retaining exception tracebacks. Records live outside mutable
+# exception attributes; neither forged attributes nor args affect the exporter.
+_DIAGNOSTIC_RECORDS = WeakKeyDictionary()
+
+
+class _DiagnosticState:
+    def __init__(self, phase):
+        self.phase, self.frame_kind, self.method = phase, 'none', 'none'
+        self.initialized = self.thread_started = self.turn_accepted = self.final_validated = False
+        self.rpc_method = 'none'
+
+    def record(self, reason):
+        return (reason, self.phase, self.frame_kind, self.method, self.initialized,
+                self.thread_started, self.turn_accepted, self.final_validated)
+
+
+def _diagnosed(phase):
+    def decorate(function):
+        @wraps(function)
+        def call(*args, **kwargs):
+            if _DIAGNOSTIC_CONTEXT.get() is not None:
+                return function(*args, **kwargs)
+            token = _DIAGNOSTIC_CONTEXT.set(_DiagnosticState(phase))
+            try:
+                return function(*args, **kwargs)
+            except AppServerBlocked as exc:
+                # Also capture the current phase when a trusted callback raises
+                # an exception that was constructed before this run began.
+                if type(exc) is AppServerBlocked:
+                    record = _DIAGNOSTIC_RECORDS.get(exc)
+                    if (type(record) is tuple and len(record) == 8
+                            and type(record[0]) is str and record[0] in _REASON_CODES):
+                        _DIAGNOSTIC_RECORDS[exc] = _DIAGNOSTIC_CONTEXT.get().record(record[0])
+                raise
+            finally:
+                _DIAGNOSTIC_CONTEXT.reset(token)
+        return call
+    return decorate
+
+
+def _diagnostic_phase(phase):
+    state = _DIAGNOSTIC_CONTEXT.get()
+    if state is not None:
+        state.phase = phase
+
+
+def _diagnostic_milestone(name):
+    state = _DIAGNOSTIC_CONTEXT.get()
+    if state is not None:
+        setattr(state, name, True)
+
+
+def _diagnostic_clear_frame():
+    state = _DIAGNOSTIC_CONTEXT.get()
+    if state is not None:
+        state.frame_kind, state.method = 'none', 'none'
+
+
+def _diagnostic_frame(value):
+    state = _DIAGNOSTIC_CONTEXT.get()
+    if state is None:
+        return
+    state.frame_kind, state.method = 'unknown', 'unknown'
+    if type(value) is not dict:
+        return
+    if 'method' in value:
+        state.frame_kind = 'request' if 'id' in value else 'notification'
+        method = value['method']
+        if type(method) is str and len(method) <= 64 and method in _METHODS:
+            state.method = method
+    elif 'id' in value:
+        state.frame_kind, state.method = 'response', state.rpc_method
+
+
 class AppServerBlocked(ContractError):
-    pass
+    def __init__(self, *args):
+        super().__init__(*args)
+        if type(self) is AppServerBlocked:
+            message = args[0] if len(args) == 1 else None
+            reason = (_BLOCK_REASON_CODES.get(message, _OTHER_REASON)
+                      if type(message) is str and len(message) <= 160 else _OTHER_REASON)
+            state = _DIAGNOSTIC_CONTEXT.get()
+            _DIAGNOSTIC_RECORDS[self] = (state or _DiagnosticState('unscoped')).record(reason)
+
+
+def safe_app_server_diagnostic(exc):
+    """Fresh, bounded fixed-vocabulary data, or None; never stringify input.
+
+    This is diagnostic context, not proof that a model ran or did not run.
+    In particular, a server may accept a sent turn before a response is received.
+    Subclasses and exceptions bypassing our constructor have no trusted record.
+    Caller mutation, exception args/attributes, causes and arbitrary event values
+    cannot enter this export. Frame fields describe the current validation and
+    are cleared before transport operations; response methods name the pending
+    RPC, not a method claimed by the server. Do not log exception text alongside
+    this record.
+    """
+    if type(exc) is not AppServerBlocked:
+        return None
+    record = _DIAGNOSTIC_RECORDS.get(exc)
+    if type(record) is not tuple or len(record) != len(_DIAGNOSTIC_FIELDS):
+        return None
+    for value, allowed in zip(record[:4], (_REASON_CODES, _PHASES, _FRAME_KINDS, _METHODS)):
+        if type(value) is not str or len(value) > 64 or value not in allowed:
+            return None
+    flags = record[4:]
+    if any(type(flag) is not bool for flag in flags):
+        return None
+    if any(flags[index] and not flags[index - 1] for index in range(1, len(flags))):
+        return None
+    return dict(zip(_DIAGNOSTIC_FIELDS, record))
 
 
 @dataclass(frozen=True)
@@ -423,6 +643,7 @@ class AppServerAdapter:
         self.used = False
         self._admitted_request = None
 
+    @_diagnosed('admission')
     def admit(self, request, *, admit_external, recheck):
         """One protected admission before spawn; bind this immutable request.
 
@@ -443,6 +664,7 @@ class AppServerAdapter:
         recheck()
         self._admitted_request = request
 
+    @_diagnosed('admission')
     def run(self, request, transport, *, admit_external=None, recheck):
         if self.enabled is not True:
             raise AppServerBlocked('APP_SERVER_DISABLED')
@@ -460,8 +682,10 @@ class AppServerAdapter:
         pending = []
 
         def receive():
+            _diagnostic_clear_frame()
             recheck()
             value = transport.receive()
+            _diagnostic_frame(value)
             if type(value) is not dict:
                 raise AppServerBlocked('invalid protocol object')
             if 'jsonrpc' in value and value['jsonrpc'] != '2.0':
@@ -478,10 +702,16 @@ class AppServerAdapter:
             return value
 
         def rpc(number, method, params):
+            phase = {1: 'initialize', 2: 'thread_start', 3: 'turn_start'}[number]
+            _DIAGNOSTIC_CONTEXT.get().rpc_method = method
+            _diagnostic_phase(phase + '_send')
+            _diagnostic_clear_frame()
             transport.send({'id': number, 'method': method, 'params': params})
+            _diagnostic_phase(phase + '_wait')
             while True:
                 value = receive()
                 if 'id' in value:
+                    _diagnostic_phase(phase + '_validate')
                     if (type(value['id']) is not int or value['id'] != number
                             or set(value) - {'jsonrpc', 'id', 'result'} or type(value.get('result')) is not dict):
                         raise AppServerBlocked('mismatched app-server response')
@@ -499,7 +729,11 @@ class AppServerAdapter:
                 or initialized.get('platformFamily') != 'unix' or not isinstance(initialized.get('userAgent'), str)):
             raise AppServerBlocked('app-server initialization configuration mismatch')
         if pending:
+            _diagnostic_frame(pending[0])
             raise AppServerBlocked('unexpected activity before initialization')
+        _diagnostic_milestone('initialized')
+        _diagnostic_phase('initialize_send')
+        _diagnostic_clear_frame()
         transport.send({'method': 'initialized'})
         result = rpc(2, 'thread/start', {'model': request.model, 'cwd': WORKSPACE,
             'approvalPolicy': 'never', 'approvalsReviewer': 'user', 'sandbox': 'read-only',
@@ -515,6 +749,7 @@ class AppServerAdapter:
                 or _object(result.get('sandbox')).get('type') != 'readOnly'):
             raise AppServerBlocked('thread configuration or instruction sources mismatch')
         for value in pending:
+            _diagnostic_frame(value)
             method, params = value.get('method'), _object(value.get('params'))
             if method == 'thread/started':
                 if _object(params.get('thread')).get('id') == thread_id: continue
@@ -522,6 +757,7 @@ class AppServerAdapter:
                 _thread_status(params)
                 continue
             raise AppServerBlocked('unexpected activity before the fixed turn')
+        _diagnostic_milestone('thread_started')
         result = rpc(3, 'turn/start', {'threadId': thread_id, 'model': request.model,
             'cwd': WORKSPACE, 'approvalPolicy': 'never', 'approvalsReviewer': 'user',
             'sandboxPolicy': {'type': 'externalSandbox', 'networkAccess': request.external_network},
@@ -531,6 +767,8 @@ class AppServerAdapter:
         turn_id = _opaque(turn.get('id'))
         if turn.get('status') != 'inProgress' or turn.get('error') is not None:
             raise AppServerBlocked('turn did not start in progress')
+        _diagnostic_milestone('turn_accepted')
+        _diagnostic_phase('stream')
         started = False
         final = None
         last_summary_item_id = None
@@ -540,6 +778,7 @@ class AppServerAdapter:
         allowed_items = {'userMessage', 'agentMessage', 'reasoning', 'commandExecution'}
         while True:
             value = pending.pop(0) if pending else receive()
+            _diagnostic_frame(value)
             _notification_envelope(value)
             method, params = value.get('method'), value['params']
             if _connection_telemetry(method, params):
@@ -567,6 +806,7 @@ class AppServerAdapter:
                         raise AppServerBlocked('duplicate or invalid turn start')
                     started = True
                     continue
+                _diagnostic_phase('final_validate')
                 if not started or event_turn.get('status') != 'completed' or final is None:
                     raise AppServerBlocked('turn completed without a valid final candidate')
                 if started_items.keys() != completed_items.keys():
@@ -597,6 +837,7 @@ class AppServerAdapter:
                         command_event[2] != sum(i*i for i in range(10000))
                         or candidate.reported_checksum != command_event[2]):
                     raise AppServerBlocked('command event and candidate checksum do not agree')
+                _diagnostic_milestone('final_validated')
                 return AppServerCandidate(candidate, thread_id, turn_id,
                     command_event[0] if command_event else None,
                     command_event[1] if command_event else None,

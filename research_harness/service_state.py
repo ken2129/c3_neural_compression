@@ -16,7 +16,7 @@ TABLES.update({
  'service_meta':'CREATE TABLE service_meta (nonce TEXT PRIMARY KEY NOT NULL)',
  'service_runs':'CREATE TABLE service_runs (issue INTEGER PRIMARY KEY, binding TEXT NOT NULL, phase TEXT NOT NULL, result TEXT, publication TEXT, notification TEXT NOT NULL)',
 })
-PHASES={'CLAIMED','BLOCKED','RESULT_AWAITING_RESTART','RESULT_READY','PUBLISHED'}
+PHASES={'CLAIMED','BLOCKED','INTERRUPTED','RESULT_AWAITING_RESTART','RESULT_READY','PUBLISHED'}
 
 
 def validate_binding(value):
@@ -117,12 +117,12 @@ class ServiceState:
                 from .restart_boundary import RestartEpoch, restart_boundary_candidate
                 before,after=epoch_rows[issue]
                 prior=RestartEpoch.from_dict(loads(before))
-                if phase in ('RESULT_READY','PUBLISHED'):
+                if phase in ('INTERRUPTED','RESULT_READY','PUBLISHED'):
                     if after is None:raise ContractError('missing runtime restart confirmation')
                     if not restart_boundary_candidate(prior,RestartEpoch.from_dict(loads(after)),expected_container_id=prior.container_id,deployment_contract_verified=True):
                         raise ContractError('saved restart metadata mismatch')
                 elif after is not None:raise ContractError('premature runtime restart confirmation')
-            elif phase=='RESULT_AWAITING_RESTART':raise ContractError('missing prior runtime epoch')
+            elif phase in ('INTERRUPTED','RESULT_AWAITING_RESTART'):raise ContractError('missing prior runtime epoch')
             if publication is not None:
                 from .result_publisher import PublicationState
                 state=PublicationState.from_dict(loads(publication))
@@ -164,6 +164,31 @@ class ServiceState:
 
     def block(self,issue):
         self.db.execute("UPDATE service_runs SET phase='BLOCKED' WHERE issue=? AND phase='CLAIMED'",(issue,));self.db.commit()
+
+    def interrupt_after_restart(self,issue,epoch,*,deployment_contract_verified=False):
+        """Record a prior claimed generation ending without a validated result.
+
+        This is terminal, with unknown execution outcome. It never releases the
+        claim or reconstructs a result. Reopening state is not restart evidence;
+        the trusted caller must supply a new epoch under the verified container
+        contract. Both epochs and the original claim witness remain durable.
+        """
+        from .restart_boundary import RestartEpoch, restart_boundary_candidate
+        old=self.get(issue)
+        if old is None or old['phase']!='CLAIMED':raise ContractError('no claim awaiting interruption check')
+        row=self.db.execute('SELECT before_epoch,after_epoch FROM service_epochs WHERE issue=?',(issue,)).fetchone()
+        if row is None:return False
+        if row[1] is not None:raise ContractError('invalid pending epoch')
+        prior=RestartEpoch.from_dict(loads(row[0]))
+        if not restart_boundary_candidate(prior,epoch,expected_container_id=prior.container_id,
+                                          deployment_contract_verified=deployment_contract_verified):
+            return False
+        # Commit the new epoch and terminal phase together, or retain CLAIMED.
+        with self.db:
+            self.db.execute('UPDATE service_epochs SET after_epoch=? WHERE issue=?',(canonical(epoch.to_dict()).decode(),issue))
+            cur=self.db.execute("UPDATE service_runs SET phase='INTERRUPTED' WHERE issue=? AND phase='CLAIMED' AND result IS NULL AND publication IS NULL",(issue,))
+            if cur.rowcount!=1:raise ContractError('interruption requires an unfinished claim')
+        return True
 
     def save_result(self,issue,request,await_restart=False):
         old=self.get(issue)

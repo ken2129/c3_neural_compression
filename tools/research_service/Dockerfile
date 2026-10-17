@@ -5,8 +5,13 @@ RUN test "${#SOURCE_SHA}" = 40 \
  && npm install --global --prefix /opt/codex @openai/codex@0.160.0 \
  && native="$(find /opt/codex/lib/node_modules -type f -path '*/vendor/*/bin/codex')" \
  && test "$(printf '%s\n' "$native" | wc -l)" = 1 && test -n "$native" \
- && install -m 0755 "$native" /opt/codex/bin/codex.native \
- && rm /opt/codex/bin/codex && mv /opt/codex/bin/codex.native /opt/codex/bin/codex \
+ && native_root="$(dirname "$(dirname "$native")")" \
+ && test -f "$native_root/codex-package.json" \
+ && test -x "$native_root/bin/codex-code-mode-host" \
+ && rm /opt/codex/bin/codex \
+ && cp -a "$native_root/." /opt/codex/ \
+ && test -f /opt/codex/codex-package.json \
+ && test -x /opt/codex/bin/codex-code-mode-host \
  && /opt/codex/bin/codex --version \
  && rm -rf /var/lib/apt/lists/* \
  && groupadd --gid 10001 control && useradd --uid 10001 --gid 10001 --no-create-home control \

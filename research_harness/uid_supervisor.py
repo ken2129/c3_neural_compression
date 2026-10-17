@@ -34,7 +34,7 @@ from research_harness.codex_adapter import (CanaryCandidate, CanaryRequest, CliI
                                             parse_candidate)
 from research_harness.app_server_adapter import (
     AppServerAdapter, AppServerRequest, BoundedStdioTransport, PendingAppServerResult,
-    validate_app_server_request,
+    validate_app_server_request, safe_app_server_diagnostic,
 )
 
 
@@ -49,7 +49,7 @@ CODEX_WORKSPACE = '/work/canary'
 CODEX_SCHEMA = '/opt/c3-runtime/canary-schema.json'
 
 
-def report_failure(role, stage, exc):
+def report_failure(role, stage, exc, *, child_returncode=None):
     """Best-effort fixed-vocabulary diagnostics; never stringify exceptions."""
     roles = {'launcher', 'manager', 'app_server'}
     stages = {'deployment', 'epoch', 'manager_start', 'manager_initialize',
@@ -65,10 +65,16 @@ def report_failure(role, stage, exc):
             category = name
             break
     try:
-        print(json.dumps({'phase': 'RUNTIME_BLOCKED',
+        record = {'phase': 'RUNTIME_BLOCKED',
             'role': role if role in roles else 'unknown',
             'stage': stage if stage in stages else 'unknown',
-            'error_class': category}), file=sys.stderr, flush=True)
+            'error_class': category}
+        if type(child_returncode) is int and -128 <= child_returncode <= 255:
+            record['observed_child_returncode'] = child_returncode
+        detail = safe_app_server_diagnostic(exc)
+        if detail is not None:
+            record['app_server'] = detail
+        print(json.dumps(record), file=sys.stderr, flush=True)
     except Exception:
         pass  # Diagnostics must never prevent namespace shutdown.
 
@@ -685,6 +691,7 @@ class OwnedUIDSupervisor:
             report_failure('app_server', stage, exc)
             raise
         handle = transport = None
+        cleanup_started = False
         try:
             stage = 'approval'
             recheck()
@@ -713,6 +720,7 @@ class OwnedUIDSupervisor:
             stage = 'turn'
             result = adapter.run(request, transport, recheck=recheck)
             stage = 'cleanup'
+            cleanup_started = True
             self.stop_owned(reservation)
             stage = 'postcheck'
             recheck()
@@ -722,7 +730,15 @@ class OwnedUIDSupervisor:
             return PendingAppServerResult(result.candidate, result.thread_id, result.turn_id,
                 result.observed_command, result.command_exit_code, result.command_checksum, elapsed)
         except BaseException as exc:
-            report_failure('app_server', stage, exc)
+            # Observe before cleanup; a later supervisor-induced exit is not
+            # evidence that the native process originally failed that way.
+            returncode = None
+            if handle is not None and not cleanup_started:
+                try:
+                    returncode = handle.process.poll()
+                except Exception:
+                    pass
+            report_failure('app_server', stage, exc, child_returncode=returncode)
             self.stop_owned(reservation)
             raise
         finally:
@@ -884,9 +900,13 @@ if sys.argv[4] == 'app-server':
         raise SystemExit(125)
 if any(os.path.lexists(path) for path in ('/.codex','/work/.codex','/work/canary/.codex')):
     raise SystemExit(125)
+# The verified container cgroup enforces aggregate resident memory (1 GiB).
+# Codex reserves more virtual address space than its resident memory; imposing
+# the CPU-fixture AS512MiB limit prevents SQLite initialization. Its own SQLite
+# WAL also exceeds1MiB. Keep captured output bounded separately in transport.
 for kind, n in ((resource.RLIMIT_CORE,0),(resource.RLIMIT_CPU,10),
-                (resource.RLIMIT_AS,536870912),(resource.RLIMIT_FSIZE,1048576),
-                (resource.RLIMIT_NPROC,32),(resource.RLIMIT_NOFILE,64)):
+                (resource.RLIMIT_FSIZE,16777216),
+                (resource.RLIMIT_NPROC,64),(resource.RLIMIT_NOFILE,64)):
     resource.setrlimit(kind,(n,n))
 gate, ready = int(sys.argv[1]), int(sys.argv[2])
 os.write(ready,b'R'); os.close(ready)

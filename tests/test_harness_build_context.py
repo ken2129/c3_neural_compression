@@ -19,3 +19,15 @@ class BuildContextTests(unittest.TestCase):
                 if module.startswith('research_harness.'):
                     target=module.replace('.','/')+'.py'
                     self.assertIn(target,shipped,(path,target))
+
+    def test_pinned_codex_install_keeps_official_package_layout(self):
+        root=Path(__file__).resolve().parents[1]
+        dockerfile=(root/'tools/research_service/Dockerfile').read_text()
+        self.assertIn('@openai/codex@0.160.0',dockerfile)
+        self.assertIn('native_root="$(dirname "$(dirname "$native")")"',dockerfile)
+        self.assertIn('test -f "$native_root/codex-package.json"',dockerfile)
+        self.assertIn('test -x "$native_root/bin/codex-code-mode-host"',dockerfile)
+        self.assertIn('cp -a "$native_root/." /opt/codex/',dockerfile)
+        self.assertNotIn('install -m 0755 "$native"',dockerfile)
+        self.assertLess(dockerfile.index('rm /opt/codex/bin/codex'),
+                        dockerfile.index('cp -a "$native_root/."'))

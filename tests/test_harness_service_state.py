@@ -289,6 +289,126 @@ class ServiceStateTests(unittest.TestCase):
         self.assertEqual(self.reopen().get(70)['phase'], 'BLOCKED')
         self.assertFalse(self.state.claim(self.binding))
 
+    def epoch_claim(self):
+        self.seed_receipt()
+        before = RestartEpoch('a' * 64, '11111111-1111-1111-1111-111111111111', 22, 33)
+        after = replace(before, pid_namespace_inode=23, pid1_start_ticks=34)
+        self.assertTrue(self.state.claim(self.binding, epoch=before))
+        return before, after
+
+    def interrupted(self):
+        before, after = self.epoch_claim()
+        self.assertTrue(self.state.interrupt_after_restart(70, after,
+                                                          deployment_contract_verified=True))
+        return before, after
+
+    def test_interruption_preserves_claim_receipts_schema_and_epoch_history(self):
+        before, after = self.epoch_claim()
+        witness = self.root / 'claims' / '70.json'
+        original_witness, original_inode = witness.read_bytes(), witness.stat().st_ino
+        schema = self.state.db.execute('SELECT name,sql FROM sqlite_master').fetchall()
+        receipts = self.state.db.execute('SELECT * FROM owner_receipts').fetchall()
+        observations = self.state.db.execute('SELECT * FROM intake').fetchall()
+        original_epoch = self.state.db.execute('SELECT before_epoch FROM service_epochs').fetchone()
+        self.assertTrue(self.state.interrupt_after_restart(70, after,
+                                                          deployment_contract_verified=True))
+        self.assertEqual(self.reopen().get(70), dict(binding=self.binding, phase='INTERRUPTED',
+                                                   result=None, publication=None))
+        self.assertEqual(self.state.db.execute('SELECT name,sql FROM sqlite_master').fetchall(), schema)
+        self.assertEqual(self.state.db.execute('PRAGMA user_version').fetchone(), (1,))
+        self.assertEqual(self.state.db.execute('SELECT * FROM owner_receipts').fetchall(), receipts)
+        self.assertEqual(self.state.db.execute('SELECT * FROM intake').fetchall(), observations)
+        self.assertEqual(self.state.db.execute('SELECT before_epoch FROM service_epochs').fetchone(),
+                         original_epoch)
+        self.assertEqual(self.state.db.execute('SELECT * FROM service_epochs').fetchall(),
+                         [(70, canonical(before.to_dict()).decode(), canonical(after.to_dict()).decode())])
+        self.assertEqual((witness.read_bytes(), witness.stat().st_ino),
+                         (original_witness, original_inode))
+        self.close_state()
+        self.state = ServiceState(self.root, require_epochs=True)
+        self.assertEqual(self.state.get(70)['phase'], 'INTERRUPTED')
+
+    def test_interrupted_run_cannot_reclaim_block_save_result_or_publish(self):
+        _, after = self.interrupted()
+        self.assertFalse(self.state.claim(self.binding, epoch=after))
+        self.state.block(70)
+        self.assertEqual(self.state.get(70)['phase'], 'INTERRUPTED')
+        with self.assertRaises(ContractError):
+            self.state.save_result(70, self.request, await_restart=True)
+        with self.assertRaises(ContractError):
+            self.state.confirm_restart(70, after, deployment_contract_verified=True)
+        with self.assertRaises(ContractError):
+            self.state.interrupt_after_restart(70, after, deployment_contract_verified=True)
+        publication = PublicationState(self.request.digest, self.request.branch,
+                                       'PUBLISHED', 'e' * 40, 123)
+        with self.assertRaises(ContractError):
+            self.state.save_publication(70, publication)
+        self.assertEqual(self.reopen().get(70), dict(binding=self.binding, phase='INTERRUPTED',
+                                                   result=None, publication=None))
+
+    def test_interruption_requires_existing_claim_with_saved_epoch(self):
+        after = RestartEpoch('a' * 64, '11111111-1111-1111-1111-111111111111', 23, 34)
+        with self.assertRaises(ContractError):
+            self.state.interrupt_after_restart(70, after, deployment_contract_verified=True)
+        self.claimed()
+        self.assertFalse(self.state.interrupt_after_restart(70, after,
+                                                           deployment_contract_verified=True))
+        self.assertEqual(self.reopen().get(70)['phase'], 'CLAIMED')
+        self.state.block(70)
+        with self.assertRaises(ContractError):
+            self.state.interrupt_after_restart(70, after, deployment_contract_verified=True)
+        self.assertEqual(self.state.db.execute('SELECT * FROM service_epochs').fetchall(), [])
+
+    def test_interruption_cannot_consume_saved_result(self):
+        _, after = self.epoch_claim()
+        self.state.save_result(70, self.request, await_restart=True)
+        with self.assertRaises(ContractError):
+            self.state.interrupt_after_restart(70, after, deployment_contract_verified=True)
+        self.assertEqual(self.state.get(70)['phase'], 'RESULT_AWAITING_RESTART')
+        self.assertEqual(self.state.db.execute('SELECT after_epoch FROM service_epochs').fetchone(), (None,))
+
+    def test_interruption_phase_and_epoch_commit_atomically(self):
+        before, after = self.epoch_claim()
+        self.state.db.execute("CREATE TEMP TRIGGER reject_interruption BEFORE UPDATE ON service_runs "
+                              "BEGIN SELECT RAISE(ABORT, 'synthetic phase write failure'); END")
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.state.interrupt_after_restart(70, after, deployment_contract_verified=True)
+        self.assertFalse(self.state.db.in_transaction)
+        self.assertEqual(self.state.get(70)['phase'], 'CLAIMED')
+        self.assertEqual(self.state.db.execute('SELECT * FROM service_epochs').fetchall(),
+                         [(70, canonical(before.to_dict()).decode(), None)])
+        self.assertEqual(self.reopen().get(70)['phase'], 'CLAIMED')
+
+    def test_interrupted_phase_cannot_be_forged_without_restart_epochs(self):
+        self.claimed()
+        self.close_state()
+        self.raw_update("UPDATE service_runs SET phase='INTERRUPTED'")
+        self.assert_reopen_rejected()
+
+    def test_interrupted_reopen_revalidates_restart_evidence(self):
+        before, after = self.interrupted()
+        self.close_state()
+        invalid = [None, '{}', canonical(before.to_dict()).decode(),
+                   canonical(replace(after, container_id='b' * 64).to_dict()).decode(),
+                   canonical(replace(after, boot_id='22222222-2222-2222-2222-222222222222').to_dict()).decode(),
+                   canonical(replace(after, pid_namespace_inode=before.pid_namespace_inode).to_dict()).decode(),
+                   canonical(replace(after, pid1_start_ticks=before.pid1_start_ticks).to_dict()).decode()]
+        for saved in invalid:
+            with self.subTest(epoch=saved):
+                self.raw_update('UPDATE service_epochs SET after_epoch=?', (saved,))
+                self.assert_reopen_rejected()
+        self.raw_update('DELETE FROM service_epochs')
+        self.assert_reopen_rejected()
+
+    def test_interrupted_run_rejects_result_and_publication_on_reopen(self):
+        self.interrupted()
+        self.close_state()
+        self.raw_update('UPDATE service_runs SET result=?',
+                        (canonical(self.request.to_dict()).decode(),))
+        self.assert_reopen_rejected()
+        self.raw_update("UPDATE service_runs SET result=NULL,publication='{}'")
+        self.assert_reopen_rejected()
+
     def test_missing_database_is_not_recreated(self):
         self.close_state()
         database = self.root / 'state.sqlite'

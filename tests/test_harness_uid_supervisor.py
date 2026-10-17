@@ -483,6 +483,96 @@ class FixedAppServerSupervisorTest(unittest.TestCase):
         self.assertEqual(json.loads(output.getvalue()), {
             'phase':'RUNTIME_BLOCKED','role':'unknown','stage':'unknown','error_class':'other'})
 
+    def test_diagnostic_observed_exit_is_bounded_numeric_only(self):
+        from research_harness.uid_supervisor import report_failure
+        for value in (-25, None, True, 'SECRET', -129, 256):
+            output = io.StringIO()
+            with patch('research_harness.uid_supervisor.sys.stderr', output):
+                report_failure('app_server', 'turn', RuntimeError('SECRET'),
+                               child_returncode=value)
+            record = json.loads(output.getvalue())
+            if value == -25:
+                self.assertEqual(record['observed_child_returncode'], -25)
+            else:
+                self.assertNotIn('observed_child_returncode', record)
+            self.assertNotIn('SECRET', output.getvalue())
+
+    def test_post_cleanup_failure_never_reports_supervisor_induced_child_exit(self):
+        for failure in ('revoked', 'deadline'):
+            with self.subTest(failure=failure):
+                self.setUp()
+                poll = Mock(return_value=-signal.SIGTERM)
+                original_launch = self.backend.launch_app_server.side_effect
+                def launch(request):
+                    handle = original_launch(request)
+                    handle.process.poll = poll
+                    return handle
+                self.backend.launch_app_server.side_effect = launch
+                original_stop = self.supervisor.stop_owned
+                def stop(reservation):
+                    result = original_stop(reservation)
+                    if failure == 'deadline':
+                        self.backend.t = 120
+                    return result
+                def recheck():
+                    if (failure == 'revoked' and self.backend.released
+                            and 10 not in self.backend.members):
+                        raise SupervisorBlocked('post-cleanup revocation')
+                output = io.StringIO()
+                with patch('research_harness.uid_supervisor.BoundedStdioTransport', return_value=self.transport), \
+                     patch.object(self.supervisor, 'stop_owned', side_effect=stop), \
+                     patch('research_harness.uid_supervisor.sys.stderr', output):
+                    with self.assertRaises(SupervisorBlocked):
+                        self.supervisor.run_fixed_app_server_canary(self.request, recheck,
+                            enabled=True, admit_external=lambda request: None)
+                record = json.loads(output.getvalue())
+                self.assertEqual(record['stage'], 'postcheck')
+                self.assertNotIn('observed_child_returncode', record)
+                poll.assert_not_called()
+                self.assertTrue(any(event[0] == 'signal' for event in self.backend.events))
+                self.assertNotIn(10, self.backend.members)
+                self.assertFalse(any(event[0] == 'disarm' for event in self.backend.events))
+                self.transport.close.assert_called_once()
+                self.assertIn(('close_child',), self.backend.events)
+
+    def test_protocol_failure_observes_child_exit_before_cleanup_only(self):
+        def observe_exit():
+            self.assertIn(10, self.backend.members)
+            self.assertFalse(any(event[0] == 'signal' for event in self.backend.events))
+            return -25
+        poll = Mock(side_effect=observe_exit)
+        original_launch = self.backend.launch_app_server.side_effect
+        def launch(request):
+            handle = original_launch(request)
+            handle.process.poll = poll
+            return handle
+        self.backend.launch_app_server.side_effect = launch
+        self.transport.receive = Mock(side_effect=AppServerBlocked('bad protocol'))
+        output = io.StringIO()
+        with patch('research_harness.uid_supervisor.BoundedStdioTransport', return_value=self.transport), \
+             patch('research_harness.uid_supervisor.sys.stderr', output):
+            with self.assertRaises(AppServerBlocked):
+                self.supervisor.run_fixed_app_server_canary(self.request, lambda: None,
+                    enabled=True, admit_external=lambda request: None)
+        self.assertEqual(json.loads(output.getvalue())['observed_child_returncode'], -25)
+        poll.assert_called_once()
+        self.assertNotIn(10, self.backend.members)
+
+    def test_diagnostic_exports_only_fixed_adapter_context(self):
+        from research_harness.uid_supervisor import report_failure
+        from research_harness.app_server_adapter import safe_app_server_diagnostic
+        error = AppServerBlocked('invalid protocol object')
+        expected = safe_app_server_diagnostic(error)
+        error.args = ('SECRET-token-and-private-output',)
+        error.protocol = {'secret': 'SECRET-token-and-private-output'}
+        output = io.StringIO()
+        with patch('research_harness.uid_supervisor.sys.stderr', output):
+            report_failure('app_server', 'turn', error)
+        record = json.loads(output.getvalue())
+        self.assertEqual(record['app_server'], expected)
+        self.assertNotIn('SECRET', output.getvalue())
+        self.assertEqual(record['error_class'], 'contract')
+
     def test_fixed_app_server_spawn_has_auth_only_bootstrap_without_secret_reads(self):
         with patch('research_harness.uid_supervisor.os.getpid', return_value=1), \
              patch('research_harness.uid_supervisor.os.getresuid', return_value=(0, 0, 0)), \
@@ -496,6 +586,11 @@ class FixedAppServerSupervisorTest(unittest.TestCase):
         self.assertEqual(kwargs['env'], {})
         self.assertEqual(kwargs['cwd'], '/')
         self.assertIn("set(os.listdir('/work/codex-home')) != {'auth.json'}", args[4])
+        self.assertNotIn('resource.RLIMIT_AS', args[4])
+        self.assertIn('(resource.RLIMIT_FSIZE,16777216)', args[4])
+        self.assertIn('(resource.RLIMIT_NPROC,64)', args[4])
+        self.assertIn('(resource.RLIMIT_NOFILE,64)', args[4])
+        self.assertEqual(self.request.max_capture_bytes, 1048576)
         self.assertIn('stat.S_IMODE(auth.st_mode) != 0o600', args[4])
         self.assertIn('auth.st_size <= 65536', args[4])
         self.assertNotIn("open('/work/codex-home/auth.json'", args[4])
