@@ -105,6 +105,7 @@ _BLOCK_REASON_CODES = MappingProxyType({
     'external boundary admission cannot be a boolean flag': 'APP_SERVER_EXTERNAL_ADMISSION_BOOLEAN',
     'admitted app-server request binding mismatch': 'APP_SERVER_REQUEST_BINDING',
     'trusted approval recheck is required': 'APP_SERVER_RECHECK_REQUIRED',
+    'trusted command observer required': 'APP_SERVER_COMMAND_OBSERVER_REQUIRED',
     'trusted approval recheck failed': 'APP_SERVER_RECHECK_FAILED',
     'app-server boundary contract failed': 'APP_SERVER_BOUNDARY_CONTRACT',
     'invalid protocol object': 'APP_SERVER_PROTOCOL_OBJECT',
@@ -167,7 +168,9 @@ _METHODS = frozenset(('none', 'unknown', 'initialize', 'initialized', 'thread/st
 _CONFIG_WARNING_CATEGORIES = frozenset(('none', 'bundled_bwrap_fallback', 'unrecognized', 'malformed'))
 _DIAGNOSTIC_FIELDS = ('reason', 'phase', 'frame_kind', 'method', 'initialized',
                       'thread_started', 'turn_accepted', 'final_validated', 'config_warning',
-                      'recheck_reason', 'recheck_origin')
+                      'recheck_reason', 'recheck_origin', 'command_started',
+                      'command_completed', 'command_exit_code')
+_COMMAND_FIELDS = ('command_started', 'command_completed', 'command_exit_code')
 _DIAGNOSTIC_CONTEXT = ContextVar('app_server_diagnostic', default=None)
 # Weak keys avoid retaining exception tracebacks. Records live outside mutable
 # exception attributes; neither forged attributes nor args affect the exporter.
@@ -181,11 +184,14 @@ class _DiagnosticState:
         self.rpc_method = 'none'
         self.config_warning = 'none'
         self.recheck_reason = self.recheck_origin = 'none'
+        self.command_started = self.command_completed = False
+        self.command_exit_code = None
 
     def record(self, reason):
         return (reason, self.phase, self.frame_kind, self.method, self.initialized,
                 self.thread_started, self.turn_accepted, self.final_validated, self.config_warning,
-                self.recheck_reason, self.recheck_origin)
+                self.recheck_reason, self.recheck_origin, self.command_started,
+                self.command_completed, self.command_exit_code)
 
 
 def _diagnosed(phase):
@@ -292,7 +298,7 @@ def safe_app_server_diagnostic(exc):
     category = record[8]
     if type(category) is not str or len(category) > 32 or category not in _CONFIG_WARNING_CATEGORIES:
         return None
-    for value, allowed in zip(record[9:], (RECHECK_REASONS, RECHECK_ORIGINS)):
+    for value, allowed in zip(record[9:11], (RECHECK_REASONS, RECHECK_ORIGINS)):
         if type(value) is not str or len(value) > 32 or (value != 'none' and value not in allowed):
             return None
     if (record[9] == 'none') != (record[10] == 'none'):
@@ -302,7 +308,39 @@ def safe_app_server_diagnostic(exc):
         return None
     if any(flags[index] and not flags[index - 1] for index in range(1, len(flags))):
         return None
+    if safe_command_observation(dict(zip(_COMMAND_FIELDS, record[11:]))) is None:
+        return None
+    if record[11] and not record[6]:
+        return None
     return dict(zip(_DIAGNOSTIC_FIELDS, record))
+
+
+def safe_command_observation(value):
+    """Closed lifecycle metadata only; not command execution or success proof."""
+    if (type(value) is not dict or len(value) != len(_COMMAND_FIELDS)
+            or any(type(key) is not str for key in value) or set(value) != set(_COMMAND_FIELDS)):
+        return None
+    started, completed, code = (value[key] for key in _COMMAND_FIELDS)
+    if type(started) is not bool or type(completed) is not bool:
+        return None
+    if completed and not started:
+        return None
+    if code is not None and (not completed or type(code) is not int
+                             or not -(2**31) <= code < 2**31):
+        return None
+    return dict(zip(_COMMAND_FIELDS, (started, completed, code)))
+
+
+def _observe_command(observer):
+    state = _DIAGNOSTIC_CONTEXT.get()
+    record = safe_command_observation({key: getattr(state, key) for key in _COMMAND_FIELDS})
+    if observer is not None and record is not None:
+        # The protected supervisor owns this best-effort log hook. Its failure
+        # cannot alter candidate validation or prevent namespace shutdown.
+        try:
+            observer(record)
+        except Exception:
+            pass
 
 
 @_diagnosed('unscoped')
@@ -750,7 +788,7 @@ class AppServerAdapter:
         self._admitted_request = request
 
     @_diagnosed('admission')
-    def run(self, request, transport, *, admit_external=None, recheck):
+    def run(self, request, transport, *, admit_external=None, recheck, command_observer=None):
         if self.enabled is not True:
             raise AppServerBlocked('APP_SERVER_DISABLED')
         validate_app_server_request(request)
@@ -762,6 +800,8 @@ class AppServerAdapter:
             raise AppServerBlocked('admitted app-server request binding mismatch')
         if not callable(recheck):
             raise AppServerBlocked('trusted approval recheck is required')
+        if command_observer is not None and not callable(command_observer):
+            raise AppServerBlocked('trusted command observer required')
         _checked_recheck(recheck)
         self.used = True
         pending = []
@@ -923,6 +963,7 @@ class AppServerAdapter:
                         or candidate.reported_checksum != command_event[2]):
                     raise AppServerBlocked('command event and candidate checksum do not agree')
                 _diagnostic_milestone('final_validated')
+                _observe_command(command_observer)
                 return AppServerCandidate(candidate, thread_id, turn_id,
                     command_event[0] if command_event else None,
                     command_event[1] if command_event else None,
@@ -948,6 +989,8 @@ class AppServerAdapter:
                         if command_id is not None:
                             raise AppServerBlocked('more than one command was attempted')
                         command_id = item_id
+                        _DIAGNOSTIC_CONTEXT.get().command_started = True
+                        _observe_command(command_observer)
                 if method == 'item/completed':
                     prior = started_items.get(item_id)
                     if prior is None or prior.get('type') != item['type'] or item_id in completed_items:
@@ -957,6 +1000,14 @@ class AppServerAdapter:
                         if command_event is not None or prior.get('command') != command:
                             raise AppServerBlocked('more than one command was attempted')
                         code = item.get('exitCode')
+                        # Record validated terminal item telemetry even if the
+                        # existing canary policy rejects failed/declined status.
+                        # Completion here means an event, never proven execution.
+                        if (item.get('status') in ('completed', 'failed', 'declined')
+                                and (code is None or (type(code) is int and -(2**31) <= code < 2**31))):
+                            state = _DIAGNOSTIC_CONTEXT.get()
+                            state.command_completed, state.command_exit_code = True, code
+                            _observe_command(command_observer)
                         if item.get('status') != 'completed' or type(code) is not int:
                             raise AppServerBlocked('canary command did not complete')
                         output = item.get('aggregatedOutput')

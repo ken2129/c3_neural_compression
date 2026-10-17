@@ -35,7 +35,7 @@ from research_harness.codex_adapter import (CanaryCandidate, CanaryRequest, CliI
                                             parse_candidate)
 from research_harness.app_server_adapter import (
     AppServerAdapter, AppServerRequest, BoundedStdioTransport, PendingAppServerResult,
-    validate_app_server_request, safe_app_server_diagnostic,
+    validate_app_server_request, safe_app_server_diagnostic, safe_command_observation,
 )
 
 
@@ -81,6 +81,21 @@ def report_failure(role, stage, exc, *, child_returncode=None):
         print(json.dumps(record), file=sys.stderr, flush=True)
     except Exception:
         pass  # Diagnostics must never prevent namespace shutdown.
+
+
+def report_command_observation(value):
+    """Best-effort bounded event log; abrupt PID1 termination may lose output.
+
+    These fields describe validated app-server notifications, not independently
+    verified execution. No command, output or model text enters this logger.
+    """
+    try:
+        record = safe_command_observation(value)
+        if record is not None:
+            print(json.dumps(dict(phase='CANARY_COMMAND_OBSERVATION', **record)),
+                  file=sys.stderr, flush=True)
+    except Exception:
+        pass
 
 
 class SupervisorBlocked(ContractError):
@@ -728,7 +743,8 @@ class OwnedUIDSupervisor:
                 clock=self.os.now, max_frame_bytes=request.max_frame_bytes,
                 max_capture_bytes=request.max_capture_bytes)
             stage = 'turn'
-            result = adapter.run(request, transport, recheck=recheck)
+            result = adapter.run(request, transport, recheck=recheck,
+                                 command_observer=report_command_observation)
             if self.os.now() >= model_deadline:
                 raise SupervisorBlocked('app-server model deadline exceeded')
             stage = 'cleanup'

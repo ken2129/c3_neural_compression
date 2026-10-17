@@ -451,6 +451,49 @@ class FixedAppServerSupervisorTest(unittest.TestCase):
         self.assertFalse(any(event[0] == 'disarm' for event in self.backend.events))
         self.transport.close.assert_called_once()
 
+    def test_normal_failure_success_and_interruption_emit_only_closed_command_metadata(self):
+        from tests.test_harness_app_server_adapter import CommandObservationTest, FakeTransport, transcript
+        for mode in ('no_attempt','nonzero','success','interrupted'):
+            with self.subTest(mode=mode):
+                self.setUp()
+                if mode=='no_attempt': frames=CommandObservationTest.failure_frames(command=False)
+                elif mode=='nonzero': frames=CommandObservationTest.failure_frames(code=7)
+                elif mode=='interrupted': frames=transcript()[:6]
+                else: frames=transcript()
+                self.transport=FakeTransport(frames);self.transport.close=Mock()
+                output=io.StringIO()
+                with patch('research_harness.uid_supervisor.BoundedStdioTransport',return_value=self.transport), \
+                     patch('research_harness.uid_supervisor.sys.stderr',output):
+                    if mode=='interrupted':
+                        with self.assertRaises(AppServerBlocked):
+                            self.supervisor.run_fixed_app_server_canary(self.request,lambda:None,
+                                enabled=True,admit_external=lambda request:None)
+                    else:
+                        result=self.supervisor.run_fixed_app_server_canary(self.request,lambda:None,
+                            enabled=True,admit_external=lambda request:None)
+                        self.assertTrue(result.requires_namespace_restart)
+                records=[json.loads(line) for line in output.getvalue().splitlines()]
+                observed=[record for record in records if record['phase']=='CANARY_COMMAND_OBSERVATION']
+                expected={'no_attempt':(False,False,None),'nonzero':(True,True,7),
+                          'success':(True,True,0),'interrupted':(True,False,None)}[mode]
+                self.assertEqual(tuple(observed[-1][key] for key in (
+                    'command_started','command_completed','command_exit_code')),expected)
+                self.assertEqual(set(observed[-1]),{'phase','command_started','command_completed','command_exit_code'})
+                self.assertNotIn('PRIVATE',output.getvalue())
+                self.assertNotIn('python3',output.getvalue())
+                if mode=='interrupted':
+                    self.assertEqual(records[-1]['phase'],'RUNTIME_BLOCKED')
+                    self.assertTrue(records[-1]['app_server']['command_started'])
+                    self.assertFalse(records[-1]['app_server']['command_completed'])
+
+    def test_command_logger_rejects_extra_fields_and_non_numeric_exit_data(self):
+        from research_harness.uid_supervisor import report_command_observation
+        for data in ({},dict(command_started=True,command_completed=True,command_exit_code='PRIVATE'),
+                     dict(command_started=True,command_completed=True,command_exit_code=0,output='PRIVATE')):
+            output=io.StringIO()
+            with patch('research_harness.uid_supervisor.sys.stderr',output):report_command_observation(data)
+            self.assertEqual(output.getvalue(),'')
+
     def test_app_server_reserves_twenty_seconds_without_extending_hard_alarm(self):
         self.backend.t = 27.0
         with patch('research_harness.uid_supervisor.BoundedStdioTransport',
@@ -637,7 +680,8 @@ class FixedAppServerSupervisorTest(unittest.TestCase):
                     with self.assertRaises(SupervisorBlocked):
                         self.supervisor.run_fixed_app_server_canary(self.request, recheck,
                             enabled=True, admit_external=lambda request: None)
-                record = json.loads(output.getvalue())
+                records = [json.loads(line) for line in output.getvalue().splitlines()]
+                record = next(value for value in records if value['phase'] == 'RUNTIME_BLOCKED')
                 self.assertEqual(record['stage'], 'postcheck')
                 self.assertNotIn('observed_child_returncode', record)
                 poll.assert_not_called()

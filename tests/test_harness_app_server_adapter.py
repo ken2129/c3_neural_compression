@@ -652,7 +652,7 @@ class AppServerDiagnosticTest(unittest.TestCase):
                  if isinstance(node, ast.Raise) and isinstance(node.exc, ast.Call)
                  and isinstance(node.exc.func, ast.Name) and node.exc.func.id == 'AppServerBlocked'
                  and node.exc.args and isinstance(node.exc.args[0], ast.Constant)]
-        self.assertEqual(len(sites), 86)
+        self.assertEqual(len(sites), 87)
         self.assertEqual(set(sites), set(adapter_module._BLOCK_REASON_CODES))
         codes = list(adapter_module._BLOCK_REASON_CODES.values())
         self.assertEqual(len(codes), len(set(codes)))
@@ -799,6 +799,104 @@ class AppServerDiagnosticTest(unittest.TestCase):
         outside = safe_app_server_diagnostic(AppServerBlocked('invalid app-server identifier'))
         self.assertEqual(outside['phase'], 'unscoped')
         self.assertFalse(any(outside[k] for k in adapter_module._DIAGNOSTIC_FIELDS[4:8]))
+
+
+
+class CommandObservationTest(unittest.TestCase):
+    @staticmethod
+    def failure_frames(*, command=True, code=1, status='completed'):
+        frames = transcript()
+        text = json.dumps({'schema_version': 'c3-cpu-canary-worker-v1',
+                           'outcome': 'failure', 'reported_checksum': None})
+        frames[8]['params']['item']['text'] = text
+        frames[6]['params']['item'].update(exitCode=code, status=status,
+                                         aggregatedOutput='PRIVATE output must not be logged')
+        if not command: frames = frames[:5] + frames[7:]
+        return frames
+
+    def run_observed(self, frames, observe):
+        return AppServerAdapter(enabled=True).run(
+            fixed_app_server_request('configured-model-v1'), FakeTransport(frames),
+            admit_external=lambda request: None, recheck=lambda: None,
+            command_observer=observe)
+
+    def test_no_attempt_nonzero_and_success_are_distinct_without_result_schema_change(self):
+        for frames, expected, outcome in [
+            (self.failure_frames(command=False), (False, False, None), 'failure'),
+            (self.failure_frames(code=7), (True, True, 7), 'failure'),
+            (transcript(), (True, True, 0), 'success')]:
+            observed=[]
+            with self.subTest(expected=expected):
+                result=self.run_observed(frames, observed.append)
+                self.assertEqual(tuple(observed[-1][key] for key in adapter_module._COMMAND_FIELDS),expected)
+                self.assertEqual(result.candidate.outcome,outcome)
+                self.assertFalse(result.candidate.independently_validated)
+                self.assertNotIn('PRIVATE',json.dumps(observed))
+                self.assertTrue(all(set(record)==set(adapter_module._COMMAND_FIELDS) for record in observed))
+                self.assertEqual(len(observed), 1 if expected[0] is False else 3)
+
+    def test_interrupted_after_started_preserves_observation_before_exception(self):
+        frames=transcript()[:6]
+        frames.append(event('turn/completed', {'threadId':'thread-1',
+            'turn':{'id':'turn-1','error':None,'status':'interrupted','items':[], 'itemsView':'summary'}}))
+        observed=[]
+        with self.assertRaises(AppServerBlocked) as caught:self.run_observed(frames,observed.append)
+        expected=dict(command_started=True,command_completed=False,command_exit_code=None)
+        self.assertEqual(observed,[expected])
+        detail=safe_app_server_diagnostic(caught.exception)
+        self.assertEqual({key:detail[key] for key in expected},expected)
+
+    def test_failed_terminal_event_is_recorded_without_relaxing_canary_policy(self):
+        for status,code in (('failed',7),('declined',None)):
+            observed=[]
+            with self.subTest(status=status), self.assertRaisesRegex(AppServerBlocked,'did not complete') as caught:
+                self.run_observed(self.failure_frames(status=status,code=code),observed.append)
+            expected=dict(command_started=True,command_completed=True,command_exit_code=code)
+            self.assertEqual(observed[-1],expected)
+            detail=safe_app_server_diagnostic(caught.exception)
+            self.assertEqual({key:detail[key] for key in expected},expected)
+
+    def test_malformed_completion_does_not_set_completed_diagnostic(self):
+        for status,code in (('inProgress',0),('completed',True),('failed','PRIVATE')):
+            observed=[]
+            with self.subTest(status=status,code=code),self.assertRaises(AppServerBlocked) as caught:
+                self.run_observed(self.failure_frames(status=status,code=code),observed.append)
+            self.assertEqual(observed,[dict(command_started=True,command_completed=False,command_exit_code=None)])
+            self.assertFalse(safe_app_server_diagnostic(caught.exception)['command_completed'])
+
+    def test_unvalidated_command_or_completion_never_invents_evidence(self):
+        for stage in ('start','completion'):
+            frames=transcript()
+            frames[5 if stage=='start' else 6]['params']['item']['command']='PRIVATE arbitrary command'
+            observed=[]
+            with self.subTest(stage=stage),self.assertRaises(AppServerBlocked) as caught:
+                self.run_observed(frames,observed.append)
+            detail=safe_app_server_diagnostic(caught.exception)
+            self.assertEqual(detail['command_started'],stage=='completion')
+            self.assertFalse(detail['command_completed']);self.assertIsNone(detail['command_exit_code'])
+            self.assertNotIn('PRIVATE',json.dumps(detail));self.assertNotIn('PRIVATE',json.dumps(observed))
+
+    def test_observer_mutation_and_failure_do_not_change_validation(self):
+        def observer(record):
+            record.update(command_started=False,command_exit_code='PRIVATE')
+            raise RuntimeError('PRIVATE')
+        self.assertEqual(self.run_observed(transcript(),observer).candidate.outcome,'success')
+        with self.assertRaisesRegex(AppServerBlocked,'trusted command observer'):
+            self.run_observed(transcript(), True)
+
+    def test_closed_command_export_rejects_forgery_and_impossible_states(self):
+        valid=dict(command_started=True,command_completed=True,command_exit_code=7)
+        first=adapter_module.safe_command_observation(valid);first['command_exit_code']='PRIVATE'
+        self.assertEqual(adapter_module.safe_command_observation(valid),valid)
+        for change in ({'command_started':1},{'command_completed':1},{'command_exit_code':True},
+                       {'command_exit_code':'PRIVATE'},{'command_exit_code':2**31},
+                       {'command_started':False},{'command_completed':False},{'extra':'PRIVATE'}):
+            with self.subTest(change=change):
+                self.assertIsNone(adapter_module.safe_command_observation(dict(valid,**change)))
+        exc=AppServerBlocked('invalid protocol object');record=adapter_module._DIAGNOSTIC_RECORDS[exc]
+        for suffix in ((True,True,0),(False,True,None),(True,False,1),(False,False,'PRIVATE')):
+            adapter_module._DIAGNOSTIC_RECORDS[exc]=record[:11]+suffix
+            self.assertIsNone(safe_app_server_diagnostic(exc))
 
 
 class AppServerRecheckDiagnosticTest(unittest.TestCase):
