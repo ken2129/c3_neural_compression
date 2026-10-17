@@ -78,4 +78,4 @@ Composeは必ず明記した `-f` と専用project名で実行し、自動的な
 
 ## 手元で確認した範囲
 
-`python tools/sandbox_diagnostic/test_run_checks.py` は偽のDockerコマンドを使う制御フロー試験です。8件で、標準成功、明示許可付きnamespace失敗（2表記）、許可なし、タイムアウト、マーカー欠落、一覧取得失敗、リモート接続指定を確認します。Docker自体は起動しません。シェル構文・YAML/JSON・取得ファイルハッシュも確認しています。これらは実機のsandbox成功を意味しません。
+`python tools/sandbox_diagnostic/test_run_checks.py` は偽のDockerコマンドを使う制御フロー試験です。9件で、標準成功、明示許可付きnamespace失敗（2表記）、許可なし、タイムアウト、マーカー欠落、一覧取得失敗、リモート接続指定を確認します。加えて、base と override の security_opt が重複せず権限昇格禁止を継承することを確認します。Docker自体は起動しません。Compose実装による結合検証はこの環境では実施できていません。ホストではビルド前に config を検証し、失敗すればそこで中止します。シェル構文・YAML/JSON・取得ファイルハッシュも確認しています。これらは実機のsandbox成功を意味しません。

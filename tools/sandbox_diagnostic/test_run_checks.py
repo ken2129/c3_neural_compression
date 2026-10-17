@@ -26,6 +26,25 @@ elif args[0] == 'compose' and 'run' in args:
  sys.exit(1)
 '''
 
+class ComposeConfigurationTests(unittest.TestCase):
+    def test_security_options_do_not_repeat_across_files(self):
+        # Guard this project's simple list form; not a substitute for Compose config.
+        def options(name):
+            lines = RUNNER.with_name(name).read_text().splitlines()
+            start = lines.index('    security_opt:') + 1
+            values = []
+            for line in lines[start:]:
+                if not line.startswith('      - '):
+                    break
+                values.append(line.removeprefix('      - '))
+            return values
+        baseline = options('compose.yaml')
+        candidate = options('compose.seccomp-candidate.yaml')
+        self.assertEqual(baseline, ['no-new-privileges:true'])
+        self.assertEqual(candidate, ['seccomp=./codex-security-seccomp.json'])
+        combined = baseline + candidate
+        self.assertEqual(len(combined), len(set(combined)))
+
 class RunnerTests(unittest.TestCase):
     def check(self, scenario, flag=True, **extra):
         with tempfile.TemporaryDirectory() as tmp:
