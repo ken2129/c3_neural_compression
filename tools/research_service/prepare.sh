@@ -51,7 +51,21 @@ validate_dedicated_deployment(item,consumers,source_sha=sys.argv[4],volume_name=
 (root/'deployment.json').write_text(json.dumps(data))
 (root/'deployment.json').chmod(0o644)  # Parent directory is private; destination /control is mode 0700.
 PY
-docker cp "$work/deployment.json" "$id:/control/deployment.json"
+# An explicit archive avoids propagating the host checkout user's UID/GID.
+python3 - "$root" "$work" <<'PYARCHIVE'
+import pathlib,sys
+sys.path.insert(0,sys.argv[1])
+from research_harness.deployment_archive import build_archive
+p=pathlib.Path(sys.argv[2]);(p/'deployment.tar').write_bytes(build_archive((p/'deployment.json').read_bytes()))
+PYARCHIVE
+docker cp -a - "$id:/control/" < "$work/deployment.tar"
+docker cp -a "$id:/control/deployment.json" - > "$work/deployment-readback.tar"
+python3 - "$root" "$work" <<'PYVERIFY'
+import pathlib,sys
+sys.path.insert(0,sys.argv[1])
+from research_harness.deployment_archive import verify_archive
+p=pathlib.Path(sys.argv[2]);verify_archive((p/'deployment-readback.tar').read_bytes(),(p/'deployment.json').read_bytes())
+PYVERIFY
 docker start "$id"
 printf 'Dedicated fixed-CPU service created: %s\n' "$id"
 printf 'Protected installation records: %s\n' "$work"

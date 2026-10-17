@@ -105,6 +105,56 @@ class LauncherTests(unittest.TestCase):
             {'op':'fixed_cpu','binding':binding_fixture()}])
 
 
+class StartupQuarantineTests(unittest.TestCase):
+    class EndWait(BaseException):
+        pass
+
+    def test_startup_validation_failures_idle_without_spawn_exit_or_retry(self):
+        for stage in ('deployment', 'epoch'):
+            with self.subTest(stage=stage):
+                handlers = {}
+                output = io.StringIO()
+                with patch.object(launcher, 'deployment',
+                        side_effect=PermissionError('private path') if stage == 'deployment' else None,
+                        return_value={'container_id': 'a' * 64}) as deploy, \
+                     patch.object(launcher, 'read_epoch', side_effect=ContractError('bad epoch')) as epoch, \
+                     patch.object(launcher.os, 'getpid', return_value=1), \
+                     patch.object(launcher.os, 'getresuid', return_value=(0, 0, 0)), \
+                     patch.object(launcher.os, '_exit') as exit_process, \
+                     patch.object(launcher.subprocess, 'Popen') as popen, \
+                     patch.object(launcher.signal, 'signal', side_effect=lambda signum, handler: handlers.update({signum: handler})), \
+                     patch.object(launcher.signal, 'pause', side_effect=[None, self.EndWait()]) as wait, \
+                     patch.object(launcher.sys, 'stderr', output):
+                    with self.assertRaises(self.EndWait):
+                        launcher.supervise()
+                    deploy.assert_called_once()
+                    self.assertEqual(epoch.call_count, 0 if stage == 'deployment' else 1)
+                    self.assertEqual(wait.call_count, 2)
+                    popen.assert_not_called()
+                    exit_process.assert_not_called()
+                    self.assertEqual(len(output.getvalue().splitlines()), 1)
+                    self.assertEqual(json.loads(output.getvalue())['phase'], 'BLOCKED_STARTUP')
+                    handlers[launcher.signal.SIGTERM](launcher.signal.SIGTERM, None)
+                    exit_process.assert_called_once_with(125)
+
+    def test_quarantine_requires_root_pid1(self):
+        for pid, identity in ((2, (0, 0, 0)), (1, (10001,) * 3), (1, (0, 10001, 0))):
+            with self.subTest(pid=pid, identity=identity), \
+                 patch.object(launcher.os, 'getpid', return_value=pid), \
+                 patch.object(launcher.os, 'getresuid', return_value=identity):
+                with self.assertRaises(ContractError):
+                    launcher.blocked_startup(wait=lambda: self.fail('must not wait'))
+
+    def test_manager_spawn_failure_does_not_quarantine(self):
+        with patch.object(launcher, 'deployment', return_value={'container_id': 'a' * 64}), \
+             patch.object(launcher, 'read_epoch', return_value=EPOCH), \
+             patch.object(launcher.subprocess, 'Popen', side_effect=PermissionError('spawn failed')), \
+             patch.object(launcher, 'blocked_startup') as blocked:
+            with self.assertRaises(PermissionError):
+                launcher.supervise()
+            blocked.assert_not_called()
+
+
 class ManagerStartupTests(unittest.TestCase):
     """Real temporary state; fake identity and remote adapters only."""
     def setUp(self):

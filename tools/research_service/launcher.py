@@ -95,10 +95,37 @@ def manager():
     finally:state.close()
 
 
+def blocked_startup(*, wait=None):
+    """Quarantine only a child-free root PID1, without retrying installation.
+
+    This is called exclusively before Popen. Runtime failures must still exit
+    PID1 to end the worker namespace. An operator stop explicitly exits this
+    idle process; an operator restart may revalidate repaired installation data.
+    The wait hook permits bounded, fake-OS tests without starting a container.
+    """
+    if os.getpid()!=1 or os.getresuid()!=(0,0,0):
+        raise ContractError('dedicated root PID1 required for startup quarantine')
+    print(json.dumps({'phase':'BLOCKED_STARTUP',
+        'detail':'startup validation failed; operator repair and restart required'}),
+        file=sys.stderr,flush=True)
+    def stop(signum, frame):
+        os._exit(125)
+    signal.signal(signal.SIGTERM,stop)
+    signal.signal(signal.SIGINT,stop)
+    if wait is None:wait=signal.pause
+    while True:wait()
+
+
 def supervise():
     started=time.monotonic()
-    config=deployment()
-    epoch=read_epoch(container_id=config['container_id'])
+    try:
+        config=deployment()
+        epoch=read_epoch(container_id=config['container_id'])
+    except Exception:
+        # No manager or worker exists yet. Never turn a bad installation into
+        # an unless-stopped restart loop or retry it inside this generation.
+        blocked_startup()
+        raise ContractError('startup quarantine unexpectedly returned')
     control=subprocess.Popen([sys.executable,'-I','-B',SCRIPT,'manager'],user=CONTROL,group=CONTROL,
         extra_groups=[],env={'LANG':'C.UTF-8','PATH':'/usr/local/bin:/usr/bin:/bin',
         'HOME':'/control/home','GH_CONFIG_DIR':'/control/gh'},stdin=subprocess.PIPE,
