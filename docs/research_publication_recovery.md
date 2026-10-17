@@ -22,6 +22,17 @@
 
 元のサービスを再起動してはいけません。元台帳は意図的にRESULT_READY/BLOCKEDのままです。新しい公開履歴にPRのURLと状態が記録されます。書込み結果が不明な場合は同じ永続履歴から読み取り照合し、履歴を消してやり直しません。mainの変更や承認失効などで安全に照合できない場合は停止し、個別の読み取り確認が必要です。
 
+## 準備記録の所有者を保つ配置方法（Docker 28.3.2）
+
+停止中の公開コンテナへ準備記録をコピーするとき、`docker cp -a` は使いません。この版の実装は `CopyUIDGID=true` の場合、tarのUID/GIDではなくコンテナの `Config.User` を `ChownOpts` に設定します。そのため、このUID10001のコンテナではroot所有を指定したtarでも10001所有になります。
+
+実測値で検証したJSONを、`publication-recovery-77.json` という通常ファイル1件だけのUSTARにします。UID/GIDは0、modeは0644とし、親ディレクトリ・リンク・PAX上書き・絶対パス・`..` を含めません。`docker cp - FULL_ID:/control/ < MANIFEST_TAR` として、`-a` なしでstdinから渡します。既存の準備記録だけを上書きし、親の10001:10001/0700や元台帳を変更しません。
+
+配置後は `docker cp FULL_ID:/control/publication-recovery-77.json -` のtarを読み戻し、通常ファイル、UID/GID 0、0644、JSON完全一致を検証してから起動します。ホストへ通常展開したファイルの所有者で判定してはいけません。tarだけで実ファイルのリンク数は証明できないため、固定入口のリンク数検査も維持します。不一致なら起動せず停止します。観測記録が古い場合は実際のinspectを再取得し、有効期限と検証も更新します。
+
+根拠：Docker 28.3.2の[コピー入口](https://github.com/moby/moby/blob/v28.3.2/daemon/archive_unix.go)、[Config.Userによる上書き](https://github.com/moby/moby/blob/v28.3.2/daemon/archive_tarcopyoptions_unix.go)、[通常のtar設定](https://github.com/moby/moby/blob/v28.3.2/daemon/archive_tarcopyoptions.go)。この手順訂正はコード・イメージ・実行元SHAの変更を必要としません。
+
 ## 検証の限界
 
 ローカルでは隔離されたダミーtransportで、元台帳が変わらないこと、承認・基準変更・不明な書込み・重複に対する動作を検証します。開発環境にはDockerがないため、この新しいイメージの実機ビルドと公開は別途確認が必要です。承認のない追加試行や実験の再実行には使いません。
+
