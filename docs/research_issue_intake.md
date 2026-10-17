@@ -62,7 +62,7 @@ python -m research_harness.issue_intake --once --state /path/to/private-state/in
 
 ## 今回の試験と残りの作業
 
-2026-10-17の確認結果：ハーネス試験142件が通常Pythonと `python -O` の両方で成功。公開APIから取得した #56 は `INELIGIBLE`。実際の全open Issue走査は成功し、接頭辞を持つ候補は0件だった。この結果は取得時点の状態であり、承認済みIssueの本物の往復試験ではない。
+2026-10-17の確認結果：ハーネス試験143件が通常Pythonと `python -O` の両方で成功。公開APIから取得した #56 は `INELIGIBLE`。実際の全open Issue走査は成功し、接頭辞を持つ候補は0件だった。この結果は取得時点の状態であり、承認済みIssueの本物の往復試験ではない。
 
 自動試験は通常Issue・PR・接頭辞だけ・偽の承認参照・取消・期限切れ・改変と復元・再起動・同時受付・通信断・ページ送りを扱う。通常のPythonと `python -O` で確認する。実行機能がないので、これをGPU安全性や本物の承認往復の実証とは呼ばない。
 

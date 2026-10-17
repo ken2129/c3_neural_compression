@@ -161,6 +161,19 @@ class IntakeTests(unittest.TestCase):
         self.assertFalse(result['duplicate'])
         self.assertEqual(result['observed_status'], 'CLOSED_REQUIRES_RECONCILIATION')
 
+    def test_unchanged_stopped_observations_are_duplicates(self):
+        for n, status in enumerate(['closed','expired','cancelled'], 200):
+            issue = raw(n)
+            if status == 'closed': issue['state'] = 'closed'
+            if status == 'expired': issue['body'] = issue['body'].replace('2030-01-01','2020-01-01')
+            if status == 'cancelled': issue['body'] = issue['body'].replace('"cancelled": false','"cancelled": true')
+            issue = snapshot(issue)
+            first=self.intake.observe_batch([issue],NOW)[0]
+            second=self.intake.observe_batch([issue],NOW)[0]
+            self.assertTrue(second['duplicate'])
+            self.assertEqual(first['status'],second['status'])
+            self.assertFalse(second['requires_reapproval'])
+
     def test_get_number_binding(self):
         with patch.object(PublicGitHub, '_get', return_value=raw(101)):
             with self.assertRaises(ContractError): PublicGitHub().get_issue(100)

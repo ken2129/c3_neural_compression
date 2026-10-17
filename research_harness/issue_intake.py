@@ -178,7 +178,8 @@ class Intake:
                 if old is None and status == 'INELIGIBLE':
                     continue
                 changed = bool(old and (old[2] or old[0] != fingerprint or
-                    old[1] in ('CLOSED_REQUIRES_RECONCILIATION', 'EXPIRED', 'CANCELLED_DECLARED')))
+                    (old[1] in ('CLOSED_REQUIRES_RECONCILIATION', 'EXPIRED', 'CANCELLED_DECLARED')
+                     and old[4] != observed_status)))
                 if changed:
                     status = 'CHANGED_REQUIRES_REAPPROVAL'
                 observations = (old[3] if old else 0) + 1
