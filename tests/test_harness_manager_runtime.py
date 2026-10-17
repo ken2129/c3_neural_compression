@@ -115,8 +115,13 @@ class RecheckDiagnosticTests(unittest.TestCase):
 
     def test_hostile_subclass_accessors_hashing_and_forged_dict_are_never_called(self):
         class HostileHTTP(HTTPError):
+            def __init__(self,*args):
+                object.__setattr__(self,'_hostile_ready',False)
+                super().__init__(*args)
+                object.__setattr__(self,'_hostile_ready',True)
             def __getattribute__(self,name):
-                if name in ('__dict__','code','__class__'):
+                if (name in ('__dict__','code','__class__')
+                        and object.__getattribute__(self,'_hostile_ready')):
                     raise AssertionError('must not read hostile attribute')
                 return super().__getattribute__(name)
         class HostileDictionary(dict):
