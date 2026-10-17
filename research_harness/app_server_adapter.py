@@ -45,13 +45,23 @@ SHELL_BODIES = frozenset((
     "python3 -I -S -c 'print(sum(i*i for i in range(10000)))'",
     'python3 -I -S -c "print(sum(i*i for i in range(10000)))"',
 ))
+CODE_MODE_CANARY = (
+    'const r = await tools.exec_command({"cmd":'
+    '"python3 -I -S -c \\"print(sum(i*i for i in range(10000)))\\"",'
+    f'"workdir":"{WORKSPACE}"'
+    '}); text(r);'
+)
 PROMPT = (
     'Perform only this bounded CPU canary in the explicitly admitted external '
     'sandbox. Do not inspect files, use the network, install anything, create '
-    'background processes, change files, or delegate. Run exactly '
-    'python3 -I -S -c "print(sum(i*i for i in range(10000)))" once. '
-    'If blocked, report failure without changing permissions or retrying. '
-    'Return only JSON: schema_version c3-cpu-canary-worker-v1, outcome success '
+    'background processes, change files, or delegate to other agents. '
+    'Tool calls are allowed and required. Make exactly one functions.exec call '
+    'to run the fixed command once, using exactly this JavaScript:\n'
+    + CODE_MODE_CANARY + '\n'
+    'Do not use another command or shell, make extra tool calls, or retry. '
+    'If the tool is unavailable or blocked, report failure without changing '
+    'permissions, security settings, or sandboxing. '
+    'Only your final response must be JSON: schema_version c3-cpu-canary-worker-v1, outcome success '
     'or failure, reported_checksum equal to the observed integer on success '
     'or null on failure. This report is only an untrusted candidate.'
 )

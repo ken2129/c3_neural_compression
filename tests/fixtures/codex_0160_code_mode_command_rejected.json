@@ -1,0 +1,74 @@
+{
+  "source": "Official Codex 0.160.0, scripted loopback Responses, code-mode wrapper, 2026-10-17",
+  "sandbox": "readOnly",
+  "real_model_call": false,
+  "command_execution_succeeded": false,
+  "normalization": [
+    "threadId",
+    "turnId",
+    "item.id",
+    "cwd",
+    "processId"
+  ],
+  "note": "Only the two command lifecycle frames are retained. The tool command was rejected by sandbox setup; this is not production externalSandbox or command-success evidence.",
+  "frames": [
+    {
+      "method": "item/started",
+      "params": {
+        "item": {
+          "type": "commandExecution",
+          "id": "command-1",
+          "pluginId": null,
+          "scriptPath": null,
+          "command": "/bin/bash -lc 'python3 -I -S -c \"print(sum(i*i for i in range(10000)))\"'",
+          "cwd": "/work/canary",
+          "processId": "123",
+          "source": "unifiedExecStartup",
+          "status": "inProgress",
+          "commandActions": [
+            {
+              "type": "unknown",
+              "command": "python3 -I -S -c \"print(sum(i*i for i in range(10000)))\""
+            }
+          ],
+          "aggregatedOutput": null,
+          "exitCode": null,
+          "durationMs": null
+        },
+        "threadId": "thread-1",
+        "turnId": "turn-1",
+        "startedAtMs": 1792252998689
+      },
+      "emittedAtMs": 1792252998691
+    },
+    {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "commandExecution",
+          "id": "command-1",
+          "pluginId": null,
+          "scriptPath": null,
+          "command": "/bin/bash -lc 'python3 -I -S -c \"print(sum(i*i for i in range(10000)))\"'",
+          "cwd": "/work/canary",
+          "processId": "123",
+          "source": "unifiedExecStartup",
+          "status": "failed",
+          "commandActions": [
+            {
+              "type": "unknown",
+              "command": "python3 -I -S -c \"print(sum(i*i for i in range(10000)))\""
+            }
+          ],
+          "aggregatedOutput": "error building bubblewrap command: app-server socket directory must be a user-owned directory with mode 0700\n",
+          "exitCode": 1,
+          "durationMs": 0
+        },
+        "threadId": "thread-1",
+        "turnId": "turn-1",
+        "completedAtMs": 1792252998790
+      },
+      "emittedAtMs": 1792252998791
+    }
+  ]
+}

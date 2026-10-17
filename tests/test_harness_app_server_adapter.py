@@ -164,6 +164,30 @@ class FakeTransport:
 
 
 class RecordedProtocolTest(unittest.TestCase):
+    def test_actual_code_mode_wrapper_uses_existing_command_events_and_stays_rejected(self):
+        from pathlib import Path
+        record = json.loads((Path(__file__).parent / 'fixtures' /
+            'codex_0160_code_mode_command_rejected.json').read_text())
+        self.assertFalse(record['real_model_call'])
+        self.assertFalse(record['command_execution_succeeded'])
+        self.assertEqual(record['sandbox'], 'readOnly')
+        self.assertEqual([frame['method'] for frame in record['frames']],
+                         ['item/started', 'item/completed'])
+        for frame in record['frames']:
+            self.assertEqual(frame['params']['item']['source'], 'unifiedExecStartup')
+        observed = []
+        with self.assertRaisesRegex(AppServerBlocked, 'canary command did not complete') as caught:
+            AppServerAdapter(enabled=True).run(
+                fixed_app_server_request('configured-model-v1'),
+                FakeTransport(transcript()[:5] + record['frames']),
+                admit_external=lambda request: None, recheck=lambda: None,
+                command_observer=observed.append)
+        self.assertEqual(observed, [
+            dict(command_started=True, command_completed=False, command_exit_code=None),
+            dict(command_started=True, command_completed=True, command_exit_code=1)])
+        self.assertEqual(safe_app_server_diagnostic(caught.exception)['reason'],
+                         'APP_SERVER_COMMAND_NOT_COMPLETED')
+
     def test_actual_0160_loopback_failure_is_a_failure_candidate(self):
         from pathlib import Path
         record = json.loads((Path(__file__).parent / 'fixtures' /
@@ -220,6 +244,28 @@ class AppServerAdapterTest(unittest.TestCase):
                 validate_app_server_request(request)
         for model in ('', 'model-latest', 'x;sh', 'model\n'):
             with self.assertRaises(AppServerBlocked): fixed_app_server_request(model)
+
+    def test_prompt_permits_one_code_mode_tool_call_and_only_final_json(self):
+        code = adapter_module.CODE_MODE_CANARY
+        prefix, suffix = 'const r = await tools.exec_command(', '); text(r);'
+        self.assertTrue(code.startswith(prefix)); self.assertTrue(code.endswith(suffix))
+        arguments = json.loads(code[len(prefix):-len(suffix)])
+        self.assertEqual(arguments, {
+            'cmd': 'python3 -I -S -c "print(sum(i*i for i in range(10000)))"',
+            'workdir': WORKSPACE})
+        self.assertEqual(tuple(shlex.split(arguments['cmd'])), adapter_module.COMMAND)
+        self.assertIn(arguments['cmd'], SHELL_BODIES)
+        self.assertEqual(PROMPT.count(code), 1)
+        self.assertIn('exactly one functions.exec call', PROMPT)
+        self.assertIn('Tool calls are allowed and required.', PROMPT)
+        self.assertIn('Only your final response must be JSON:', PROMPT)
+        self.assertNotIn('Return only JSON:', PROMPT)
+        for restriction in ('delegate to other agents', 'extra tool calls', 'or retry',
+                            'security settings', 'sandboxing', 'Do not inspect files'):
+            self.assertIn(restriction, PROMPT)
+        self.run_fake()
+        self.assertEqual(self.transport.sent[2]['params']['developerInstructions'], PROMPT)
+        self.assertEqual(self.transport.sent[3]['params']['input'][0]['text'], PROMPT)
 
     def test_success_is_matching_command_candidate_only_pending_restart(self):
         result = self.run_fake()
