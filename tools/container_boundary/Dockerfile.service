@@ -1,0 +1,8 @@
+FROM python:3.11-slim-bookworm
+RUN groupadd --gid 10001 control && useradd --uid 10001 --gid 10001 --no-create-home control \
+ && groupadd --gid 10002 worker && useradd --uid 10002 --gid 10002 --no-create-home worker
+COPY research_harness/__init__.py research_harness/schema.py research_harness/store.py research_harness/issue_intake.py research_harness/owner_approval.py research_harness/intake_flow_fixture.py research_harness/persistent_fixture.py /opt/fixture/research_harness/
+COPY tools/container_boundary/probe.py tools/container_boundary/flow.py tools/container_boundary/persistent.py /opt/fixture/
+RUN mkdir /control && chown 10001:10001 /control && chmod 0700 /control \
+ && printf "offline-fixture-v1\\n" > /control/.layout
+ENTRYPOINT ["python", "-I", "-B", "/opt/fixture/persistent.py"]

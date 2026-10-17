@@ -72,6 +72,14 @@ def run_fixture(intake, source, exchange, clock=lambda: FIXTURE_NOW):
         if old:
             if old[0] != receipt['content_sha256']:
                 raise ContractError('frozen dummy plan changed')
+            job = dict(fixture_only=True, issue=FIXTURE_NUMBER, content_sha256=old[0])
+            if old[1] not in ('CLAIMED', 'BLOCKED', 'COMPLETED'):
+                raise ContractError('unknown saved phase')
+            if old[1] == 'COMPLETED':
+                if old[2] != canonical(dummy_result(job)).decode():
+                    raise ContractError('saved result missing or inconsistent')
+            elif old[2] is not None:
+                raise ContractError('unfinished run has unexpected result')
             db.commit()
             return dict(fixture_only=True, execution_allowed=False, dispatched=False,
                         phase=old[1], duplicate=True)
