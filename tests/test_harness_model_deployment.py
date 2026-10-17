@@ -30,13 +30,22 @@ class ModelDeploymentTests(unittest.TestCase):
     def test_auth_shape_requires_every_nonempty_token_without_disclosure(self):
         auth={'auth_mode':'chatgpt','tokens':dict(access_token='dummy-access',refresh_token='dummy-refresh',id_token='dummy-id',account_id='dummy-account')}
         validate_chatgpt_auth(json.dumps(auth).encode())
-        for name in auth['tokens']:
+        for name in ('access_token','refresh_token','id_token'):
             for value in ('',None,1):
                 bad=copy.deepcopy(auth);bad['tokens'][name]=value
                 with self.assertRaisesRegex(ContractError,'^MODEL_DEDICATED_CHATGPT_LOGIN_REQUIRED$'):
                     validate_chatgpt_auth(json.dumps(bad).encode())
         auth['tokens']={}
         with self.assertRaises(ContractError):validate_chatgpt_auth(json.dumps(auth).encode())
+
+    def test_fresh_login_optional_account_id(self):
+        auth={'auth_mode':'chatgpt','tokens':dict(access_token='dummy-access',refresh_token='dummy-refresh',id_token='dummy-id')}
+        validate_chatgpt_auth(json.dumps(auth).encode())
+        auth['tokens']['account_id']=None
+        validate_chatgpt_auth(json.dumps(auth).encode())
+        for invalid in ('',1,False,{},'x'*32769):
+            auth['tokens']['account_id']=invalid
+            with self.assertRaises(ContractError):validate_chatgpt_auth(json.dumps(auth).encode())
 
     def test_non_pid1_refuses_before_credential_read(self):
         with patch('research_harness.model_deployment.os.getpid',return_value=42),patch('research_harness.model_deployment.read_private') as read:

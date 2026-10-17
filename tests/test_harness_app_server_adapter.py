@@ -1,4 +1,10 @@
-"""Fake protocol and local pipes only: no Codex, auth, UID changes or models."""
+"""Fake protocol and local pipes only: no Codex, auth, UID changes or models.
+
+Wire fixtures follow the official rust-v0.160.0 generated types, including the
+notification envelope timestamp and nullable message phase (not live captures):
+codex-rs/app-server-protocol/schema/typescript/ServerNotificationEnvelope.ts,
+MessagePhase.ts, v2/ThreadItem.ts, v2/Turn.ts and v2/ItemStartedNotification.ts.
+"""
 from copy import deepcopy
 from dataclasses import replace
 import json
@@ -16,19 +22,24 @@ from research_harness.app_server_adapter import (
 
 
 def response(number, result): return {'id': number, 'result': result}
-def event(method, params): return {'method': method, 'params': params}
+def event(method, params):
+    return {'method': method, 'params': params, 'emittedAtMs': 1792224000123}
 
 
 def transcript():
     thread = {'id': 'thread-1', 'ephemeral': True, 'cliVersion': '0.160.0',
               'cwd': WORKSPACE, 'turns': []}
-    turn = {'id': 'turn-1', 'status': 'inProgress', 'items': [], 'error': None}
+    turn = {'id': 'turn-1', 'status': 'inProgress', 'items': [], 'itemsView': 'full',
+            'error': None, 'startedAt': 1792224000, 'completedAt': None, 'durationMs': None}
     payload = json.dumps({'schema_version': 'c3-cpu-canary-worker-v1',
                           'outcome': 'success', 'reported_checksum': 333283335000})
-    agent = {'type': 'agentMessage', 'id': 'final-1', 'phase': 'final_answer', 'text': payload}
+    agent = {'type': 'agentMessage', 'id': 'final-1', 'phase': None, 'text': payload,
+             'memoryCitation': None, 'delivery': None, 'questions': None}
     command = {'type': 'commandExecution', 'id': 'command-1', 'status': 'completed',
                'command': 'python3 -I -S -c "print(sum(i*i for i in range(10000)))"',
-               'cwd': WORKSPACE, 'exitCode': 0, 'aggregatedOutput': '333283335000\n'}
+               'cwd': WORKSPACE, 'exitCode': 0, 'aggregatedOutput': '333283335000\n',
+               'processId': None, 'source': 'agent', 'commandActions': [],
+               'pluginId': None, 'scriptPath': None, 'durationMs': 1}
     return [
         response(1, {'codexHome': CODEX_HOME, 'platformOs': 'linux',
                      'platformFamily': 'unix', 'userAgent': 'codex/0.160.0'}),
@@ -39,15 +50,18 @@ def transcript():
         event('turn/started', {'threadId': 'thread-1', 'turn': turn}),
         response(3, {'turn': turn}),
         event('item/started', {'threadId': 'thread-1', 'turnId': 'turn-1',
-                              'item': dict(command, status='inProgress', exitCode=None)}),
+                              'startedAtMs': 1792224000001,
+                              'item': dict(command, status='inProgress', exitCode=None,
+                                           aggregatedOutput=None, durationMs=None)}),
         event('item/completed', {'threadId': 'thread-1', 'turnId': 'turn-1',
-                                'completedAtMs': 1, 'item': command}),
+                                'completedAtMs': 1792224000002, 'item': command}),
         event('item/started', {'threadId': 'thread-1', 'turnId': 'turn-1',
-                              'item': dict(agent, text='')}),
+                              'startedAtMs': 1792224000010, 'item': dict(agent, text='')}),
         event('item/completed', {'threadId': 'thread-1', 'turnId': 'turn-1',
-                                'completedAtMs': 2, 'item': agent}),
+                                'completedAtMs': 1792224000020, 'item': agent}),
         event('turn/completed', {'threadId': 'thread-1', 'turn': dict(
-            turn, status='completed', items=[command, agent])}),
+            turn, status='completed', items=[command, agent], completedAt=1792224000,
+            durationMs=20)}),
     ]
 
 
@@ -116,6 +130,73 @@ class AppServerAdapterTest(unittest.TestCase):
         self.assertEqual(sent[3]['params']['input'],
                          [{'type': 'text', 'text': PROMPT, 'text_elements': []}])
 
+    def test_v0160_timestamped_envelope_and_nullable_or_legacy_phase(self):
+        for phase in (None, 'missing', 'final_answer'):
+            frames = transcript()
+            for index in (7, 8):
+                item = frames[index]['params']['item']
+                if phase == 'missing': item.pop('phase')
+                else: item['phase'] = phase
+            with self.subTest(phase=phase):
+                result = self.run_fake(frames)
+                self.assertEqual(result.candidate.reported_checksum, 333283335000)
+                self.assertFalse(result.candidate.independently_validated)
+        for timestamp in (None, 0, 2**63 - 1):
+            frames = transcript()
+            for frame in frames:
+                if 'method' in frame:
+                    if timestamp is None: frame.pop('emittedAtMs')
+                    else: frame['emittedAtMs'] = timestamp
+            with self.subTest(timestamp=timestamp):
+                self.assertTrue(self.run_fake(frames).requires_namespace_restart)
+
+    def test_invalid_notification_timestamp_blocks_before_model_turn(self):
+        for value in (None, True, False, -1, 2**63, 1.0, '1792224000123', {}, []):
+            frames = transcript(); frames[1]['emittedAtMs'] = value
+            transport = FakeTransport(frames)
+            with self.subTest(timestamp=value), self.assertRaisesRegex(AppServerBlocked, 'timestamp'):
+                AppServerAdapter(enabled=True).run(self.request, transport,
+                    admit_external=lambda request: None, recheck=lambda: None)
+            self.assertNotIn('turn/start', [frame.get('method') for frame in transport.sent])
+        frames = transcript(); frames[1]['unexpectedEnvelopeKey'] = 1
+        with self.assertRaises(AppServerBlocked): self.run_fake(frames)
+
+    def test_unknown_phase_commentary_is_not_evidence_or_an_ambiguous_candidate(self):
+        frames = transcript()
+        commentary = {'type': 'agentMessage', 'id': 'commentary-1', 'text': 'Running the fixed canary.',
+                      'phase': None, 'memoryCitation': None, 'delivery': None, 'questions': None}
+        frames[7:7] = [
+            event('item/started', {'threadId': 'thread-1', 'turnId': 'turn-1',
+                                  'startedAtMs': 1792224000003, 'item': dict(commentary, text='')}),
+            event('item/completed', {'threadId': 'thread-1', 'turnId': 'turn-1',
+                                    'completedAtMs': 1792224000004, 'item': commentary})]
+        frames[-1]['params']['turn']['items'].insert(1, commentary)
+        self.assertEqual(self.run_fake(frames).candidate.reported_checksum, 333283335000)
+        frames = transcript()
+        frames[8]['params']['item']['phase'] = 'commentary'
+        with self.assertRaises(AppServerBlocked): self.run_fake(frames)
+
+    def test_multiple_compatible_phase_candidates_and_conflicting_snapshots_block(self):
+        for first_phase, second_phase in ((None, None), (None, 'final_answer'),
+                                           ('final_answer', None)):
+            frames = transcript()
+            frames[8]['params']['item']['phase'] = first_phase
+            extra = dict(frames[8]['params']['item'], id='final-2', phase=second_phase)
+            frames[-1:-1] = [
+                event('item/started', {'threadId': 'thread-1', 'turnId': 'turn-1',
+                                      'startedAtMs': 1792224000021, 'item': dict(extra, text='')}),
+                event('item/completed', {'threadId': 'thread-1', 'turnId': 'turn-1',
+                                        'completedAtMs': 1792224000022, 'item': extra})]
+            frames[-1]['params']['turn']['items'].append(extra)
+            with self.subTest(phases=(first_phase, second_phase)), self.assertRaisesRegex(
+                    AppServerBlocked, 'ambiguous'):
+                self.run_fake(frames)
+        frames = transcript()
+        frames[-1]['params']['turn']['items'] = deepcopy(frames[-1]['params']['turn']['items'])
+        frames[-1]['params']['turn']['items'][-1]['text'] = '{}'
+        with self.assertRaisesRegex(AppServerBlocked, 'snapshot'):
+            self.run_fake(frames)
+
     def test_configuration_and_instruction_mismatches_block_before_turn(self):
         for location, key, value in [(0, 'codexHome', '/home/elsewhere'),
                                     (2, 'instructionSources', ['/work/canary/AGENTS.md']),
@@ -133,7 +214,7 @@ class AppServerAdapterTest(unittest.TestCase):
             lambda f: f[4]['result']['turn'].update(id='other-turn'),
             lambda f: f[5]['params'].update(threadId='other-thread'),
             lambda f: f[5]['params'].update(turnId='other-turn'),
-            lambda f: f[8]['params']['item'].update(phase=None),
+            lambda f: f[8]['params']['item'].update(phase='unknown-invalid-phase'),
             lambda f: f[9]['params']['turn'].update(status='failed'),
             lambda f: f[9]['params']['turn'].update(error={'message': 'failure'}),
             lambda f: f.insert(7, deepcopy(f[6])),

@@ -238,6 +238,18 @@ def _object(value):
     return value
 
 
+def _notification_envelope(value):
+    # rust-v0.160.0 ServerNotificationEnvelope: current servers include this
+    # timestamp; omission remains supported for older serialized notifications.
+    if (set(value) - {'jsonrpc', 'method', 'params', 'emittedAtMs'}
+            or type(value.get('method')) is not str or type(value.get('params')) is not dict):
+        raise AppServerBlocked('invalid app-server notification')
+    if 'emittedAtMs' in value:
+        timestamp = value['emittedAtMs']
+        if type(timestamp) is not int or not 0 <= timestamp <= 2**63 - 1:
+            raise AppServerBlocked('invalid app-server notification timestamp')
+
+
 def _fixed_command(item):
     command = item.get('command')
     try:
@@ -333,6 +345,8 @@ class AppServerAdapter:
                 raise AppServerBlocked('app-server requested an unsupported capability')
             if 'error' in value or value.get('method') == 'error':
                 raise AppServerBlocked('app-server reported a protocol or turn error')
+            if 'id' not in value:
+                _notification_envelope(value)
             return value
 
         def rpc(number, method, params):
@@ -394,8 +408,7 @@ class AppServerAdapter:
         allowed_items = {'userMessage', 'agentMessage', 'reasoning', 'commandExecution'}
         while True:
             value = pending.pop(0) if pending else receive()
-            if set(value) - {'jsonrpc', 'method', 'params'} or type(value.get('params')) is not dict:
-                raise AppServerBlocked('invalid app-server notification')
+            _notification_envelope(value)
             method, params = value.get('method'), value['params']
             if method == 'account/updated':
                 continue  # Notification is not auth evidence; no auth RPC is sent.
@@ -454,6 +467,10 @@ class AppServerAdapter:
                 if item.get('type') not in allowed_items:
                     raise AppServerBlocked('unexpected canary tool or item')
                 item_id = _opaque(item.get('id'))
+                if item['type'] == 'agentMessage' and (
+                        item.get('phase') not in (None, 'commentary', 'final_answer')
+                        or type(item.get('text')) is not str):
+                    raise AppServerBlocked('malformed agent message phase or text')
                 if item['type'] == 'commandExecution':
                     command = _fixed_command(item)
                 if method == 'item/started':
@@ -479,10 +496,19 @@ class AppServerAdapter:
                         checksum = (int(output.strip()) if type(output) is str and len(output) <= 32
                                     and re.fullmatch(r'[0-9]+\n?', output) else None)
                         command_event = (command, code, checksum)
-                    if item['type'] == 'agentMessage' and item.get('phase') == 'final_answer':
-                        if final is not None or type(item.get('text')) is not str:
-                            raise AppServerBlocked('duplicate or malformed final answer')
-                        final = (item_id, item['text'])
+                    if item['type'] == 'agentMessage' and item.get('phase') != 'commentary':
+                        # MessagePhase.ts requires compatibility for unknown
+                        # phases. Only closed-schema canary JSON is eligible;
+                        # ordinary unlabelled commentary is never evidence.
+                        try:
+                            _candidate(item['text'])
+                        except AppServerBlocked:
+                            if item.get('phase') == 'final_answer':
+                                raise
+                        else:
+                            if final is not None:
+                                raise AppServerBlocked('ambiguous multiple final candidates')
+                            final = (item_id, item['text'])
                 continue
             if method in ('item/agentMessage/delta', 'item/reasoning/summaryTextDelta',
                           'item/reasoning/textDelta', 'item/reasoning/summaryPartAdded',

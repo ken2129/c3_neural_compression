@@ -3,7 +3,7 @@ ARG SOURCE_SHA
 RUN test "${#SOURCE_SHA}" = 40 \
  && apt-get update && apt-get install -y --no-install-recommends gh ca-certificates nodejs npm \
  && npm install --global --prefix /opt/codex @openai/codex@0.160.0 \
- && native="$(find /opt/codex/lib/node_modules -type f -path '*/vendor/*/codex/codex')" \
+ && native="$(find /opt/codex/lib/node_modules -type f -path '*/vendor/*/bin/codex')" \
  && test "$(printf '%s\n' "$native" | wc -l)" = 1 && test -n "$native" \
  && install -m 0755 "$native" /opt/codex/bin/codex.native \
  && rm /opt/codex/bin/codex && mv /opt/codex/bin/codex.native /opt/codex/bin/codex \

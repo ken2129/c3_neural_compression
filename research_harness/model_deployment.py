@@ -47,10 +47,14 @@ def validate_chatgpt_auth(raw):
     if type(value) is not dict or value.get('auth_mode')!='chatgpt' or type(value.get('tokens')) is not dict:
         raise ContractError('MODEL_DEDICATED_CHATGPT_LOGIN_REQUIRED')
     if value.get('OPENAI_API_KEY') is not None:raise ContractError('MODEL_API_KEY_NOT_ADMITTED')
-    for name in ('access_token','refresh_token','id_token','account_id'):
+    for name in ('access_token','refresh_token','id_token'):
         token=value['tokens'].get(name)
         if type(token) is not str or not token.strip() or len(token)>32768:
             raise ContractError('MODEL_DEDICATED_CHATGPT_LOGIN_REQUIRED')
+    account=value['tokens'].get('account_id')
+    if account is not None and (type(account) is not str or not account.strip() or len(account)>32768):
+        raise ContractError('MODEL_DEDICATED_CHATGPT_LOGIN_REQUIRED')
+    # v0.160 fresh ChatGPT login can omit account_id when its JWT lacks the claim.
     # Presence is not proof of validity; authentication errors are not retried.
 
 
