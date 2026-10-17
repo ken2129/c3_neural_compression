@@ -21,8 +21,8 @@ elif args[0] == 'compose' and 'run' in args:
  scenario=os.environ['SCENARIO']
  if scenario=='ok': print('sandbox_true_exit=0');sys.exit(0)
  if scenario=='timeout': print('sandbox_true_exit=124');sys.exit(124)
- if scenario=='namespace':
-  print('bwrap: No permissions to create a new namespace');print('sandbox_true_exit=1');sys.exit(1)
+ if scenario in ('namespace', 'namespace_bookworm'):
+  print('bwrap: No permissions to create '+('a ' if scenario=='namespace' else '')+'new namespace');print('sandbox_true_exit=1');sys.exit(1)
  sys.exit(1)
 '''
 
@@ -46,6 +46,8 @@ class RunnerTests(unittest.TestCase):
         code,candidate,_=self.check('ok');self.assertEqual(code,0);self.assertFalse(candidate)
     def test_namespace_failure_uses_approved_candidate(self):
         code,candidate,_=self.check('namespace');self.assertEqual(code,0);self.assertTrue(candidate)
+    def test_bookworm_namespace_wording_uses_candidate(self):
+        code,candidate,_=self.check('namespace_bookworm');self.assertEqual(code,0);self.assertTrue(candidate)
     def test_no_opt_in_avoids_candidate(self):
         code,candidate,_=self.check('namespace',False);self.assertEqual(code,1);self.assertFalse(candidate)
     def test_timeout_avoids_candidate(self):

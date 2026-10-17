@@ -61,7 +61,7 @@ if [[ "$ALLOW_CANDIDATE" != true ]]; then
   echo 'Stopped after baseline. The candidate requires --allow-seccomp-candidate and prior approval.' >&2
   exit "$baseline"
 fi
-if (( baseline != 1 )) || ! grep -qx 'sandbox_true_exit=1' "$LOG_DIR/baseline.log" || ! grep -q 'bwrap: No permissions to create a new namespace' "$LOG_DIR/baseline.log"; then
+if (( baseline != 1 )) || ! grep -qx 'sandbox_true_exit=1' "$LOG_DIR/baseline.log" || ! grep -Eq '^bwrap: No permissions to create (a )?new namespace([,. :]|$)' "$LOG_DIR/baseline.log"; then
   echo 'STOP: baseline did not show the expected namespace refusal; no wider seccomp policy applied.' >&2
   exit "$baseline"
 fi
