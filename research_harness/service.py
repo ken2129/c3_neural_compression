@@ -128,6 +128,29 @@ class Controller:
         # Fresh owner receipt and full Issue binding, never title-selected policy.
         return self._approved(number,binding)[1]
 
+    @staticmethod
+    def _interrupted_report(number):
+        return dict(issue=number,phase='INTERRUPTED',dispatched=False,duplicate=True,
+                    notification='UNCONFIGURED',historical=True,outcome='unknown')
+
+    def recover_interrupted_claims(self):
+        """Reconcile only local claims, before remote discovery or admission.
+
+        This explicit pass uses the trusted runtime epoch and unchanged restart
+        contract. It never calls process(), approval, preflight or publication.
+        Merely constructing/opening ServiceState still performs no recovery.
+        """
+        numbers=self.state.pending_claims()
+        current_epoch=getattr(self.runtime,'current_epoch',None)
+        if not numbers or not callable(current_epoch):return []
+        epoch=current_epoch()
+        verified=getattr(self.runtime,'deployment_contract_verified',False)
+        reports=[]
+        for number in numbers:
+            if self.state.interrupt_after_restart(number,epoch,deployment_contract_verified=verified):
+                reports.append(self._interrupted_report(number))
+        return reports
+
     def process(self,number):
         old=self.state.get(number)
         if old and old['phase']=='CLAIMED':
@@ -140,8 +163,7 @@ class Controller:
             # Historical status needs no new execution/publication approval. A
             # changed epoch proves interruption under the deployment contract,
             # not whether the former worker started or completed its work.
-            return dict(issue=number,phase='INTERRUPTED',dispatched=False,duplicate=True,
-                        notification='UNCONFIGURED',historical=True,outcome='unknown')
+            return self._interrupted_report(number)
         if old and old['phase']=='RESULT_AWAITING_RESTART':
             self.state.confirm_restart(number,self.runtime.current_epoch(),
                 deployment_contract_verified=self.runtime.deployment_contract_verified)
@@ -217,13 +239,20 @@ class Controller:
 
     def once(self):
         started=time.monotonic()
-        candidates=self.issues.list_candidates()
+        reports=self.recover_interrupted_claims()
+        recovered={report['issue'] for report in reports}
+        try:
+            candidates=self.issues.list_candidates()
+        except Exception as exc:
+            # A remote outage must not hide a completed local transition. It
+            # still blocks every new admission and publication in this scan.
+            if not reports:raise
+            return reports+[source_failure_report(exc)]
         numbers=set(candidates)|set(self.state.intake.tracked())
         if len(numbers)>MAX_TRACKED:raise ContractError('tracked Issue limit reached')
         # A failed complete listing aborts before any dispatch; each known Issue
         # is still re-read, including cancellation/removal of its title marker.
-        reports=[]
-        for number in sorted(numbers):
+        for number in sorted(numbers-recovered):
             if time.monotonic()-started>=SCAN_SECONDS:
                 reports.append(dict(phase='SCAN_DEADLINE',dispatched=False));break
             try:

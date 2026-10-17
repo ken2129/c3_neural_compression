@@ -27,6 +27,8 @@ class BuildContextTests(unittest.TestCase):
         self.assertIn('native_root="$(dirname "$(dirname "$native")")"',dockerfile)
         self.assertIn('test -f "$native_root/codex-package.json"',dockerfile)
         self.assertIn('test -x "$native_root/bin/codex-code-mode-host"',dockerfile)
+        self.assertIn('test -x "$native_root/codex-resources/bwrap"',dockerfile)
+        self.assertIn('test -x /opt/codex/codex-resources/bwrap',dockerfile)
         self.assertIn('cp -a "$native_root/." /opt/codex/',dockerfile)
         self.assertNotIn('install -m 0755 "$native"',dockerfile)
         self.assertLess(dockerfile.index('rm /opt/codex/bin/codex'),

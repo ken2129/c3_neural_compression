@@ -5,7 +5,7 @@ from pathlib import Path
 import sqlite3
 import uuid
 
-from .issue_intake import Intake
+from .issue_intake import Intake, MAX_TRACKED
 from .store import SingleInstance
 from .persistent_fixture import private, exclusive_record, sync_directory, EXPECTED_SQL
 from .schema import ContractError, canonical, loads, fields, identifier
@@ -136,6 +136,12 @@ class ServiceState:
     def get(self,issue):
         row=self.db.execute('SELECT binding,phase,result,publication FROM service_runs WHERE issue=?',(issue,)).fetchone()
         return None if row is None else dict(binding=loads(row[0]),phase=row[1],result=loads(row[2]) if row[2] else None,publication=loads(row[3]) if row[3] else None)
+
+    def pending_claims(self):
+        """Bounded local recovery inventory; never consult or change intake."""
+        rows=self.db.execute("SELECT issue FROM service_runs WHERE phase='CLAIMED' ORDER BY issue LIMIT ?",(MAX_TRACKED+1,)).fetchall()
+        if len(rows)>MAX_TRACKED:raise ContractError('pending claim limit reached')
+        return [row[0] for row in rows]
 
     def claim(self,binding,epoch=None):
         validate_binding(binding)

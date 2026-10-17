@@ -95,6 +95,7 @@ class ServiceStateTests(unittest.TestCase):
 
     def test_explicit_initialize_and_open_empty_state(self):
         self.assertIsNone(self.state.get(70))
+        self.assertEqual(self.state.pending_claims(), [])
         self.assertEqual(list((self.root / 'claims').iterdir()), [])
         self.assertEqual((self.root / 'state.sqlite').stat().st_mode & 0o777, 0o600)
         self.assertIsNone(self.reopen().get(70))
@@ -217,6 +218,7 @@ class ServiceStateTests(unittest.TestCase):
 
     def test_claim_is_durable_and_duplicate_does_not_replace_witness(self):
         self.claimed()
+        self.assertEqual(self.state.pending_claims(), [70])
         witness = self.root / 'claims' / '70.json'
         self.assertEqual(witness.read_bytes(), canonical(self.binding))
         inode = witness.stat().st_ino
@@ -288,6 +290,7 @@ class ServiceStateTests(unittest.TestCase):
         self.state.block(70)
         self.assertEqual(self.reopen().get(70)['phase'], 'BLOCKED')
         self.assertFalse(self.state.claim(self.binding))
+        self.assertEqual(self.state.pending_claims(), [])
 
     def epoch_claim(self):
         self.seed_receipt()
@@ -330,6 +333,7 @@ class ServiceStateTests(unittest.TestCase):
 
     def test_interrupted_run_cannot_reclaim_block_save_result_or_publish(self):
         _, after = self.interrupted()
+        self.assertEqual(self.state.pending_claims(), [])
         self.assertFalse(self.state.claim(self.binding, epoch=after))
         self.state.block(70)
         self.assertEqual(self.state.get(70)['phase'], 'INTERRUPTED')

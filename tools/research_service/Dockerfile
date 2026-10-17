@@ -8,10 +8,14 @@ RUN test "${#SOURCE_SHA}" = 40 \
  && native_root="$(dirname "$(dirname "$native")")" \
  && test -f "$native_root/codex-package.json" \
  && test -x "$native_root/bin/codex-code-mode-host" \
+ && test -f "$native_root/codex-resources/bwrap" && test ! -L "$native_root/codex-resources/bwrap" \
+ && test -x "$native_root/codex-resources/bwrap" \
  && rm /opt/codex/bin/codex \
  && cp -a "$native_root/." /opt/codex/ \
  && test -f /opt/codex/codex-package.json \
  && test -x /opt/codex/bin/codex-code-mode-host \
+ && test -f /opt/codex/codex-resources/bwrap && test ! -L /opt/codex/codex-resources/bwrap \
+ && test -x /opt/codex/codex-resources/bwrap \
  && /opt/codex/bin/codex --version \
  && rm -rf /var/lib/apt/lists/* \
  && groupadd --gid 10001 control && useradd --uid 10001 --gid 10001 --no-create-home control \

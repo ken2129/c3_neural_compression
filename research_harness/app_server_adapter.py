@@ -30,6 +30,14 @@ CODEX_HOME = '/work/codex-home'
 VERSION = '0.160.0'
 MAX_FRAME = 65536
 MAX_TOTAL = 1024 * 1024
+# Exact rust-v0.160.0 startup fallback notice, observed in the no-model probe.
+# This admits metadata only; it neither proves a sandbox works nor changes it.
+_BUNDLED_BWRAP_WARNING = (
+    'Codex could not find bubblewrap on PATH. Install bubblewrap with your OS '
+    'package manager. See the sandbox prerequisites: '
+    'https://developers.openai.com/codex/concepts/sandboxing#prerequisites. '
+    'Codex will use the bundled bubblewrap in the meantime.'
+)
 COMMAND = ('python3', '-I', '-S', '-c', 'print(sum(i*i for i in range(10000)))')
 SHELL_BODIES = frozenset((
     "python3 -I -S -c 'print(sum(i*i for i in range(10000)))'",
@@ -70,6 +78,7 @@ _BLOCK_REASON_CODES = MappingProxyType({
     'invalid app-server notification': 'APP_SERVER_NOTIFICATION_INVALID',
     'invalid app-server notification timestamp': 'APP_SERVER_NOTIFICATION_TIMESTAMP',
     'invalid app-server telemetry fields': 'APP_SERVER_TELEMETRY_FIELDS',
+    'app-server configuration warning rejected': 'APP_SERVER_CONFIG_WARNING_REJECTED',
     'invalid account telemetry': 'APP_SERVER_ACCOUNT_TELEMETRY',
     'remote control is not disabled or telemetry is malformed': 'APP_SERVER_REMOTE_CONTROL_STATE',
     'invalid rate-limit telemetry': 'APP_SERVER_RATE_LIMIT_TELEMETRY',
@@ -151,8 +160,9 @@ _METHODS = frozenset(('none', 'unknown', 'initialize', 'initialized', 'thread/st
     'account/chatgptAuthTokens/refresh', 'attestation/generate',
     'applyPatchApproval', 'execCommandApproval', 'warning',
     'deprecationNotice', 'configWarning'))
+_CONFIG_WARNING_CATEGORIES = frozenset(('none', 'bundled_bwrap_fallback', 'unrecognized', 'malformed'))
 _DIAGNOSTIC_FIELDS = ('reason', 'phase', 'frame_kind', 'method', 'initialized',
-                      'thread_started', 'turn_accepted', 'final_validated')
+                      'thread_started', 'turn_accepted', 'final_validated', 'config_warning')
 _DIAGNOSTIC_CONTEXT = ContextVar('app_server_diagnostic', default=None)
 # Weak keys avoid retaining exception tracebacks. Records live outside mutable
 # exception attributes; neither forged attributes nor args affect the exporter.
@@ -164,10 +174,11 @@ class _DiagnosticState:
         self.phase, self.frame_kind, self.method = phase, 'none', 'none'
         self.initialized = self.thread_started = self.turn_accepted = self.final_validated = False
         self.rpc_method = 'none'
+        self.config_warning = 'none'
 
     def record(self, reason):
         return (reason, self.phase, self.frame_kind, self.method, self.initialized,
-                self.thread_started, self.turn_accepted, self.final_validated)
+                self.thread_started, self.turn_accepted, self.final_validated, self.config_warning)
 
 
 def _diagnosed(phase):
@@ -184,7 +195,7 @@ def _diagnosed(phase):
                 # an exception that was constructed before this run began.
                 if type(exc) is AppServerBlocked:
                     record = _DIAGNOSTIC_RECORDS.get(exc)
-                    if (type(record) is tuple and len(record) == 8
+                    if (type(record) is tuple and len(record) == len(_DIAGNOSTIC_FIELDS)
                             and type(record[0]) is str and record[0] in _REASON_CODES):
                         _DIAGNOSTIC_RECORDS[exc] = _DIAGNOSTIC_CONTEXT.get().record(record[0])
                 raise
@@ -210,6 +221,7 @@ def _diagnostic_clear_frame():
     state = _DIAGNOSTIC_CONTEXT.get()
     if state is not None:
         state.frame_kind, state.method = 'none', 'none'
+        state.config_warning = 'none'
 
 
 def _diagnostic_frame(value):
@@ -217,6 +229,7 @@ def _diagnostic_frame(value):
     if state is None:
         return
     state.frame_kind, state.method = 'unknown', 'unknown'
+    state.config_warning = 'none'
     if type(value) is not dict:
         return
     if 'method' in value:
@@ -246,8 +259,9 @@ def safe_app_server_diagnostic(exc):
     In particular, a server may accept a sent turn before a response is received.
     Subclasses and exceptions bypassing our constructor have no trusted record.
     Caller mutation, exception args/attributes, causes and arbitrary event values
-    cannot enter this export. Frame fields describe the current validation and
-    are cleared before transport operations; response methods name the pending
+    cannot enter this export. Frame fields describe the current validation. Frame fields
+    and config-warning category are cleared before every new frame and transport
+    operation; response methods name the pending
     RPC, not a method claimed by the server. Do not log exception text alongside
     this record.
     """
@@ -259,7 +273,10 @@ def safe_app_server_diagnostic(exc):
     for value, allowed in zip(record[:4], (_REASON_CODES, _PHASES, _FRAME_KINDS, _METHODS)):
         if type(value) is not str or len(value) > 64 or value not in allowed:
             return None
-    flags = record[4:]
+    category = record[8]
+    if type(category) is not str or len(category) > 32 or category not in _CONFIG_WARNING_CATEGORIES:
+        return None
+    flags = record[4:8]
     if any(type(flag) is not bool for flag in flags):
         return None
     if any(flags[index] and not flags[index - 1] for index in range(1, len(flags))):
@@ -482,8 +499,38 @@ def _telemetry_percentage(value):
     return type(value) is int and -(2**31) <= value < 2**31
 
 
+def _config_warning(params):
+    """Only the pinned bundled-bwrap notice is harmless connection metadata.
+
+    ConfigWarningNotification.ts requires summary/details and permits path/range.
+    The observed startup notice has no source location; absent/null locations are
+    the only admitted forms. Non-null locations and all other warnings stop.
+    No warning text, path or details is copied to diagnostics.
+    """
+    category = 'malformed'
+    if (type(params) is dict and {'summary', 'details'} <= params.keys()
+            and not params.keys() - {'summary', 'details', 'path', 'range'}
+            and type(params['summary']) is str
+            and (params['details'] is None or type(params['details']) is str)
+            and (params.get('path') is None or type(params['path']) is str)
+            and (params.get('range') is None or type(params['range']) is dict)):
+        category = ('bundled_bwrap_fallback'
+                    if params['summary'] == _BUNDLED_BWRAP_WARNING
+                    and params['details'] is None
+                    and params.get('path') is None and params.get('range') is None
+                    else 'unrecognized')
+    state = _DIAGNOSTIC_CONTEXT.get()
+    if state is not None:
+        state.config_warning = category
+    if category != 'bundled_bwrap_fallback':
+        raise AppServerBlocked('app-server configuration warning rejected')
+
+
 def _connection_telemetry(method, params):
     """Validate known connection-level metadata; never treat it as evidence."""
+    if method == 'configWarning':
+        _config_warning(params)
+        return True
     plan_types = (None, 'free', 'go', 'plus', 'pro', 'prolite', 'promax', 'team',
         'self_serve_business_prolite', 'self_serve_business_usage_based', 'business',
         'ent26', 'enterprise_cbp_automation', 'enterprise_cbp_usage_based',

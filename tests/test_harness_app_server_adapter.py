@@ -75,6 +75,17 @@ def transcript():
     ]
 
 
+def bundled_bwrap_warning():
+    # Verbatim notification from official 0.160.0 initialize/thread-start probe
+    # no-model-protocol.json (2026-10-17). No model or credential content.
+    return {'method': 'configWarning', 'params': {
+        'summary': 'Codex could not find bubblewrap on PATH. Install bubblewrap '
+        'with your OS package manager. See the sandbox prerequisites: '
+        'https://developers.openai.com/codex/concepts/sandboxing#prerequisites. '
+        'Codex will use the bundled bubblewrap in the meantime.',
+        'details': None}, 'emittedAtMs': 1792236238533}
+
+
 def rate_limits_event():
     return event('account/rateLimits/updated', {'rateLimits': {
         'limitId': 'codex', 'limitName': None, 'normalModelSlug': None,
@@ -430,6 +441,83 @@ class AppServerAdapterTest(unittest.TestCase):
             mutate(next(frame for frame in frames if frame.get('method') == method)['params'])
             with self.subTest(method=method), self.assertRaises(AppServerBlocked): self.run_fake(frames)
 
+    def test_exact_bundled_bwrap_notice_is_admitted_at_every_receive_phase(self):
+        for position in range(len(transcript())):
+            for locations in ({}, {'path': None}, {'range': None}, {'path': None, 'range': None}):
+                frames = transcript()
+                warning = bundled_bwrap_warning(); warning['params'].update(locations)
+                frames.insert(position, warning)
+                with self.subTest(position=position, locations=locations):
+                    result = self.run_fake(frames)
+                    self.assertEqual(result.candidate.reported_checksum, 333283335000)
+        # Captured order: initialize reply -> notice -> remote state -> thread reply.
+        frames = complete_v0160_transcript(); frames.insert(1, bundled_bwrap_warning())
+        self.assertEqual(self.run_fake(frames).command_checksum, 333283335000)
+
+    def test_config_warning_unknown_content_and_security_changes_are_blocked(self):
+        approved = bundled_bwrap_warning()['params']['summary']
+        summaries = [approved + ' ', approved.replace('bundled', 'disabled'),
+            'User namespaces are disabled. Sandbox cannot start.',
+            'WSL1 does not support the Linux sandbox.',
+            'Falling back to default configuration after a load error.',
+            'Managed policy overrides sandbox settings.', 'sk-secret-do-not-export']
+        variants = [dict(summary=summary, details=None) for summary in summaries]
+        variants += [dict(summary=approved, details='sk-secret-do-not-export'),
+                     dict(summary=approved, details=None, path='/secret/path'),
+                     dict(summary=approved, details=None,
+                          range={'start': {'line': 1, 'column': 1}, 'end': {'line': 1, 'column': 2}})]
+        for params in variants:
+            for position in (0, 1, 3, 5, 9):
+                frames = transcript(); frames.insert(position, event('configWarning', params))
+                with self.subTest(position=position), self.assertRaises(AppServerBlocked) as caught:
+                    self.run_fake(frames)
+                detail = safe_app_server_diagnostic(caught.exception)
+                self.assertEqual(detail['reason'], 'APP_SERVER_CONFIG_WARNING_REJECTED')
+                self.assertEqual(detail['config_warning'], 'unrecognized')
+                self.assertEqual(detail['method'], 'configWarning')
+                self.assertNotIn('sk-secret', json.dumps(detail))
+                self.assertNotIn('/secret/path', json.dumps(detail))
+
+    def test_malformed_config_warning_fields_are_not_general_telemetry(self):
+        approved = bundled_bwrap_warning()['params']['summary']
+        variants = [{}, {'summary': approved}, {'details': None},
+            {'summary': None, 'details': None}, {'summary': [], 'details': None},
+            {'summary': approved, 'details': False}, {'summary': approved, 'details': {}},
+            {'summary': approved, 'details': None, 'path': 1},
+            {'summary': approved, 'details': None, 'range': 'wrong-type'},
+            {'summary': approved, 'details': None, 'unknown': 'sk-secret-do-not-export'}]
+        for params in variants:
+            frames = transcript(); frames.insert(0, event('configWarning', params))
+            with self.subTest(params=params), self.assertRaises(AppServerBlocked) as caught:
+                self.run_fake(frames)
+            detail = safe_app_server_diagnostic(caught.exception)
+            self.assertEqual(detail['reason'], 'APP_SERVER_CONFIG_WARNING_REJECTED')
+            self.assertEqual(detail['config_warning'], 'malformed')
+            self.assertNotIn('sk-secret', json.dumps(detail))
+
+    def test_warning_envelope_requests_and_model_warnings_remain_blocked(self):
+        for mutate in [lambda w: w.update(extra='secret'), lambda w: w.update(emittedAtMs=True),
+                       lambda w: w.update(jsonrpc='1.0'), lambda w: w.update(id=10),
+                       lambda w: w.update(params=None), lambda w: w.update(method='warning'),
+                       lambda w: w.update(method='guardianWarning')]:
+            warning = bundled_bwrap_warning(); mutate(warning)
+            frames = transcript(); frames.insert(0, warning)
+            with self.subTest(mutate=mutate), self.assertRaises(AppServerBlocked): self.run_fake(frames)
+        frames = transcript(); frames.insert(1, bundled_bwrap_warning())
+        frames = [f for f in frames if f.get('params', {}).get('item', {}).get('type') != 'commandExecution']
+        with self.assertRaisesRegex(AppServerBlocked, 'command completion'):
+            self.run_fake(frames)
+
+    def test_config_warning_diagnostic_does_not_leak_to_later_frames(self):
+        for after_warning in [response(1, {}), event('unknown-secret-method', {})]:
+            frames = [bundled_bwrap_warning(), after_warning]
+            with self.assertRaises(AppServerBlocked) as caught: self.run_fake(frames)
+            detail = safe_app_server_diagnostic(caught.exception)
+            self.assertEqual(detail['config_warning'], 'none')
+            self.assertNotIn('unknown-secret-method', json.dumps(detail))
+        with self.assertRaises(AppServerBlocked) as caught: self.run_fake([bundled_bwrap_warning()])
+        self.assertEqual(safe_app_server_diagnostic(caught.exception)['config_warning'], 'none')
+
     def test_semantic_changes_warnings_and_experimental_notifications_remain_blocked(self):
         for method in ('model/rerouted', 'warning', 'configWarning', 'deprecationNotice',
                        'modelProvider/authRecoveryStarted', 'thread/settings/updated',
@@ -557,7 +645,7 @@ class AppServerDiagnosticTest(unittest.TestCase):
                  if isinstance(node, ast.Raise) and isinstance(node.exc, ast.Call)
                  and isinstance(node.exc.func, ast.Name) and node.exc.func.id == 'AppServerBlocked'
                  and node.exc.args and isinstance(node.exc.args[0], ast.Constant)]
-        self.assertEqual(len(sites), 82)
+        self.assertEqual(len(sites), 83)
         self.assertEqual(set(sites), set(adapter_module._BLOCK_REASON_CODES))
         codes = list(adapter_module._BLOCK_REASON_CODES.values())
         self.assertEqual(len(codes), len(set(codes)))
@@ -596,9 +684,10 @@ class AppServerDiagnosticTest(unittest.TestCase):
         exc = AppServerBlocked('invalid app-server identifier')
         record = adapter_module._DIAGNOSTIC_RECORDS[exc]
         for corrupt in ({'reason': 'secret'}, ('secret',) + record[1:],
-                        record[:4] + (1, False, False, False),
-                        record[:4] + (False, True, False, False),
-                        record[:3] + ('secret',) + record[4:]):
+                        record[:4] + (1, False, False, False) + record[8:],
+                        record[:4] + (False, True, False, False) + record[8:],
+                        record[:3] + ('secret',) + record[4:],
+                        record[:8] + ('secret',), record[:8] + ([],)):
             adapter_module._DIAGNOSTIC_RECORDS[exc] = corrupt
             self.assertIsNone(safe_app_server_diagnostic(exc))
 
@@ -607,32 +696,32 @@ class AppServerDiagnosticTest(unittest.TestCase):
         detail = self.failure(frames)
         self.assertEqual((detail['reason'], detail['phase'], detail['frame_kind'], detail['method']),
             ('APP_SERVER_INITIALIZE_CONFIGURATION', 'initialize_validate', 'response', 'initialize'))
-        self.assertEqual([detail[k] for k in adapter_module._DIAGNOSTIC_FIELDS[4:]], [False]*4)
+        self.assertEqual([detail[k] for k in adapter_module._DIAGNOSTIC_FIELDS[4:8]], [False]*4)
         frames = transcript(); frames[2]['result']['instructionSources'] = ['secret-path']
         detail = self.failure(frames)
         self.assertEqual((detail['reason'], detail['phase'], detail['method']),
             ('APP_SERVER_THREAD_CONFIGURATION', 'thread_start_validate', 'thread/start'))
-        self.assertEqual([detail[k] for k in adapter_module._DIAGNOSTIC_FIELDS[4:]],
+        self.assertEqual([detail[k] for k in adapter_module._DIAGNOSTIC_FIELDS[4:8]],
                          [True, False, False, False])
         frames = transcript(); frames[4]['result']['turn']['status'] = 'failed'
         detail = self.failure(frames)
         self.assertEqual((detail['reason'], detail['phase'], detail['method']),
             ('APP_SERVER_TURN_START_STATUS', 'turn_start_validate', 'turn/start'))
-        self.assertEqual([detail[k] for k in adapter_module._DIAGNOSTIC_FIELDS[4:]],
+        self.assertEqual([detail[k] for k in adapter_module._DIAGNOSTIC_FIELDS[4:8]],
                          [True, True, False, False])
 
     def test_buffered_frame_is_classified_when_validated(self):
         frames = transcript()
-        frames.insert(0, event('configWarning', {'message': 'sk-secret-do-not-export'}))
+        frames.insert(0, event('deprecationNotice', {'message': 'sk-secret-do-not-export'}))
         detail = self.failure(frames)
         self.assertEqual((detail['reason'], detail['phase'], detail['frame_kind'], detail['method']),
-            ('APP_SERVER_PRE_INITIALIZE_ACTIVITY', 'initialize_validate', 'notification', 'configWarning'))
+            ('APP_SERVER_PRE_INITIALIZE_ACTIVITY', 'initialize_validate', 'notification', 'deprecationNotice'))
         self.assertNotIn('sk-secret', json.dumps(detail))
         frames = transcript()
-        frames.insert(1, event('configWarning', {'message': 'sk-secret-do-not-export'}))
+        frames.insert(1, event('deprecationNotice', {'message': 'sk-secret-do-not-export'}))
         detail = self.failure(frames)
         self.assertEqual((detail['reason'], detail['phase'], detail['frame_kind'], detail['method']),
-            ('APP_SERVER_PRE_TURN_ACTIVITY', 'thread_start_validate', 'notification', 'configWarning'))
+            ('APP_SERVER_PRE_TURN_ACTIVITY', 'thread_start_validate', 'notification', 'deprecationNotice'))
         self.assertNotIn('sk-secret', json.dumps(detail))
 
     def test_stream_and_final_rejection_context(self):
@@ -640,7 +729,7 @@ class AppServerDiagnosticTest(unittest.TestCase):
         detail = self.failure(frames)
         self.assertEqual((detail['reason'], detail['phase'], detail['method']),
                          ('APP_SERVER_COMMAND_MISMATCH', 'stream', 'item/started'))
-        self.assertEqual([detail[k] for k in adapter_module._DIAGNOSTIC_FIELDS[4:]],
+        self.assertEqual([detail[k] for k in adapter_module._DIAGNOSTIC_FIELDS[4:8]],
                          [True, True, True, False])
         frames = transcript(); frames[-1]['params']['turn']['items'] = []
         detail = self.failure(frames)
@@ -695,11 +784,11 @@ class AppServerDiagnosticTest(unittest.TestCase):
         with patch.object(adapter_module, 'AppServerCandidate',
                           side_effect=AppServerBlocked('post-validation test failure')):
             detail = self.failure(transcript())
-        self.assertTrue(all(detail[k] for k in adapter_module._DIAGNOSTIC_FIELDS[4:]))
+        self.assertTrue(all(detail[k] for k in adapter_module._DIAGNOSTIC_FIELDS[4:8]))
         self.assertEqual(detail['phase'], 'final_validate')
         outside = safe_app_server_diagnostic(AppServerBlocked('invalid app-server identifier'))
         self.assertEqual(outside['phase'], 'unscoped')
-        self.assertFalse(any(outside[k] for k in adapter_module._DIAGNOSTIC_FIELDS[4:]))
+        self.assertFalse(any(outside[k] for k in adapter_module._DIAGNOSTIC_FIELDS[4:8]))
 
 
 class BoundedStdioTransportTest(unittest.TestCase):

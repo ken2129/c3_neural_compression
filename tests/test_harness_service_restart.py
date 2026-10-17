@@ -258,12 +258,136 @@ class ServiceRestartTests(unittest.TestCase):
         self.reopen()
         with patch.object(self.controller, 'process', wraps=self.controller.process) as process:
             reports = self.controller.once()
-        self.assertEqual(process.call_count, 2)
+        self.assertEqual([call.args[0] for call in process.call_args_list], [ISSUE + 1])
         self.assertEqual(reports[0]['phase'], 'INTERRUPTED')
         self.assertEqual(reports[0]['outcome'], 'unknown')
         self.assertTrue(all(report['dispatched'] is False for report in reports))
         self.assertTrue(all(not report.get('restart_required') for report in reports))
         self.assertEqual(self.runtime.runs, 0)
+        self.assertEqual(self.publishers.calls, 0)
+
+    def pending_recovery(self):
+        binding = self.controller.approve(ISSUE)
+        self.state.claim(binding, epoch=epoch())
+        self.runtime.epoch = self.newer_epoch()
+        self.reopen()
+        self.assertEqual(self.state.get(ISSUE)['phase'], 'CLAIMED')
+        return binding
+
+    def test_local_recovery_precedes_failed_listing_and_reports_both_outcomes(self):
+        binding = self.pending_recovery()
+        def unavailable():
+            self.assertEqual(self.state.get(ISSUE)['phase'], 'INTERRUPTED')
+            raise TimeoutError('private source failure details')
+        with patch.object(self.source, 'list_candidates', side_effect=unavailable), \
+             patch.object(self.source, 'get_issue', side_effect=AssertionError('no issue reads')), \
+             patch.object(self.source, 'comments', side_effect=AssertionError('no approval reads')), \
+             patch.object(self.controller, 'process', side_effect=AssertionError('no admission')):
+            reports = self.controller.once()
+        self.assertEqual(reports, [dict(issue=ISSUE, phase='INTERRUPTED', dispatched=False,
+                                        duplicate=True, notification='UNCONFIGURED', historical=True,
+                                        outcome='unknown'),
+                                   dict(phase='SOURCE_UNAVAILABLE', dispatched=False,
+                                        error_category='TIMEOUT')])
+        self.assertEqual(self.state.get(ISSUE)['binding'], binding)
+        self.assertEqual(self.saved_epoch(), (epoch().to_dict(), self.newer_epoch().to_dict()))
+        self.assertFalse(self.state.claim(binding, epoch=self.newer_epoch()))
+        self.assertEqual(self.runtime.runs, 0)
+        self.assertEqual(self.runtime.preflights, 0)
+        self.assertEqual(self.runtime.current_calls, 1)
+        self.assertEqual(self.publishers.calls, 0)
+        self.assertFalse(self.controller.generation_attempted)
+        self.reopen()
+        self.assertEqual(self.state.get(ISSUE)['phase'], 'INTERRUPTED')
+
+    def test_local_recovery_precedes_deadline_consumed_by_earlier_issue(self):
+        self.pending_recovery()
+        self.source.candidates = [ISSUE - 2, ISSUE - 1, ISSUE]
+        def earlier(number):
+            self.assertEqual(self.state.get(ISSUE)['phase'], 'INTERRUPTED')
+            return dict(issue=number, phase='BLOCKED', dispatched=False)
+        with patch('research_harness.service.time.monotonic', side_effect=[0, 0, SCAN_SECONDS]), \
+             patch.object(self.controller, 'process', side_effect=earlier) as process:
+            reports = self.controller.once()
+        self.assertEqual([call.args[0] for call in process.call_args_list], [ISSUE - 2])
+        self.assertEqual([report['phase'] for report in reports],
+                         ['INTERRUPTED', 'BLOCKED', 'SCAN_DEADLINE'])
+        self.assertEqual(self.runtime.current_calls, 1)
+        self.assertEqual(self.runtime.runs, 0)
+        self.assertEqual(self.publishers.calls, 0)
+
+    def test_local_recovery_precedes_restart_requested_by_earlier_issue(self):
+        self.pending_recovery()
+        self.source.candidates = [ISSUE - 1, ISSUE]
+        def earlier(number):
+            self.assertEqual(self.state.get(ISSUE)['phase'], 'INTERRUPTED')
+            return dict(issue=number, phase='RESULT_AWAITING_RESTART', dispatched=True,
+                        restart_required=True)
+        with patch.object(self.controller, 'process', side_effect=earlier) as process:
+            reports = self.controller.once()
+        self.assertEqual([call.args[0] for call in process.call_args_list], [ISSUE - 1])
+        self.assertEqual([report['phase'] for report in reports],
+                         ['INTERRUPTED', 'RESULT_AWAITING_RESTART'])
+        self.assertFalse(reports[0]['dispatched'])
+        self.assertNotIn('restart_required', reports[0])
+        self.assertEqual(self.runtime.current_calls, 1)
+        self.assertEqual(self.runtime.runs, 0)
+        self.assertEqual(self.publishers.calls, 0)
+
+    def test_local_recovery_same_epoch_or_unverified_contract_never_changes_claim(self):
+        binding = self.controller.approve(ISSUE)
+        self.state.claim(binding, epoch=epoch())
+        self.reopen()
+        checks = [(epoch(), True), (self.newer_epoch(), False),
+                  (self.newer_epoch(), None), (self.newer_epoch(), 1),
+                  (replace(self.newer_epoch(), container_id='f' * 64), True),
+                  (replace(self.newer_epoch(), boot_id=OTHER_BOOT), True)]
+        for current, verified in checks:
+            with self.subTest(epoch=current, verified=verified):
+                self.runtime.epoch = current
+                self.runtime.deployment_contract_verified = verified
+                with patch.object(self.source, 'list_candidates', side_effect=TimeoutError('unavailable')), \
+                     patch.object(self.controller, 'process', side_effect=AssertionError('no dispatch')):
+                    with self.assertRaises(TimeoutError):
+                        self.controller.once()
+                self.assertEqual(self.state.get(ISSUE)['phase'], 'CLAIMED')
+                self.assertEqual(self.saved_epoch(), (epoch().to_dict(), None))
+        self.assertFalse(self.state.claim(binding, epoch=self.newer_epoch()))
+        self.assertEqual(self.runtime.preflights, 0)
+        self.assertEqual(self.runtime.runs, 0)
+        self.assertEqual(self.publishers.calls, 0)
+
+    def test_local_recovery_missing_epoch_or_runtime_never_admits(self):
+        self.pending_recovery()
+        self.runtime.epoch = None
+        with patch.object(self.source, 'list_candidates', side_effect=AssertionError('no remote reads')):
+            with self.assertRaises(ContractError):
+                self.controller.once()
+        self.runtime.current_epoch = None
+        self.assertEqual(self.controller.recover_interrupted_claims(), [])
+        self.assertEqual(self.state.get(ISSUE)['phase'], 'CLAIMED')
+        self.assertEqual(self.saved_epoch(), (epoch().to_dict(), None))
+        self.assertEqual(self.runtime.runs, 0)
+        self.assertEqual(self.publishers.calls, 0)
+
+    def test_local_recovery_is_bounded_before_epoch_read_or_state_change(self):
+        self.pending_recovery()
+        with patch('research_harness.service_state.MAX_TRACKED', 0), \
+             patch.object(self.source, 'list_candidates', side_effect=AssertionError('no remote reads')):
+            with self.assertRaisesRegex(ContractError, 'pending claim limit reached'):
+                self.controller.once()
+        self.assertEqual(self.runtime.current_calls, 0)
+        self.assertEqual(self.state.get(ISSUE)['phase'], 'CLAIMED')
+        self.assertEqual(self.saved_epoch(), (epoch().to_dict(), None))
+
+    def test_local_recovery_skips_nonclaimed_runs_without_epoch_read(self):
+        self.assertEqual(self.controller.recover_interrupted_claims(), [])
+        self.assertEqual(self.runtime.current_calls, 0)
+        self.await_restart()
+        self.runtime.epoch = self.newer_epoch()
+        self.assertEqual(self.controller.recover_interrupted_claims(), [])
+        self.assertEqual(self.runtime.current_calls, 0)
+        self.assertEqual(self.state.get(ISSUE)['phase'], 'RESULT_AWAITING_RESTART')
         self.assertEqual(self.publishers.calls, 0)
 
     def test_failed_claim_stays_blocked_after_new_epoch(self):
