@@ -255,6 +255,11 @@ class ProcessManager:
             raise ProcessError("boot identity changed")
         if leader["pgrp"] != leader["pid"] or leader["session"] != leader["pid"] or leader.get("uid") != os.getuid():
             raise ProcessError("recorded group is not an owned fixture session")
+        # A receipt is not permission to stop the supervisor or its session.
+        # This also covers controllers that are not their session/group leader.
+        if (leader["pid"] == os.getpid() or leader["pgrp"] == os.getpgrp()
+                or leader["session"] == os.getsid(0)):
+            raise ProcessError("recorded fixture overlaps the controller session")
         anchor = False
         for previous in known:
             if not isinstance(previous, dict) or type(previous.get("pid")) is not int:
@@ -421,6 +426,11 @@ class ProcessManager:
     @staticmethod
     def _signal_verified(identity: dict[str, Any], signum: int) -> bool:
         """Signal through a pidfd, rechecking identity after opening it (no PID race)."""
+        # Defense in depth: reject self-targeting even when called directly or
+        # if the process joins the controller's group after the group scan.
+        if (identity.get("pid") == os.getpid() or identity.get("pgrp") == os.getpgrp()
+                or identity.get("session") == os.getsid(0)):
+            raise ProcessError("signal target overlaps the controller session")
         try:
             fd = os.pidfd_open(identity["pid"], 0)
         except ProcessLookupError:
