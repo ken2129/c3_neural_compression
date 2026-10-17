@@ -31,6 +31,10 @@ import time
 from research_harness.schema import ContractError
 from research_harness.codex_adapter import (CanaryCandidate, CanaryRequest, CliInspection, CodexAdapter,
                                             parse_candidate)
+from research_harness.app_server_adapter import (
+    AppServerAdapter, AppServerRequest, BoundedStdioTransport, PendingAppServerResult,
+    validate_app_server_request,
+)
 
 
 WORKER_UID = 10002
@@ -267,6 +271,20 @@ class LinuxUIDBackend:
         # The fixed prompt is below PIPE_BUF; no arbitrary or unbounded input.
         handle.process.stdin.write(prompt)
         handle.process.stdin.close()
+
+    @staticmethod
+    def launch_app_server(request):
+        validate_app_server_request(request)
+        gate_read, gate_write = os.pipe()
+        ready_read, ready_write = os.pipe()
+        try:
+            child = spawn_fixed_app_server_child(request, gate_read=gate_read, ready_write=ready_write)
+        except BaseException:
+            os.close(gate_write); os.close(ready_read)
+            raise
+        finally:
+            os.close(gate_read); os.close(ready_write)
+        return ChildHandle(child, gate_write, ready_read)
 
     @staticmethod
     def ready(handle, timeout):
@@ -610,6 +628,67 @@ class OwnedUIDSupervisor:
             # Never disarm: controller must persist pending output and exit PID1.
             # Even failure must cross a namespace generation before another run.
 
+    def run_fixed_app_server_canary(self, request, recheck, *, enabled=False,
+                                    admit_external=None, before_release=None):
+        """Explicit externally-sandboxed single turn, always restart-pending.
+
+        This is a distinct opt-in, never fallback from failed normal sandboxing.
+        admit_external is protected code verifying this approved external
+        filesystem/network boundary, pinned CLI/config, worker-only auth, cost
+        approval, resources, hard lifetime and exclusive namespace restart.
+        The explicit enabled network policy supplies no firewall. Callbacks are not
+        Issue/worker inputs. This path never converts a candidate into success.
+        """
+        if enabled is not True:
+            raise SupervisorBlocked('APP_SERVER_DISABLED')
+        validate_app_server_request(request)
+        if (not callable(admit_external) or not callable(recheck)
+                or (before_release is not None and not callable(before_release))):
+            raise SupervisorBlocked('EXTERNAL_BOUNDARY_ADMISSION_NOT_CONFIGURED')
+        adapter = AppServerAdapter(enabled=True)
+        adapter.admit(request, admit_external=admit_external, recheck=recheck)
+        reservation = self.reserve()
+        started = self.os.now()
+        deadline = started + request.wall_seconds
+        self.os.arm_watchdog(request.wall_seconds + 4)
+        handle = transport = None
+        try:
+            recheck()
+            handle = self.os.launch_app_server(request)
+            while not self.os.ready(handle, min(0.05, max(0, deadline - self.os.now()))):
+                recheck()
+                if self.os.now() >= deadline:
+                    raise SupervisorBlocked('app-server startup deadline exceeded')
+            identity = self.os.process(handle.process.pid)
+            if identity is None or identity.uids != (WORKER_UID,) * 4:
+                raise SupervisorBlocked('app-server startup identity is invalid')
+            if before_release is not None:
+                before_release(identity)
+            recheck()
+            if self.os.now() >= deadline:
+                raise SupervisorBlocked('app-server admission deadline exceeded')
+            self.os.release(handle)
+            transport = BoundedStdioTransport(handle.process, recheck=recheck, deadline=deadline,
+                clock=self.os.now, max_frame_bytes=request.max_frame_bytes,
+                max_capture_bytes=request.max_capture_bytes)
+            result = adapter.run(request, transport, recheck=recheck)
+            self.stop_owned(reservation)
+            recheck()
+            elapsed = self.os.now() - started
+            if not 0 <= elapsed < request.wall_seconds:
+                raise SupervisorBlocked('app-server cleanup deadline exceeded')
+            return PendingAppServerResult(result.candidate, result.thread_id, result.turn_id,
+                result.observed_command, result.command_exit_code, result.command_checksum, elapsed)
+        except BaseException:
+            self.stop_owned(reservation)
+            raise
+        finally:
+            if transport is not None:
+                transport.close()
+            if handle is not None:
+                self.os.close_child(handle)
+            # Remain armed. Persist pending state and exit this dedicated PID1.
+
 
 def apply_fixed_child_limits():
     """Child-only helper, after fork and before release/exec; never call on host.
@@ -691,6 +770,23 @@ def validate_fixed_codex_request_from_process(process):
 def spawn_fixed_codex_child(request, *, gate_read, ready_write):
     """Fixed executable/argv/environment; no general arbitrary-command API."""
     validate_fixed_codex_request(request)
+    return _spawn_fixed_model_child(request, gate_read=gate_read, ready_write=ready_write)
+
+
+def spawn_fixed_app_server_child(request, *, gate_read, ready_write):
+    """Only the canonical explicit-external-sandbox app-server request."""
+    validate_app_server_request(request)
+    return _spawn_fixed_model_child(request, gate_read=gate_read, ready_write=ready_write)
+
+
+def _spawn_fixed_model_child(request, *, gate_read, ready_write):
+    # Internal shared bootstrap; no path/argv supplied by an Issue is admitted.
+    if type(request) is CanaryRequest:
+        validate_fixed_codex_request(request)
+    elif type(request) is AppServerRequest:
+        validate_app_server_request(request)
+    else:
+        raise SupervisorBlocked('unsupported fixed model child')
     if os.getpid() != 1 or os.getresuid() != (0, 0, 0):
         raise SupervisorBlocked('dedicated root PID-1 launcher required')
     for fd in (gate_read, ready_write):
@@ -734,6 +830,15 @@ for path, expected in files.items():
         if stream.read(len(expected)+1) != expected: raise SystemExit(125)
 if os.listdir('/work/worker-home'):
     raise SystemExit(125)
+if sys.argv[4] == 'app-server':
+    # Do not read secret bytes. Only user-provisioned file auth is accepted at
+    # startup; no inherited config, skills, hooks, plugins, MCP or old state.
+    if set(os.listdir('/work/codex-home')) != {'auth.json'}:
+        raise SystemExit(125)
+    auth = os.lstat('/work/codex-home/auth.json')
+    if (not stat.S_ISREG(auth.st_mode) or auth.st_uid != uid or stat.S_IMODE(auth.st_mode) != 0o600
+            or auth.st_nlink != 1 or not 0 < auth.st_size <= 65536):
+        raise SystemExit(125)
 if any(os.path.lexists(path) for path in ('/.codex','/work/.codex','/work/canary/.codex')):
     raise SystemExit(125)
 for kind, n in ((resource.RLIMIT_CORE,0),(resource.RLIMIT_CPU,10),

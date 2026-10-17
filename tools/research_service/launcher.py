@@ -1,5 +1,6 @@
 """Dedicated-container fixed CPU service. Not for an existing research container."""
 import json
+import hashlib
 import os
 from pathlib import Path
 import signal
@@ -10,7 +11,7 @@ sys.path.insert(0,'/opt/service')
 from research_harness.deployment_contract import validate_dedicated_deployment
 from research_harness.manager_runtime import PipeRuntime,read_frame,write_frame
 from research_harness.restart_boundary import read_epoch,RestartEpoch
-from research_harness.schema import ContractError,loads
+from research_harness.schema import ContractError,loads,canonical
 from research_harness.service_state import ServiceState,initialize,validate_binding
 from research_harness.persistent_fixture import exclusive_record,private,sync_directory
 from research_harness.uid_supervisor import LinuxUIDBackend,OwnedUIDSupervisor
@@ -103,28 +104,68 @@ def supervise():
         'HOME':'/control/home','GH_CONFIG_DIR':'/control/gh'},stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,text=True,close_fds=True)
     write_frame(control.stdin,{'epoch':epoch.to_dict(),'source_sha':config['source_sha'],'initialize_new_state':config['initialize_new_state']})
-    attempted=False
+    attempted=False;selected_plan=None;model_request=None
     try:
         while True:
             frame=read_frame(control.stdout)
-            if frame=={'op':'preflight'}:
+            if set(frame)=={'op','plan'} and frame['op']=='prepare_plan':
+                from research_harness.service import validate_canary_plan
+                if attempted:raise ContractError('one attempt per PID namespace')
+                selected_plan=validate_canary_plan(frame['plan'],config['source_sha'])
+                write_frame(control.stdin,{'prepared':True})
+            elif frame=={'op':'preflight'}:
                 if attempted:raise ContractError('one attempt per PID namespace')
                 # Check actual OS/outer resource boundary before durable claim.
                 OwnedUIDSupervisor(LinuxUIDBackend(),controller_pid=control.pid).reserve()
+                if selected_plan and selected_plan['kind']=='codex-canary-v1':
+                    from research_harness.model_deployment import prepare_model
+                    if model_request is None:
+                        model_request=prepare_model(source_sha=config['source_sha'],model=selected_plan['model'])
+                    elif model_request.model!=selected_plan['model']:
+                        raise ContractError('MODEL_PREPARED_FOR_DIFFERENT_PLAN')
                 write_frame(control.stdin,{'ready':True})
-            elif set(frame)=={'op','binding'} and frame['op']=='fixed_cpu':
+            elif set(frame)=={'op','binding'} and frame['op'] in ('fixed_cpu','fixed_model'):
                 if attempted:raise ContractError('one attempt per PID namespace')
                 attempted=True;validate_binding(frame['binding'])
+                if selected_plan is None or frame['binding']['source_sha']!=config['source_sha'] or hashlib.sha256(canonical(selected_plan)).hexdigest()!=frame['binding']['plan_digest']:
+                    raise ContractError('runtime plan binding mismatch')
+                model_mode=selected_plan['kind']=='codex-canary-v1'
+                if (frame['op']=='fixed_model')!=model_mode:raise ContractError('runtime kind mismatch')
                 def recheck():
                     write_frame(control.stdin,{'op':'recheck'})
                     response=read_frame(control.stdout)
                     if set(response)!={'approved'} or response['approved'] is not True:raise ContractError('approval no longer valid')
                 supervisor=OwnedUIDSupervisor(LinuxUIDBackend(),controller_pid=control.pid)
-                result=supervisor.run_fixed_canary(recheck,wall_seconds=120)
-                write_frame(control.stdin,{'result':{'checksum':result.checksum,
-                    'elapsed_seconds':result.elapsed_seconds,'model_called':False}})
+                if model_mode:
+                    if model_request is None:raise ContractError('MODEL_PREFLIGHT_MISSING')
+                    def admit_external(request):
+                        # Protected operator consent is separate from this live
+                        # supervisor's actual namespace/resource/UID checks.
+                        from research_harness.model_deployment import validate_model_config,read_private
+                        try:
+                            os.seteuid(CONTROL)
+                            current=loads(read_private(Path('/control/model.json'),limit=8192))
+                        finally:os.seteuid(0)
+                        expected=validate_model_config(current,source_sha=config['source_sha'],model=selected_plan['model'])
+                        if request!=expected:raise ContractError('MODEL_CONFIGURATION_CHANGED')
+                    result=supervisor.run_fixed_app_server_canary(model_request,recheck,
+                        enabled=True,admit_external=admit_external)
+                    from research_harness.model_result import MODEL_RESULT_SCHEMA as MODEL_SCHEMA
+                    candidate=result.candidate
+                    artifact=dict(schema=MODEL_SCHEMA,**{key:frame['binding'][key] for key in
+                        ('request_id','run_id','issue_number','plan_digest','source_sha')},
+                        status='candidate_only',model=selected_plan['model'],sandbox_mode='externalSandbox',
+                        reported_outcome=candidate.outcome,reported_checksum=candidate.reported_checksum,
+                        command_observed=result.observed_command is not None and result.command_exit_code==0,
+                        elapsed_seconds=result.elapsed_seconds,requires_namespace_restart=True,
+                        research_success_verified=False)
+                    write_frame(control.stdin,{'model_result':artifact})
+                else:
+                    result=supervisor.run_fixed_canary(recheck,wall_seconds=120)
+                    write_frame(control.stdin,{'result':{'checksum':result.checksum,
+                        'elapsed_seconds':result.elapsed_seconds,'model_called':False}})
             elif set(frame)=={'op','reports'} and frame['op']=='report':
-                print(json.dumps({'mode':'fixed-cpu-only','reports':frame['reports']},ensure_ascii=False),flush=True)
+                print(json.dumps({'mode':'approved-fixed-canary','reports':frame['reports']},ensure_ascii=False),flush=True)
             elif frame=={'op':'restart'}:
                 # Docker restart policy only applies after successful startup.
                 time.sleep(max(0,11-(time.monotonic()-started)))
@@ -142,7 +183,8 @@ if __name__=='__main__':
         if sys.argv[1:]==['manager']:manager()
         elif not sys.argv[1:]:supervise()
         else:raise ContractError('unsupported launcher mode')
-    except BaseException:
-        print(json.dumps({'phase':'BLOCKED','detail':'dedicated service stopped; inspect protected state'}),file=sys.stderr,flush=True)
+    except BaseException as exc:
+        detail=str(exc) if isinstance(exc,ContractError) and str(exc).startswith('MODEL_') and str(exc).replace('_','').isalnum() else 'dedicated service stopped; inspect protected state'
+        print(json.dumps({'phase':'BLOCKED','detail':detail}),file=sys.stderr,flush=True)
         os._exit(125)
     os._exit(0)

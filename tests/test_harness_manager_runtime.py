@@ -73,6 +73,11 @@ class PipeRuntimeTests(unittest.TestCase):
         outgoing = Output()
         return PipeRuntime(incoming, outgoing, epoch()), incoming, outgoing
 
+    def test_prepare_requires_exact_boolean_true(self):
+        for frame in ({'prepared':1},{'prepared':False},{'prepared':True,'extra':1}):
+            runtime,_,_=self.runtime([frame])
+            with self.assertRaises(ContractError):runtime.prepare_plan({'kind':'cpu-canary-v1'})
+
     def test_constructor_requires_typed_epoch(self):
         for value in (None, {}, epoch().to_dict()):
             with self.assertRaises(ContractError):

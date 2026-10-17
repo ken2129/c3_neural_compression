@@ -22,3 +22,7 @@ tools/**
 tools/research_service/**
 !tools/research_service/launcher.py
 !tools/research_service/Dockerfile
+
+!research_harness/app_server_adapter.py
+!research_harness/model_deployment.py
+!research_harness/model_result.py

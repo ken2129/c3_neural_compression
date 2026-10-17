@@ -2,6 +2,7 @@
 import importlib.util
 import io
 import json
+import hashlib
 import os
 from pathlib import Path
 import shutil
@@ -10,7 +11,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 from research_harness.restart_boundary import RestartEpoch
-from research_harness.schema import ContractError
+from research_harness.schema import ContractError,canonical
 from research_harness.manager_runtime import LIMIT
 from test_harness_service_state import binding_fixture
 
@@ -30,6 +31,11 @@ class Supervisor:
 
 class LauncherTests(unittest.TestCase):
     def invoke(self,frames):
+        if any(frame.get('op')=='fixed_cpu' for frame in frames):
+            plan=dict(kind='cpu-canary-v1',source_sha='b'*40,publish_result_pr=True)
+            frames=[{'op':'prepare_plan','plan':plan},*frames]
+            for frame in frames:
+                if frame.get('op')=='fixed_cpu':frame['binding']=dict(frame['binding'],plan_digest=hashlib.sha256(canonical(plan)).hexdigest())
         control=SimpleNamespace(pid=22,stdin=FakePipe(),stdout=io.StringIO(''.join(json.dumps(v)+'\n' for v in frames)))
         with patch.object(launcher,'deployment',return_value={'container_id':'a'*64,'source_sha':'b'*40,'initialize_new_state':False}), \
              patch.object(launcher,'read_epoch',return_value=EPOCH), \
@@ -44,12 +50,48 @@ class LauncherTests(unittest.TestCase):
         control,popen=self.invoke([{'op':'preflight'},{'op':'fixed_cpu','binding':binding_fixture()},
             {'approved':True},{'op':'report','reports':[{'restart_required':True}]},{'op':'restart'}])
         sent=[json.loads(line) for line in control.stdin.saved.splitlines()]
-        self.assertEqual(sent[1],{'ready':True})
-        self.assertEqual(sent[2],{'op':'recheck'})
-        self.assertFalse(sent[3]['result']['model_called'])
+        self.assertEqual(sent[1],{'prepared':True})
+        self.assertEqual(sent[2],{'ready':True})
+        self.assertEqual(sent[3],{'op':'recheck'})
+        self.assertFalse(sent[4]['result']['model_called'])
         self.assertEqual(popen.call_args.kwargs['user'],10001)
         self.assertNotIn('GH_TOKEN',popen.call_args.kwargs['env'])
         self.assertTrue(popen.call_args.kwargs['close_fds'])
+
+    def test_model_preflight_missing_setup_never_calls_worker(self):
+        plan=dict(kind='codex-canary-v1',source_sha='b'*40,publish_result_pr=True,
+                  model='gpt-5.3-codex',sandbox_mode='externalSandbox',external_network='enabled',
+                  max_seconds=120,model_usage_approved=True)
+        with patch('research_harness.model_deployment.prepare_model',side_effect=ContractError('MODEL_OPERATOR_SETUP_MISSING')) as prepare:
+            with self.assertRaisesRegex(ContractError,'MODEL_OPERATOR_SETUP_MISSING'):
+                self.invoke([{'op':'prepare_plan','plan':plan},{'op':'preflight'}])
+            prepare.assert_called_once()
+
+    def test_model_branch_emits_candidate_only_and_requires_restart(self):
+        plan=dict(kind='codex-canary-v1',source_sha='b'*40,publish_result_pr=True,
+                  model='gpt-5.3-codex',sandbox_mode='externalSandbox',external_network='enabled',
+                  max_seconds=120,model_usage_approved=True)
+        binding=dict(binding_fixture(),plan_digest=hashlib.sha256(canonical(plan)).hexdigest())
+        def fake_model(self,request,recheck,*,enabled,admit_external):
+            if enabled is not True or not callable(admit_external):raise AssertionError('missing admission')
+            recheck()
+            return SimpleNamespace(candidate=SimpleNamespace(outcome='success',reported_checksum=333283335000),
+              observed_command='fixed',command_exit_code=0,elapsed_seconds=.1)
+        with patch('research_harness.model_deployment.prepare_model',return_value=SimpleNamespace(model=plan['model'])), \
+             patch.object(Supervisor,'run_fixed_app_server_canary',fake_model,create=True):
+            control,_=self.invoke([{'op':'prepare_plan','plan':plan},{'op':'preflight'},
+              {'op':'fixed_model','binding':binding},{'approved':True},{'op':'restart'}])
+        sent=[json.loads(line) for line in control.stdin.saved.splitlines()]
+        result=next(value['model_result'] for value in sent if 'model_result' in value)
+        self.assertEqual(result['status'],'candidate_only')
+        self.assertFalse(result['research_success_verified'])
+        self.assertTrue(result['requires_namespace_restart'])
+        self.assertNotIn('observed_command',result)
+
+    def test_runtime_source_must_match_operator_revision(self):
+        binding=dict(binding_fixture(),source_sha='c'*40)
+        with self.assertRaisesRegex(ContractError,'runtime plan binding mismatch'):
+            self.invoke([{'op':'fixed_cpu','binding':binding}])
 
     def test_arbitrary_manager_command_is_rejected(self):
         with self.assertRaises(ContractError):self.invoke([{'op':'shell','command':'id'}])

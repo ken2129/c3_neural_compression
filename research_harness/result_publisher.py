@@ -1,4 +1,4 @@
-"""Bounded, manager-only publication of validated CPU-canary metadata.
+"""Bounded, manager-only publication of closed canary metadata.
 
 This adapter is not a credential/sandbox boundary. The trusted controller must
 verify isolation, current owner approval and runtime cost limits before enabling
@@ -25,6 +25,7 @@ import subprocess
 import time
 from urllib.parse import urlencode
 
+from .model_result import ModelCanaryResult, MODEL_RESULT_SCHEMA
 from .schema import ContractError, REPOSITORY, canonical, fields, identifier, loads
 
 SCHEMA = 'c3-cpu-canary-result-v1'
@@ -174,6 +175,82 @@ class PublicationRequest:
     def from_dict(cls, value):
         fields(value, cls.__dataclass_fields__)
         return cls(ValidatedCanaryResult.from_dict(value['result']), value['base_sha'], value['issue_content_sha256'])
+
+
+@dataclass(frozen=True)
+class ModelPublicationRequest(PublicationRequest):
+    """Sanitized candidate metadata, with no execution/research-success claim.
+
+    The controller must persist and confirm a verified namespace restart before
+    passing this request to a publisher. This value object has no authority to
+    enable publication, assert cleanup, select the model or launch any process.
+    """
+    result: ModelCanaryResult
+
+    def __post_init__(self):
+        if type(self.result) is not ModelCanaryResult:
+            raise ContractError('closed model canary candidate required')
+        _sha(self.base_sha)
+        _sha(self.issue_content_sha256, digest=True)
+
+    @property
+    def payload(self):
+        result = self.result.to_dict()
+        result_schema = result.pop('schema')
+        return dict(schema='c3-public-model-canary-result-v1', result_schema=result_schema,
+                    repository=REPOSITORY,
+                    validation_scope='model_report_candidate_only_no_execution_or_research_success_proof',
+                    base_sha=self.base_sha, issue_content_sha256=self.issue_content_sha256,
+                    **result)
+
+    @property
+    def title(self):
+        return f'[研究結果] Codex カナリア候補（未検証）: Issue #{self.result.issue_number}'
+
+    @property
+    def body(self):
+        outcome = {'success': '成功の申告（未検証）', 'failure': '失敗の申告'}[self.result.reported_outcome]
+        observed = 'あり' if self.result.command_observed else 'なし'
+        return (f'<!-- c3-result-publication:{self.digest} -->\n'
+                f'関連 Issue: #{self.result.issue_number}\n\n'
+                'Codex による固定 CPU カナリアの未検証候補です。\n'
+                '研究の成功、コマンドの実行成功、圧縮性能を検証した結果ではありません。\n'
+                f'候補の状態: candidate_only\nモデル: {self.result.model}\n'
+                'サンドボックス方式の設定値: externalSandbox\n'
+                f'モデルによる結果の申告: {outcome}\n'
+                f'申告チェックサム: {self.result.reported_checksum}\n'
+                f'固定コマンドのイベント観測: {observed}\n'
+                f'経過時間（秒）: {self.result.elapsed_seconds}\n'
+                f'実行 ID: {self.result.run_id}\n'
+                f'実行元コミット: {self.result.source_sha}\n'
+                f'基準コミット: {self.base_sha}\n'
+                f'候補 JSON の SHA-256: {self.result.artifact_sha256}\n\n'
+                'イベントやチェックサムの一致だけでは実行の正当性を証明できません。\n'
+                '公開前に管理側で専用コンテナの再起動境界と現在の承認を確認する必要があります。\n'
+                '生成された候補 JSON のみを追加します。マージは人による確認が必要です。')
+
+    @classmethod
+    def from_dict(cls, value):
+        fields(value, cls.__dataclass_fields__)
+        return cls(ModelCanaryResult.from_dict(value['result']), value['base_sha'], value['issue_content_sha256'])
+
+
+def parse_publication_request(value):
+    """Load exactly one of the two closed persisted result formats.
+
+    This selects only a data schema, never a runtime or publication permission.
+    CPU records retain their original shape; model records carry their explicit
+    versioned schema and cannot be reinterpreted as verified CPU results.
+    """
+    fields(value, PublicationRequest.__dataclass_fields__)
+    result = value['result']
+    if type(result) is not dict:
+        raise ContractError('closed publication result object required')
+    if 'schema' in result:
+        if type(result['schema']) is not str or result['schema'] != MODEL_RESULT_SCHEMA:
+            raise ContractError('unsupported publication result schema')
+        return ModelPublicationRequest.from_dict(value)
+    return PublicationRequest.from_dict(value)
 
 
 @dataclass(frozen=True)
@@ -367,7 +444,7 @@ class GhResultTransport:
 
     @staticmethod
     def _validate_request(request):
-        if type(request) is not PublicationRequest:
+        if type(request) not in (PublicationRequest, ModelPublicationRequest):
             raise ContractError('strict publication request required')
 
     def base_sha(self):
@@ -396,8 +473,9 @@ class GhResultTransport:
 
     def create_content(self, request):
         self._validate_request(request)
+        kind = 'Model canary candidate' if type(request) is ModelPublicationRequest else 'CPU canary result'
         self._request('PUT', '/contents/' + request.path,
-                      dict(message=f'CPU canary result for Issue #{request.result.issue_number}',
+                      dict(message=f'{kind} for Issue #{request.result.issue_number}',
                            content=base64.b64encode(request.content).decode('ascii'), branch=request.branch))
 
     def content_at(self, request, head):
@@ -486,7 +564,7 @@ class GitHubResultPublisher:
         other return values deny writes. Existing unknown intents may still be
         reconciled read-only after revocation, without repeating an operation.
         """
-        if type(request) is not PublicationRequest:
+        if type(request) not in (PublicationRequest, ModelPublicationRequest):
             raise ContractError('strict publication request required')
         if state is None:
             state = PublicationState(request.digest, request.branch)

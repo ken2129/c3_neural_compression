@@ -14,8 +14,12 @@ from research_harness.uid_supervisor import (
     Identity, OwnedUIDSupervisor, Reservation, SupervisorBlocked, drain_process,
     CODEX_BINARY, CODEX_WORKSPACE, CODEX_SCHEMA, spawn_fixed_codex_child,
     validate_fixed_codex_request, PendingCodexResult,
+    spawn_fixed_app_server_child,
 )
 from research_harness.codex_adapter import CodexAdapter, CliInspection
+from research_harness.app_server_adapter import (
+    AppServerBlocked, PendingAppServerResult, fixed_app_server_request,
+)
 
 
 class NamespaceExit(BaseException):
@@ -391,6 +395,77 @@ class FixedCodexCandidateTest(unittest.TestCase):
         self.assertIn('info.st_nlink != 1', args[4])
         self.assertNotIn('GITHUB', args[4])
         self.assertIs(child._c3_fixed_request, self.request)
+
+
+class FixedAppServerSupervisorTest(unittest.TestCase):
+    def setUp(self):
+        from tests.test_harness_app_server_adapter import FakeTransport
+        self.request = fixed_app_server_request('configured-model-v1')
+        self.backend = FakeOS()
+        self.supervisor = OwnedUIDSupervisor(self.backend)
+        self.transport = FakeTransport()
+        self.transport.close = Mock()
+        def launch(request):
+            self.backend.members[10] = worker()
+            self.backend.events.append(('launch_app_server',))
+            return SimpleNamespace(process=SimpleNamespace(pid=10, args=request.argv))
+        self.backend.launch_app_server = Mock(side_effect=launch)
+
+    def test_disabled_missing_or_boolean_external_admission_never_spawns(self):
+        for kwargs in ({}, {'enabled': True}, {'enabled': True, 'admit_external': True},
+                       {'enabled': True, 'admit_external': lambda request: True}):
+            with self.subTest(kwargs=kwargs), self.assertRaises((SupervisorBlocked, AppServerBlocked)):
+                self.supervisor.run_fixed_app_server_canary(self.request, lambda: None, **kwargs)
+        self.backend.launch_app_server.assert_not_called()
+        self.assertFalse(self.backend.events)
+
+    def test_full_fake_protocol_is_connected_to_gated_uid_lifecycle(self):
+        admit = Mock(return_value=None)
+        before = Mock(side_effect=lambda identity: self.assertFalse(self.backend.released))
+        with patch('research_harness.uid_supervisor.BoundedStdioTransport', return_value=self.transport):
+            result = self.supervisor.run_fixed_app_server_canary(self.request, lambda: None,
+                enabled=True, admit_external=admit, before_release=before)
+        self.assertIsInstance(result, PendingAppServerResult)
+        self.assertEqual(result.command_checksum, 333283335000)
+        self.assertEqual(result.command_exit_code, 0)
+        self.assertTrue(result.requires_namespace_restart)
+        self.assertFalse(result.cleanup_verified)
+        self.assertFalse(result.candidate.independently_validated)
+        self.assertGreaterEqual(result.elapsed_seconds, 0.0)
+        self.assertLess(result.elapsed_seconds, 120)
+        self.assertEqual(admit.call_count, 1)
+        before.assert_called_once()
+        self.assertNotIn(10, self.backend.members)
+        self.assertFalse(any(event[0] == 'disarm' for event in self.backend.events))
+        self.transport.close.assert_called_once()
+        self.assertIn(('close_child',), self.backend.events)
+
+    def test_protocol_failure_cleans_owned_workers_and_preserves_watchdog(self):
+        self.transport.receive = Mock(side_effect=AppServerBlocked('bad protocol'))
+        with patch('research_harness.uid_supervisor.BoundedStdioTransport', return_value=self.transport):
+            with self.assertRaisesRegex(AppServerBlocked, 'bad protocol'):
+                self.supervisor.run_fixed_app_server_canary(self.request, lambda: None,
+                    enabled=True, admit_external=lambda request: None)
+        self.assertNotIn(10, self.backend.members)
+        self.assertFalse(any(event[0] == 'disarm' for event in self.backend.events))
+        self.transport.close.assert_called_once()
+
+    def test_fixed_app_server_spawn_has_auth_only_bootstrap_without_secret_reads(self):
+        with patch('research_harness.uid_supervisor.os.getpid', return_value=1), \
+             patch('research_harness.uid_supervisor.os.getresuid', return_value=(0, 0, 0)), \
+             patch('research_harness.uid_supervisor.os.fstat',
+                   return_value=SimpleNamespace(st_mode=stat.S_IFIFO)), \
+             patch('research_harness.uid_supervisor.subprocess.Popen') as popen:
+            spawn_fixed_app_server_child(self.request, gate_read=8, ready_write=9)
+        args, kwargs = popen.call_args.args[0], popen.call_args.kwargs
+        self.assertEqual(tuple(args[7:]), self.request.argv)
+        self.assertEqual(kwargs['user'], WORKER_UID)
+        self.assertEqual(kwargs['env'], {})
+        self.assertEqual(kwargs['cwd'], '/')
+        self.assertIn("set(os.listdir('/work/codex-home')) != {'auth.json'}", args[4])
+        self.assertIn('stat.S_IMODE(auth.st_mode) != 0o600', args[4])
+        self.assertIn('auth.st_size <= 65536', args[4])
+        self.assertNotIn("open('/work/codex-home/auth.json'", args[4])
 
 
 if __name__ == '__main__':

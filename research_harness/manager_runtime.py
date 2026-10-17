@@ -31,9 +31,15 @@ class PipeRuntime:
 
     def __init__(self,incoming,outgoing,epoch):
         if type(epoch) is not RestartEpoch:raise ContractError('launcher epoch required')
-        self.incoming=incoming;self.outgoing=outgoing;self.epoch=epoch
+        self.incoming=incoming;self.outgoing=outgoing;self.epoch=epoch;self.plan=None
 
     def current_epoch(self):return self.epoch
+
+    def prepare_plan(self,plan):
+        write_frame(self.outgoing,{'op':'prepare_plan','plan':plan})
+        response=read_frame(self.incoming)
+        if set(response)!={'prepared'} or response['prepared'] is not True:raise ContractError('runtime plan preparation rejected')
+        self.plan=dict(plan)
 
     def preflight(self):
         write_frame(self.outgoing,{'op':'preflight'})
@@ -44,7 +50,7 @@ class PipeRuntime:
     def run(self,binding,recheck):
         from .service_state import validate_binding
         validate_binding(binding)
-        write_frame(self.outgoing,{'op':'fixed_cpu','binding':binding})
+        write_frame(self.outgoing,{'op':'fixed_model' if self.plan and self.plan['kind']=='codex-canary-v1' else 'fixed_cpu','binding':binding})
         while True:
             frame=read_frame(self.incoming)
             if frame=={'op':'recheck'}:
@@ -53,6 +59,11 @@ class PipeRuntime:
                     write_frame(self.outgoing,{'approved':False});raise
                 write_frame(self.outgoing,{'approved':True})
                 continue
+            if self.plan and self.plan['kind']=='codex-canary-v1':
+                from .model_result import ModelCanaryResult
+                fields(frame,('model_result',))
+                expected={key:binding[key] for key in ('request_id','run_id','issue_number','plan_digest','source_sha')}
+                return ModelCanaryResult.from_bytes(canonical(frame['model_result']),model=self.plan['model'],**expected)
             fields(frame,('result',))
             data=frame['result'];fields(data,('checksum','elapsed_seconds','model_called'))
             if data['model_called'] is not False:raise ContractError('unsupported model result')

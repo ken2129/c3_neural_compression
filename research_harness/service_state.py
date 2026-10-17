@@ -107,8 +107,8 @@ class ServiceState:
             if phase in ('RESULT_AWAITING_RESTART','RESULT_READY','PUBLISHED'):
                 if result is None:raise ContractError('saved result missing')
                 # Validate the closed, independently checked artifact on every reopen.
-                from .result_publisher import PublicationRequest
-                request=PublicationRequest.from_dict(loads(result))
+                from .result_publisher import parse_publication_request
+                request=parse_publication_request(loads(result))
                 validate_request(request,value)
             elif result is not None or publication is not None:
                 raise ContractError('unfinished run has publication data')
@@ -191,10 +191,10 @@ class ServiceState:
         self.db.commit()
 
     def save_publication(self,issue,state):
-        from .result_publisher import PublicationRequest
+        from .result_publisher import parse_publication_request
         old=self.get(issue)
         if old is None or old['result'] is None:raise ContractError('publication requires saved result')
-        request=PublicationRequest.from_dict(old['result'])
+        request=parse_publication_request(old['result'])
         if state.request_digest!=request.digest or state.branch!=request.branch:raise ContractError('publication identity mismatch')
         phase='PUBLISHED' if state.phase=='PUBLISHED' else 'RESULT_READY'
         self.db.execute('UPDATE service_runs SET phase=?,publication=? WHERE issue=? AND phase IN (?,?)',
