@@ -14,7 +14,7 @@ from research_harness.restart_boundary import read_epoch,RestartEpoch
 from research_harness.schema import ContractError,loads,canonical
 from research_harness.service_state import ServiceState,initialize,validate_binding
 from research_harness.persistent_fixture import exclusive_record,private,sync_directory
-from research_harness.uid_supervisor import LinuxUIDBackend,OwnedUIDSupervisor
+from research_harness.uid_supervisor import LinuxUIDBackend,OwnedUIDSupervisor,report_failure
 
 CONTROL=10001
 SCRIPT='/opt/service/launcher.py'
@@ -47,10 +47,10 @@ def deployment():
 
 
 def manager():
-    from research_harness.issue_intake import PublicGitHub
+    from research_harness.manager_github import ManagerGitHub
     from research_harness.owner_approval import GitHubOwnerComments
     from research_harness.result_publisher import GitHubResultPublisher,GhResultTransport
-    from research_harness.service import Controller
+    from research_harness.service import Controller,source_failure_report,source_retry_delay
     if os.getresuid()!=(CONTROL,)*3:raise ContractError('manager identity mismatch')
     os.umask(0o077)
     hello=read_frame(sys.stdin)
@@ -78,11 +78,11 @@ def manager():
     state=ServiceState(root,require_epochs=True)
     try:
         transport=GhResultTransport(enabled=True,manager_credentials_isolated=True,runtime_verified=True)
-        controller=Controller(state,PublicGitHub(),GitHubOwnerComments(),runtime,
+        controller=Controller(state,ManagerGitHub(),GitHubOwnerComments(),runtime,
             lambda persist:GitHubResultPublisher(transport,persist_state=persist),source_sha=hello['source_sha'])
         while True:
             try:reports=controller.once()
-            except Exception:reports=[{'phase':'SOURCE_UNAVAILABLE','dispatched':False}]
+            except Exception as exc:reports=[source_failure_report(exc)]
             for report in reports:
                 write_frame(sys.stdout,{'op':'report','reports':[report]})
             if any(report.get('restart_required') for report in reports):
@@ -91,7 +91,7 @@ def manager():
             # generation before the manager may scan another Issue.
             if any(report.get('dispatched') in (True,'unknown') for report in reports):
                 write_frame(sys.stdout,{'op':'restart'});return
-            time.sleep(60)
+            time.sleep(source_retry_delay(reports,now=time.time()))
     finally:state.close()
 
 
@@ -118,22 +118,31 @@ def blocked_startup(*, wait=None):
 
 def supervise():
     started=time.monotonic()
+    stage='deployment'
     try:
         config=deployment()
+        stage='epoch'
         epoch=read_epoch(container_id=config['container_id'])
-    except Exception:
+    except Exception as exc:
+        report_failure('launcher',stage,exc)
         # No manager or worker exists yet. Never turn a bad installation into
         # an unless-stopped restart loop or retry it inside this generation.
         blocked_startup()
         raise ContractError('startup quarantine unexpectedly returned')
-    control=subprocess.Popen([sys.executable,'-I','-B',SCRIPT,'manager'],user=CONTROL,group=CONTROL,
-        extra_groups=[],env={'LANG':'C.UTF-8','PATH':'/usr/local/bin:/usr/bin:/bin',
-        'HOME':'/control/home','GH_CONFIG_DIR':'/control/gh'},stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,text=True,close_fds=True)
-    write_frame(control.stdin,{'epoch':epoch.to_dict(),'source_sha':config['source_sha'],'initialize_new_state':config['initialize_new_state']})
+    try:
+        control=subprocess.Popen([sys.executable,'-I','-B',SCRIPT,'manager'],user=CONTROL,group=CONTROL,
+            extra_groups=[],env={'LANG':'C.UTF-8','PATH':'/usr/local/bin:/usr/bin:/bin',
+            'HOME':'/control/home','GH_CONFIG_DIR':'/control/gh'},stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,text=True,close_fds=True)
+        write_frame(control.stdin,{'epoch':epoch.to_dict(),'source_sha':config['source_sha'],'initialize_new_state':config['initialize_new_state']})
+    except BaseException as exc:
+        report_failure('launcher','manager_start',exc)
+        raise
     attempted=False;selected_plan=None;model_request=None
+    stage='protocol'
     try:
         while True:
+            stage='protocol'
             frame=read_frame(control.stdout)
             if model_request is not None and frame.get('op') in ('prepare_plan','preflight'):
                 # Preparation already copied auth into this generation's tmpfs.
@@ -144,18 +153,22 @@ def supervise():
             if set(frame)=={'op','plan'} and frame['op']=='prepare_plan':
                 from research_harness.service import validate_canary_plan
                 if attempted:raise ContractError('one attempt per PID namespace')
+                stage='plan'
                 selected_plan=validate_canary_plan(frame['plan'],config['source_sha'])
                 write_frame(control.stdin,{'prepared':True})
             elif frame=={'op':'preflight'}:
                 if attempted:raise ContractError('one attempt per PID namespace')
+                stage='preflight'
                 # Check actual OS/outer resource boundary before durable claim.
                 OwnedUIDSupervisor(LinuxUIDBackend(),controller_pid=control.pid).reserve()
                 if selected_plan and selected_plan['kind']=='codex-canary-v1':
                     from research_harness.model_deployment import prepare_model
+                    stage='model_prepare'
                     model_request=prepare_model(source_sha=config['source_sha'],model=selected_plan['model'])
                 write_frame(control.stdin,{'ready':True})
             elif set(frame)=={'op','binding'} and frame['op'] in ('fixed_cpu','fixed_model'):
                 if attempted:raise ContractError('one attempt per PID namespace')
+                stage='binding'
                 attempted=True;validate_binding(frame['binding'])
                 if selected_plan is None or frame['binding']['source_sha']!=config['source_sha'] or hashlib.sha256(canonical(selected_plan)).hexdigest()!=frame['binding']['plan_digest']:
                     raise ContractError('runtime plan binding mismatch')
@@ -178,8 +191,10 @@ def supervise():
                         finally:os.seteuid(0)
                         expected=validate_model_config(current,source_sha=config['source_sha'],model=selected_plan['model'])
                         if request!=expected:raise ContractError('MODEL_CONFIGURATION_CHANGED')
+                    stage='model_runtime'
                     result=supervisor.run_fixed_app_server_canary(model_request,recheck,
                         enabled=True,admit_external=admit_external)
+                    stage='result'
                     from research_harness.model_result import MODEL_RESULT_SCHEMA as MODEL_SCHEMA
                     candidate=result.candidate
                     artifact=dict(schema=MODEL_SCHEMA,**{key:frame['binding'][key] for key in
@@ -191,6 +206,7 @@ def supervise():
                         research_success_verified=False)
                     write_frame(control.stdin,{'model_result':artifact})
                 else:
+                    stage='cpu_runtime'
                     result=supervisor.run_fixed_canary(recheck,wall_seconds=120)
                     write_frame(control.stdin,{'result':{'checksum':result.checksum,
                         'elapsed_seconds':result.elapsed_seconds,'model_called':False}})
@@ -208,6 +224,9 @@ def supervise():
                 # remain pending until a later validated restart generation.
                 return
             else:raise ContractError('unexpected manager operation')
+    except BaseException as exc:
+        report_failure('launcher',stage,exc)
+        raise
     finally:
         control.stdin.close()
         # No host/container API or arbitrary PID signal. PID1 exit is the bound.
@@ -219,7 +238,6 @@ if __name__=='__main__':
         elif not sys.argv[1:]:supervise()
         else:raise ContractError('unsupported launcher mode')
     except BaseException as exc:
-        detail=str(exc) if isinstance(exc,ContractError) and str(exc).startswith('MODEL_') and str(exc).replace('_','').isalnum() else 'dedicated service stopped; inspect protected state'
-        print(json.dumps({'phase':'BLOCKED','detail':detail}),file=sys.stderr,flush=True)
+        report_failure('manager' if sys.argv[1:]==['manager'] else 'launcher','entrypoint',exc)
         os._exit(125)
     os._exit(0)

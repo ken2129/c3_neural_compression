@@ -572,7 +572,7 @@ class ControllerIntegrationTests(unittest.TestCase):
         output = []
         self.controller.poll(stop=lambda: bool(output), emit=output.append, interval=30,
                              sleep=lambda _: self.fail('completed poll should not sleep'))
-        self.assertEqual(output, [[{'phase': 'SOURCE_UNAVAILABLE', 'dispatched': False}]])
+        self.assertEqual(output, [[{'phase': 'SOURCE_UNAVAILABLE', 'dispatched': False, 'error_category': 'OTHER'}]])
         self.assert_no_dispatch()
 
     def test_once_rereads_tracked_issue_when_prefix_removed_from_listing(self):

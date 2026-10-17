@@ -6,6 +6,7 @@ Runtime and publisher are trusted manager code, never Issue-selected plugins.
 import hashlib
 import re
 import time
+from urllib.error import HTTPError, URLError
 from .issue_intake import classify, content_hash, positive_int, MAX_TRACKED, SCAN_SECONDS
 from .owner_approval import inspect_once
 from .model_result import ModelCanaryResult
@@ -15,6 +16,38 @@ from .result_publisher import (PublicationRequest, ModelPublicationRequest,
                                parse_publication_request)
 from .schema import ContractError, canonical, fields
 
+
+
+def source_failure_report(exc):
+    """Fixed fields only; never expose remote bodies, URLs or exception strings."""
+    report=dict(phase='SOURCE_UNAVAILABLE',dispatched=False,error_category='OTHER')
+    if isinstance(exc,HTTPError):
+        report['error_category']='HTTP_ERROR'
+        if type(exc.code) is int and 100<=exc.code<=599:report['http_status']=exc.code
+        headers=exc.headers
+        if headers is not None:
+            for header,key in (('X-RateLimit-Remaining','rate_remaining'),('X-RateLimit-Reset','rate_reset_unix')):
+                value=headers.get(header)
+                if type(value) is str and value.isascii() and value.isdecimal() and len(value)<=12:
+                    report[key]=int(value)
+    elif isinstance(exc,(TimeoutError,)):
+        report['error_category']='TIMEOUT'
+    elif isinstance(exc,URLError):report['error_category']='TRANSPORT_ERROR'
+    elif isinstance(exc,ContractError):report['error_category']='SOURCE_CONTRACT_ERROR'
+    return report
+
+
+def source_retry_delay(reports, *, now, minimum=60):
+    """Wait out a bounded GitHub rate-reset timestamp; never spin on 403/429."""
+    delay=minimum
+    for report in reports:
+        if report.get('phase')!='SOURCE_UNAVAILABLE':continue
+        if report.get('http_status') in (403,429):
+            delay=max(delay,300)
+            reset=report.get('rate_reset_unix')
+            if type(reset) is int and now<reset<=now+86400:
+                delay=max(delay,reset-now+1)
+    return delay
 
 def validate_canary_plan(plan, allowed_source_sha):
     if type(plan) is not dict:raise ContractError('closed canary plan required')
@@ -196,6 +229,7 @@ class Controller:
         if type(interval) is not int or not 30<=interval<=3600:
             raise ContractError('poll interval must be 30..3600 seconds')
         while not stop():
-            try:emit(self.once())
-            except Exception:emit([dict(phase='SOURCE_UNAVAILABLE',dispatched=False)])
-            if not stop():sleep(interval)
+            try:reports=self.once()
+            except Exception as exc:reports=[source_failure_report(exc)]
+            emit(reports)
+            if not stop():sleep(source_retry_delay(reports,now=self.clock(),minimum=interval))

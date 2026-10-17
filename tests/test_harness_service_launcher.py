@@ -174,8 +174,11 @@ class StartupQuarantineTests(unittest.TestCase):
                     self.assertEqual(wait.call_count, 2)
                     popen.assert_not_called()
                     exit_process.assert_not_called()
-                    self.assertEqual(len(output.getvalue().splitlines()), 1)
-                    self.assertEqual(json.loads(output.getvalue())['phase'], 'BLOCKED_STARTUP')
+                    records=[json.loads(line) for line in output.getvalue().splitlines()]
+                    self.assertEqual(len(records),2)
+                    self.assertEqual(records[0]['role'],'launcher')
+                    self.assertEqual(records[0]['stage'],stage)
+                    self.assertEqual(records[1]['phase'],'BLOCKED_STARTUP')
                     handlers[launcher.signal.SIGTERM](launcher.signal.SIGTERM, None)
                     exit_process.assert_called_once_with(125)
 
@@ -225,7 +228,7 @@ class ManagerStartupTests(unittest.TestCase):
                  patch.object(launcher.os, 'getresuid', return_value=(10001,) * 3), \
                  patch.object(launcher.sys, 'stdin', incoming), \
                  patch.object(launcher.sys, 'stdout', outgoing), \
-                 patch('research_harness.issue_intake.PublicGitHub', return_value=object()), \
+                 patch('research_harness.manager_github.ManagerGitHub', return_value=object()), \
                  patch('research_harness.owner_approval.GitHubOwnerComments', return_value=object()), \
                  patch('research_harness.result_publisher.GhResultTransport', return_value=object()), \
                  patch('research_harness.service.Controller',

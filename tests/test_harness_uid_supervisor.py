@@ -1,6 +1,7 @@
 """Fake-OS lifecycle tests. No UID changes, signals, models or containers run."""
 from dataclasses import replace
 import os
+import io
 import json
 import signal
 import stat
@@ -449,6 +450,38 @@ class FixedAppServerSupervisorTest(unittest.TestCase):
         self.assertNotIn(10, self.backend.members)
         self.assertFalse(any(event[0] == 'disarm' for event in self.backend.events))
         self.transport.close.assert_called_once()
+
+    def test_failure_diagnostic_is_stage_only_and_preserves_cleanup(self):
+        secret = 'MODEL_PRIVATE_TOKEN_https://secret.example/path'
+        for stage in ('admission', 'spawn', 'barrier', 'turn'):
+            with self.subTest(stage=stage):
+                self.setUp()
+                error = PermissionError(secret)
+                admission = Mock(return_value=None)
+                if stage == 'admission': admission.side_effect = error
+                if stage == 'spawn': self.backend.launch_app_server.side_effect = error
+                if stage == 'barrier': self.backend.ready = Mock(side_effect=error)
+                if stage == 'turn': self.transport.receive = Mock(side_effect=error)
+                output = io.StringIO()
+                with patch('research_harness.uid_supervisor.BoundedStdioTransport', return_value=self.transport), \
+                     patch('research_harness.uid_supervisor.sys.stderr', output):
+                    with self.assertRaises(PermissionError):
+                        self.supervisor.run_fixed_app_server_canary(self.request, lambda: None,
+                            enabled=True, admit_external=admission)
+                self.assertEqual(json.loads(output.getvalue()), {
+                    'phase':'RUNTIME_BLOCKED','role':'app_server','stage':stage,'error_class':'permission'})
+                self.assertNotIn(secret, output.getvalue())
+                self.assertNotIn(10, self.backend.members)
+
+    def test_diagnostic_never_stringifies_unknown_exception(self):
+        from research_harness.uid_supervisor import report_failure
+        class PrivateError(Exception):
+            def __str__(self): raise AssertionError('must not stringify')
+        output = io.StringIO()
+        with patch('research_harness.uid_supervisor.sys.stderr', output):
+            report_failure('private role', 'private stage', PrivateError())
+        self.assertEqual(json.loads(output.getvalue()), {
+            'phase':'RUNTIME_BLOCKED','role':'unknown','stage':'unknown','error_class':'other'})
 
     def test_fixed_app_server_spawn_has_auth_only_bootstrap_without_secret_reads(self):
         with patch('research_harness.uid_supervisor.os.getpid', return_value=1), \

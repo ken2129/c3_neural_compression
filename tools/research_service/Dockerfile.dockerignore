@@ -26,3 +26,5 @@ tools/research_service/**
 !research_harness/app_server_adapter.py
 !research_harness/model_deployment.py
 !research_harness/model_result.py
+
+!research_harness/manager_github.py

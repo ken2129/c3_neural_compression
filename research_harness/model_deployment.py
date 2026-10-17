@@ -6,6 +6,7 @@ credential is returned to the manager protocol or public result.
 """
 import os
 from pathlib import Path
+import shutil
 import stat
 import subprocess
 import sys
@@ -58,6 +59,50 @@ def validate_chatgpt_auth(raw):
     # Presence is not proof of validity; authentication errors are not retried.
 
 
+def _probe_codex_version():
+    """Credential-free disposable homes, separate from the future model child.
+
+    v0.160 arg0 dispatch creates CODEX_HOME/tmp/arg0 before parsing --version.
+    Never run this probe in the auth-only home checked by the child bootstrap.
+    """
+    binary=Path('/opt/codex/bin/codex')
+    if not binary.exists():raise ContractError('MODEL_CODEX_BINARY_NOT_INSTALLED')
+    if not shutil.rmtree.avoids_symlink_attacks:
+        raise ContractError('MODEL_SAFE_PROBE_CLEANUP_UNAVAILABLE')
+    probe_root=Path('/work/codex-version-probe')
+    created=False
+    try:
+        try:
+            os.seteuid(10002)
+            probe_root.mkdir(mode=0o700)
+            created=True
+            for name in ('home','codex-home'):(probe_root/name).mkdir(mode=0o700)
+        finally:os.seteuid(0)
+        probe="""
+import os,resource
+if os.getresuid()!=(10002,)*3 or os.getresgid()!=(10002,)*3 or os.getgroups():raise SystemExit(125)
+for kind,n in ((resource.RLIMIT_CORE,0),(resource.RLIMIT_CPU,10),
+              (resource.RLIMIT_AS,536870912),(resource.RLIMIT_FSIZE,1048576),
+              (resource.RLIMIT_NPROC,32),(resource.RLIMIT_NOFILE,64)):
+    resource.setrlimit(kind,(n,n))
+os.execve('/opt/codex/bin/codex',['/opt/codex/bin/codex','--version'],dict(os.environ))
+"""
+        result=subprocess.run([sys.executable,'-I','-S','-c',probe],user=10002,group=10002,extra_groups=[],
+            env={'PATH':'/usr/bin:/bin','HOME':str(probe_root/'home'),
+                 'CODEX_HOME':str(probe_root/'codex-home')},
+            cwd='/',stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=5,check=False)
+        if result.returncode or result.stdout.strip()!=b'codex-cli 0.160.0' or result.stderr:
+            raise ContractError('MODEL_CODEX_VERSION_MISMATCH')
+    finally:
+        if created:
+            try:
+                os.seteuid(10002)
+                # FD-based rmtree removes symlinks themselves, never targets.
+                # Only this invocation's newly created non-secret tree is owned.
+                shutil.rmtree(probe_root)
+            finally:os.seteuid(0)
+
+
 def prepare_model(*,source_sha,model):
     """PID1 only, before any claim; fresh worker directory and auth-only copy.
 
@@ -74,6 +119,7 @@ def prepare_model(*,source_sha,model):
     finally:os.seteuid(0)
     request=validate_model_config(config,source_sha=source_sha,model=model)
     validate_chatgpt_auth(auth)
+    _probe_codex_version()
     try:
         os.seteuid(10002)
         # Fresh namespace/tmpfs only. Never reuse worker configuration or state.
@@ -90,20 +136,4 @@ def prepare_model(*,source_sha,model):
                 with os.fdopen(fd,'wb',closefd=False) as stream:stream.write(raw);stream.flush();os.fsync(fd)
             finally:os.close(fd)
     finally:os.seteuid(0)
-    binary=Path('/opt/codex/bin/codex')
-    if not binary.exists():raise ContractError('MODEL_CODEX_BINARY_NOT_INSTALLED')
-    probe="""
-import os,resource
-if os.getresuid()!=(10002,)*3 or os.getresgid()!=(10002,)*3 or os.getgroups():raise SystemExit(125)
-for kind,n in ((resource.RLIMIT_CORE,0),(resource.RLIMIT_CPU,10),
-              (resource.RLIMIT_AS,536870912),(resource.RLIMIT_FSIZE,1048576),
-              (resource.RLIMIT_NPROC,32),(resource.RLIMIT_NOFILE,64)):
-    resource.setrlimit(kind,(n,n))
-os.execve('/opt/codex/bin/codex',['/opt/codex/bin/codex','--version'],dict(os.environ))
-"""
-    result=subprocess.run([sys.executable,'-I','-S','-c',probe],user=10002,group=10002,extra_groups=[],
-        env={'PATH':'/usr/bin:/bin','HOME':'/work/worker-home','CODEX_HOME':'/work/codex-home'},
-        cwd='/',stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=5,check=False)
-    if result.returncode or result.stdout.strip()!=b'codex-cli 0.160.0' or result.stderr:
-        raise ContractError('MODEL_CODEX_VERSION_MISMATCH')
     return request

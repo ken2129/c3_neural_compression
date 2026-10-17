@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import os
+import json
 import math
 from pathlib import Path
 import resource
@@ -46,6 +47,30 @@ MAX_WORK_BYTES = 256 * 1024 * 1024
 CODEX_BINARY = '/opt/codex/bin/codex'
 CODEX_WORKSPACE = '/work/canary'
 CODEX_SCHEMA = '/opt/c3-runtime/canary-schema.json'
+
+
+def report_failure(role, stage, exc):
+    """Best-effort fixed-vocabulary diagnostics; never stringify exceptions."""
+    roles = {'launcher', 'manager', 'app_server'}
+    stages = {'deployment', 'epoch', 'manager_start', 'manager_initialize',
+              'protocol', 'plan', 'preflight', 'model_prepare', 'binding',
+              'model_runtime', 'cpu_runtime', 'result', 'admission', 'reserve',
+              'watchdog', 'approval', 'spawn', 'barrier', 'identity', 'release',
+              'transport', 'turn', 'cleanup', 'postcheck', 'finalize', 'entrypoint'}
+    category = 'other'
+    for kind, name in ((PermissionError, 'permission'), (FileNotFoundError, 'missing_file'),
+                       (TimeoutError, 'timeout'), (BrokenPipeError, 'broken_pipe'),
+                       (ContractError, 'contract'), (OSError, 'os_error')):
+        if isinstance(exc, kind):
+            category = name
+            break
+    try:
+        print(json.dumps({'phase': 'RUNTIME_BLOCKED',
+            'role': role if role in roles else 'unknown',
+            'stage': stage if stage in stages else 'unknown',
+            'error_class': category}), file=sys.stderr, flush=True)
+    except Exception:
+        pass  # Diagnostics must never prevent namespace shutdown.
 
 
 class SupervisorBlocked(ContractError):
@@ -639,26 +664,38 @@ class OwnedUIDSupervisor:
         The explicit enabled network policy supplies no firewall. Callbacks are not
         Issue/worker inputs. This path never converts a candidate into success.
         """
-        if enabled is not True:
-            raise SupervisorBlocked('APP_SERVER_DISABLED')
-        validate_app_server_request(request)
-        if (not callable(admit_external) or not callable(recheck)
-                or (before_release is not None and not callable(before_release))):
-            raise SupervisorBlocked('EXTERNAL_BOUNDARY_ADMISSION_NOT_CONFIGURED')
-        adapter = AppServerAdapter(enabled=True)
-        adapter.admit(request, admit_external=admit_external, recheck=recheck)
-        reservation = self.reserve()
-        started = self.os.now()
-        deadline = started + request.wall_seconds
-        self.os.arm_watchdog(request.wall_seconds + 4)
+        stage = 'admission'
+        try:
+            if enabled is not True:
+                raise SupervisorBlocked('APP_SERVER_DISABLED')
+            validate_app_server_request(request)
+            if (not callable(admit_external) or not callable(recheck)
+                    or (before_release is not None and not callable(before_release))):
+                raise SupervisorBlocked('EXTERNAL_BOUNDARY_ADMISSION_NOT_CONFIGURED')
+            stage = 'admission'
+            adapter = AppServerAdapter(enabled=True)
+            adapter.admit(request, admit_external=admit_external, recheck=recheck)
+            stage = 'reserve'
+            reservation = self.reserve()
+            started = self.os.now()
+            deadline = started + request.wall_seconds
+            stage = 'watchdog'
+            self.os.arm_watchdog(request.wall_seconds + 4)
+        except BaseException as exc:
+            report_failure('app_server', stage, exc)
+            raise
         handle = transport = None
         try:
+            stage = 'approval'
             recheck()
+            stage = 'spawn'
             handle = self.os.launch_app_server(request)
+            stage = 'barrier'
             while not self.os.ready(handle, min(0.05, max(0, deadline - self.os.now()))):
                 recheck()
                 if self.os.now() >= deadline:
                     raise SupervisorBlocked('app-server startup deadline exceeded')
+            stage = 'identity'
             identity = self.os.process(handle.process.pid)
             if identity is None or identity.uids != (WORKER_UID,) * 4:
                 raise SupervisorBlocked('app-server startup identity is invalid')
@@ -667,19 +704,25 @@ class OwnedUIDSupervisor:
             recheck()
             if self.os.now() >= deadline:
                 raise SupervisorBlocked('app-server admission deadline exceeded')
+            stage = 'release'
             self.os.release(handle)
+            stage = 'transport'
             transport = BoundedStdioTransport(handle.process, recheck=recheck, deadline=deadline,
                 clock=self.os.now, max_frame_bytes=request.max_frame_bytes,
                 max_capture_bytes=request.max_capture_bytes)
+            stage = 'turn'
             result = adapter.run(request, transport, recheck=recheck)
+            stage = 'cleanup'
             self.stop_owned(reservation)
+            stage = 'postcheck'
             recheck()
             elapsed = self.os.now() - started
             if not 0 <= elapsed < request.wall_seconds:
                 raise SupervisorBlocked('app-server cleanup deadline exceeded')
             return PendingAppServerResult(result.candidate, result.thread_id, result.turn_id,
                 result.observed_command, result.command_exit_code, result.command_checksum, elapsed)
-        except BaseException:
+        except BaseException as exc:
+            report_failure('app_server', stage, exc)
             self.stop_owned(reservation)
             raise
         finally:
