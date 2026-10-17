@@ -352,3 +352,46 @@ class InstalledGoalPlanTests(unittest.TestCase):
         for digest in (None, 'f'*64, 'A'*64):
             changed = dict(profile, installed_plan_digest=digest)
             with self.assertRaises(ContractError): launcher.require_installed_plan(changed, plan)
+
+
+class InstallerDiagnosticTests(unittest.TestCase):
+    def test_failure_metadata_never_contains_exception_or_arguments(self):
+        import json
+        import subprocess
+        cases = [
+            (subprocess.CalledProcessError(23, ['PRIVATE_ARG'], output=b'PRIVATE_OUT', stderr=b'PRIVATE_ERR'), 'COMMAND_FAILED', 23),
+            (ContractError('PRIVATE_CONTRACT'), 'CONTRACT_REJECTED', None),
+            (FileNotFoundError('PRIVATE_PATH'), 'FILE_OR_COMMAND_MISSING', None),
+            (PermissionError('PRIVATE_PATH'), 'PERMISSION_DENIED', None),
+            (OSError('PRIVATE_PATH'), 'IO_FAILED', None),
+            (ValueError('PRIVATE_VALUE'), 'DATA_INVALID', None),
+            (RuntimeError('PRIVATE_UNKNOWN'), 'INSTALLER_FAILED', None),
+        ]
+        for stage in prepare.INSTALL_STAGES:
+            for exc, reason, code in cases:
+                def failing(_):
+                    return prepare.at_stage(stage, lambda: (_ for _ in ()).throw(exc))
+                with patch.object(prepare, 'main', failing), patch('sys.stderr', new_callable=io.StringIO) as output:
+                    self.assertEqual(prepare.cli([]), 1)
+                value = json.loads(output.getvalue())
+                self.assertEqual(value, dict(phase='GOAL_INSTALL_BLOCKED', stage=stage,
+                    reason=reason, command_exit_code=code, installer_exit_code=1))
+                self.assertNotIn('PRIVATE', output.getvalue())
+
+    def test_invalid_cli_does_not_echo_unknown_arguments(self):
+        with patch('sys.stderr', new_callable=io.StringIO) as output:
+            self.assertEqual(prepare.cli(['--PRIVATE_SECRET']), 1)
+        self.assertNotIn('PRIVATE_SECRET', output.getvalue())
+        self.assertIn('CONTRACT_REJECTED', output.getvalue())
+
+    def test_nested_git_and_readback_stages_preserved(self):
+        import subprocess
+        with patch.object(prepare, 'run', side_effect=subprocess.CalledProcessError(7, ['secret'])):
+            with self.assertRaises(prepare.InstallFailure) as caught:
+                prepare.at_stage('context', prepare._git, 'status')
+        self.assertEqual(caught.exception.stage, 'git')
+        with patch.object(prepare, 'run', side_effect=[b'', b'not a tar PRIVATE']):
+            with self.assertRaises(prepare.InstallFailure) as caught:
+                prepare.copy_records('a'*64, {'record': b'private'})
+        self.assertEqual(caught.exception.stage, 'readback')
+        self.assertEqual(caught.exception.reason, 'DATA_INVALID')

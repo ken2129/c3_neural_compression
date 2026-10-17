@@ -6,6 +6,7 @@ this installer on the user's behalf without the required deployment/security
 and ongoing credential-access approvals. --template has no external effects.
 """
 import argparse
+from contextlib import contextmanager
 import hashlib
 import io
 import json
@@ -28,6 +29,62 @@ from research_harness.schema import ContractError, canonical, fields, loads
 CONSENTS = ('worker_model_auth_readable', 'unrestricted_bridge_egress',
             'writable_runtime_homes_and_ipc', 'usage_without_hard_cost_cap',
             'arbitrary_cpu_commands')
+
+
+INSTALL_STAGES = frozenset(('arguments', 'profile', 'freshness', 'credentials', 'git',
+                            'context', 'compose', 'create', 'inspect', 'archive',
+                            'readback', 'start'))
+
+
+class InstallFailure(Exception):
+    """Only fixed metadata, never exception text, argv, paths or subprocess output."""
+    def __init__(self, stage, exc):
+        self.stage = stage if stage in INSTALL_STAGES else 'arguments'
+        self.exit_code = None
+        if isinstance(exc, subprocess.CalledProcessError):
+            self.reason = 'COMMAND_FAILED'
+            code = exc.returncode
+            if type(code) is int and -255 <= code <= 255:
+                self.exit_code = code
+        elif isinstance(exc, ContractError): self.reason = 'CONTRACT_REJECTED'
+        elif isinstance(exc, FileNotFoundError): self.reason = 'FILE_OR_COMMAND_MISSING'
+        elif isinstance(exc, PermissionError): self.reason = 'PERMISSION_DENIED'
+        elif isinstance(exc, OSError): self.reason = 'IO_FAILED'
+        elif isinstance(exc, (ValueError, UnicodeError, tarfile.TarError)):
+            self.reason = 'DATA_INVALID'
+        else: self.reason = 'INSTALLER_FAILED'
+        super().__init__('goal installation blocked')
+
+
+@contextmanager
+def install_stage(name):
+    try:
+        yield
+    except InstallFailure:
+        raise
+    except Exception as exc:
+        raise InstallFailure(name, exc) from None
+
+
+def at_stage(name, function, *args, **kwargs):
+    with install_stage(name):
+        return function(*args, **kwargs)
+
+
+class SafeArgumentParser(argparse.ArgumentParser):
+    def error(self, message):
+        raise ContractError('invalid installer arguments')
+
+
+def cli(argv=None):
+    try:
+        at_stage('arguments', main, argv)
+    except InstallFailure as exc:
+        print(json.dumps(dict(phase='GOAL_INSTALL_BLOCKED', stage=exc.stage,
+                              reason=exc.reason, command_exit_code=exc.exit_code,
+                              installer_exit_code=1)), file=sys.stderr)
+        return 1
+    return 0
 
 
 def profile_template():
@@ -78,7 +135,7 @@ def run(argv, *, data=None, env=None):
 
 
 def _git(*args):
-    return run(['git', '-C', str(ROOT), *args])
+    return at_stage('git', run, ['git', '-C', str(ROOT), *args])
 
 
 def build_context(destination, profile, plan):
@@ -124,23 +181,25 @@ def build_context(destination, profile, plan):
 
 def copy_records(container, records):
     """Copy exact manager-owned records, then verify bytes and ownership."""
-    buffer = io.BytesIO()
-    with tarfile.open(fileobj=buffer, mode='w') as archive:
+    with install_stage('archive'):
+        buffer = io.BytesIO()
+        with tarfile.open(fileobj=buffer, mode='w') as archive:
+            for name, raw in records.items():
+                info = tarfile.TarInfo(name); info.uid = info.gid = 10001
+                info.uname = info.gname = ''
+                info.mode = 0o600; info.size = len(raw)
+                archive.addfile(info, io.BytesIO(raw))
+        run(['docker', 'cp', '-', container + ':/control/'], data=buffer.getvalue())
+    with install_stage('readback'):
         for name, raw in records.items():
-            info = tarfile.TarInfo(name); info.uid = info.gid = 10001
-            info.uname = info.gname = ''
-            info.mode = 0o600; info.size = len(raw)
-            archive.addfile(info, io.BytesIO(raw))
-    run(['docker', 'cp', '-', container + ':/control/'], data=buffer.getvalue())
-    for name, raw in records.items():
-        readback = run(['docker', 'cp', '-a', container + ':/control/' + name, '-'])
-        with tarfile.open(fileobj=io.BytesIO(readback), mode='r:') as archive:
-            members = archive.getmembers()
-            if len(members) != 1: raise ContractError('deployment copy verification failed')
-            entry = members[0]
-            if (not entry.isfile() or entry.uid != 10001 or entry.gid != 10001
-                    or entry.mode != 0o600 or archive.extractfile(entry).read() != raw):
-                raise ContractError('deployment record ownership or contents differ')
+            readback = run(['docker', 'cp', '-a', container + ':/control/' + name, '-'])
+            with tarfile.open(fileobj=io.BytesIO(readback), mode='r:') as archive:
+                members = archive.getmembers()
+                if len(members) != 1: raise ContractError('deployment copy verification failed')
+                entry = members[0]
+                if (not entry.isfile() or entry.uid != 10001 or entry.gid != 10001
+                        or entry.mode != 0o600 or archive.extractfile(entry).read() != raw):
+                    raise ContractError('deployment record ownership or contents differ')
 
 
 def require_fresh_deployment_id(deployment_id):
@@ -169,7 +228,7 @@ def read_credential(path, maximum):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = SafeArgumentParser(description=__doc__)
     parser.add_argument('--template', action='store_true')
     parser.add_argument('--approve-new-goal-deployment', action='store_true')
     parser.add_argument('--project'); parser.add_argument('--profile'); parser.add_argument('--plan')
@@ -182,52 +241,53 @@ def main(argv=None):
         parser.error('explicit new-deployment approval, project, profile, plan and both credential files required')
     if re.fullmatch('[a-z][a-z0-9-]{5,48}', args.project) is None:
         raise ContractError('invalid new project name')
-    profile = loads(Path(args.profile).read_bytes())
-    plan = validate_profile(profile, loads(Path(args.plan).read_bytes()))
-    require_fresh_deployment_id(profile['deployment_id'])
+    with install_stage('profile'):
+        profile = loads(Path(args.profile).read_bytes())
+        plan = validate_profile(profile, loads(Path(args.plan).read_bytes()))
+    at_stage('freshness', require_fresh_deployment_id, profile['deployment_id'])
     # This installer is run by the user; never infer approval from file presence.
-    auth = read_credential(args.codex_auth_file, 65536)
-    from research_harness.model_deployment import validate_chatgpt_auth
-    validate_chatgpt_auth(auth)
-    github = read_credential(args.github_hosts_file, 65536)
-    for kind, command in (('containers', ['docker', 'ps', '-aq']),
-                          ('volumes', ['docker', 'volume', 'ls', '-q'])):
-        if run([*command, '--filter', 'label=com.docker.compose.project=' + args.project]).strip():
-            raise ContractError('project already has ' + kind + '; never reuse a canary deployment')
-    volume = args.project + '_goal-control'
-    probe = subprocess.run(['docker', 'volume', 'inspect', volume], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    if probe.returncode == 0: raise ContractError('goal volume name already exists')
+    with install_stage('credentials'):
+        auth = read_credential(args.codex_auth_file, 65536)
+        from research_harness.model_deployment import validate_chatgpt_auth
+        validate_chatgpt_auth(auth)
+        github = read_credential(args.github_hosts_file, 65536)
+    with install_stage('freshness'):
+        for kind, command in (('containers', ['docker', 'ps', '-aq']),
+                              ('volumes', ['docker', 'volume', 'ls', '-q'])):
+            if run([*command, '--filter', 'label=com.docker.compose.project=' + args.project]).strip():
+                raise ContractError('project already has ' + kind + '; never reuse a canary deployment')
+        volume = args.project + '_goal-control'
+        probe = subprocess.run(['docker', 'volume', 'inspect', volume], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if probe.returncode == 0: raise ContractError('goal volume name already exists')
     with tempfile.TemporaryDirectory(prefix='c3-goal-install-') as tmp:
-        context = Path(tmp); build_context(context, profile, plan)
+        context = Path(tmp); at_stage('context', build_context, context, profile, plan)
         env = dict(os.environ, C3_GOAL_CONTEXT=str(context), C3_RUNTIME_SHA=profile['runtime_source_sha'],
                    C3_INPUT_SHA=profile['input_source_sha'], C3_DEPLOYMENT_ID=profile['deployment_id'], C3_GOAL_PIDS=str(profile['resource_limits']['max_processes']),
                    C3_GOAL_MEMORY=str(profile['resource_limits']['memory_bytes']),
                    C3_GOAL_WORK=str(profile['resource_limits']['max_work_bytes']))
         compose = ['docker', 'compose', '--project-name', args.project, '-f',
                    str(context / 'tools/research_goal/compose.yaml')]
-        run([*compose, 'config', '--quiet'], env=env)
-        run([*compose, 'create', '--build', 'controller'], env=env)
-        ident = run([*compose, 'ps', '-aq', 'controller'], env=env).decode().strip()
-        if re.fullmatch('[0-9a-f]{64}', ident) is None: raise ContractError('container identity missing')
-        inspect = json.loads(run(['docker', 'inspect', ident]))[0]
-        volume_info = json.loads(run(['docker', 'volume', 'inspect', volume]))[0]
-        consumers = run(['docker', 'ps', '-aq', '--no-trunc', '--filter', 'volume=' + volume]).decode().splitlines()
-        validate_goal_deployment(inspect, consumers, runtime_source_sha=profile['runtime_source_sha'],
-            input_source_sha=profile['input_source_sha'], volume_name=volume,
-            volume_inspect=volume_info, resource_limits=profile['resource_limits'], deployment_id=profile['deployment_id'])
+        at_stage('compose', run, [*compose, 'config', '--quiet'], env=env)
+        at_stage('create', run, [*compose, 'create', '--build', 'controller'], env=env)
+        with install_stage('inspect'):
+            ident = run([*compose, 'ps', '-aq', 'controller'], env=env).decode().strip()
+            if re.fullmatch('[0-9a-f]{64}', ident) is None: raise ContractError('container identity missing')
+            inspect = json.loads(run(['docker', 'inspect', ident]))[0]
+            volume_info = json.loads(run(['docker', 'volume', 'inspect', volume]))[0]
+            consumers = run(['docker', 'ps', '-aq', '--no-trunc', '--filter', 'volume=' + volume]).decode().splitlines()
+            validate_goal_deployment(inspect, consumers, runtime_source_sha=profile['runtime_source_sha'],
+                input_source_sha=profile['input_source_sha'], volume_name=volume,
+                volume_inspect=volume_info, resource_limits=profile['resource_limits'], deployment_id=profile['deployment_id'])
         deployment = dict(inspect=inspect, consumers=consumers, volume_name=volume,
                           volume_inspect=volume_info, initialize_new_state=True)
         copy_records(ident, {'goal-deployment.json': canonical(deployment),
                             'goal-runtime.json': canonical(installed_profile(profile, plan)), 'codex-auth.json': auth,
                             'gh/hosts.yml': github})
-        run(['docker', 'start', ident])
+        at_stage('start', run, ['docker', 'start', ident])
         print('New goal-only controller started: ' + ident)
         print('Execution still requires a fresh owner-approved goal Issue. Publication requires separate exact-content approval.')
         print('Inspect status: docker logs --tail 30 ' + ident)
 
 
 if __name__ == '__main__':
-    try: main()
-    except (ContractError, OSError, ValueError, subprocess.CalledProcessError):
-        print('Goal installation blocked. No fallback or existing deployment reuse was attempted.', file=sys.stderr)
-        raise SystemExit(1)
+    raise SystemExit(cli())
