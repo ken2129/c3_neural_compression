@@ -112,7 +112,11 @@ def read_snapshot(reader, pr_number, comment_id):
         raise ContractError('invalid plan encoding') from exc
     comment = reader.get(f'issues/comments/{comment_id}')
     again = reader.get(f'pulls/{pr_number}')
-    if pr != again:
+    def binding(value):
+        return (value['number'], value['state'], value['merged'],
+                value['head']['sha'], value['head']['repo']['full_name'],
+                value['base']['repo']['full_name'])
+    if binding(pr) != binding(again):
         raise ContractError('PR changed during readback; inspect again')
     return pr, plan, comment
 

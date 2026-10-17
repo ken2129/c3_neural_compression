@@ -32,6 +32,7 @@ class Reader:
                         'created_at': '2026-10-17T00:00:00Z', 'updated_at': '2026-10-17T00:00:00Z'}
         self.calls = []
         self.change_on_second_read = False
+        self.mergeability_changes = False
 
     def get(self, suffix):
         self.calls.append(suffix)
@@ -39,6 +40,9 @@ class Reader:
             value = deepcopy(self.pr)
             if self.change_on_second_read and self.calls.count(suffix) == 2:
                 value['head']['sha'] = 'b' * 40
+            if self.mergeability_changes and self.calls.count(suffix) == 2:
+                value['mergeable'] = True
+                value['merge_commit_sha'] = 'c' * 40
             return value
         if suffix.startswith(f'contents/{PLAN_PATH}?ref='):
             return {'path': PLAN_PATH, 'encoding': 'base64',
@@ -119,6 +123,10 @@ class ProbeTests(unittest.TestCase):
     def test_changed_head(self):
         self.reader.pr['head']['sha'] = 'b' * 40
         with self.assertRaises(ContractError): self.receive()
+
+    def test_mergeability_metadata_change_allowed(self):
+        self.reader.mergeability_changes = True
+        self.assertEqual(self.receive()['status'], 'RECEIVED_TEST_ONLY')
 
     def test_changed_during_read(self):
         self.reader.change_on_second_read = True
