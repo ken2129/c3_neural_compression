@@ -1,0 +1,6 @@
+# Requires explicit approval before applying. Candidate, not proven on this host.
+# no-new-privileges is inherited from compose.yaml; do not repeat list entries.
+services:
+  sandbox-check:
+    security_opt:
+      - seccomp=./codex-security-seccomp.json

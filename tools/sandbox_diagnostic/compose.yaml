@@ -1,0 +1,48 @@
+# Default-policy diagnostic. Not a production runtime.
+services:
+  sandbox-check:
+    build:
+      context: .
+      args:
+        HTTP_PROXY: ""
+        HTTPS_PROXY: ""
+        FTP_PROXY: ""
+        ALL_PROXY: ""
+        NO_PROXY: ""
+        http_proxy: ""
+        https_proxy: ""
+        ftp_proxy: ""
+        all_proxy: ""
+        no_proxy: ""
+    image: uchishiba-codex-sandbox-check:0.160.0-draft
+    profiles: [diagnostic]
+    init: true
+    user: "10001:10001"
+    read_only: true
+    network_mode: none
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    cpus: 0.5
+    mem_limit: 512m
+    memswap_limit: 512m
+    pids_limit: 64
+    shm_size: 16m
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,size=64m,mode=1777
+      - /home/codex:rw,nosuid,nodev,size=64m,mode=0700,uid=10001,gid=10001
+    environment:
+      HOME: /home/codex
+      CODEX_HOME: /home/codex/.codex
+      HTTP_PROXY: ""
+      HTTPS_PROXY: ""
+      FTP_PROXY: ""
+      ALL_PROXY: ""
+      NO_PROXY: ""
+      http_proxy: ""
+      https_proxy: ""
+      ftp_proxy: ""
+      all_proxy: ""
+      no_proxy: ""
+    restart: "no"
+    stop_grace_period: 3s
