@@ -436,8 +436,8 @@ class AppServerAdapter:
                     raise AppServerBlocked('turn completed without a valid final candidate')
                 if started_items.keys() != completed_items.keys():
                     raise AppServerBlocked('turn completed with unfinished items')
-                # Streamed item completion is authoritative; any final items
-                # supplied in the completion snapshot must agree with it.
+                # The completion snapshot must contain exactly all streamed
+                # completed items, with each item unchanged.
                 items = event_turn.get('items')
                 if type(items) is not list:
                     raise AppServerBlocked('invalid completed-turn items')
@@ -448,6 +448,8 @@ class AppServerAdapter:
                     if snapshot_id in snapshot_ids or completed_items.get(snapshot_id) != item:
                         raise AppServerBlocked('conflicting or unobserved final item snapshot')
                     snapshot_ids.add(snapshot_id)
+                if snapshot_ids != completed_items.keys():
+                    raise AppServerBlocked('incomplete final item snapshot')
                 recheck()
                 candidate = _candidate(final[1])
                 if candidate.outcome == 'success' and (command_event is None or command_event[1] != 0):

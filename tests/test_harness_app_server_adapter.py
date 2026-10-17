@@ -208,6 +208,15 @@ class AppServerAdapterTest(unittest.TestCase):
                     admit_external=lambda request: None, recheck=lambda: None)
             self.assertNotIn('turn/start', [item.get('method') for item in transport.sent])
 
+    def test_empty_or_partial_completed_turn_snapshot_is_rejected(self):
+        for retained_indices in ((), (0,), (1,)):
+            frames = transcript()
+            items = frames[-1]['params']['turn']['items']
+            frames[-1]['params']['turn']['items'] = [items[index] for index in retained_indices]
+            with self.subTest(retained_indices=retained_indices), self.assertRaisesRegex(
+                    AppServerBlocked, 'incomplete final item snapshot'):
+                self.run_fake(frames)
+
     def test_response_and_event_ids_status_phase_and_final_are_strict(self):
         mutations = [
             lambda f: f[0].update(id=True),
