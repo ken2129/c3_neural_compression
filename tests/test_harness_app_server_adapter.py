@@ -4,6 +4,8 @@ Wire fixtures follow the official rust-v0.160.0 generated types, including the
 notification envelope timestamp and nullable message phase (not live captures):
 codex-rs/app-server-protocol/schema/typescript/ServerNotificationEnvelope.ts,
 MessagePhase.ts, v2/ThreadItem.ts, v2/Turn.ts and v2/ItemStartedNotification.ts.
+The complete fixture also follows app-server/src/{lib,bespoke_event_handling,
+thread_state}.rs (see source references alongside the fixture below).
 """
 from copy import deepcopy
 from dataclasses import replace
@@ -29,7 +31,7 @@ def event(method, params):
 def transcript():
     thread = {'id': 'thread-1', 'ephemeral': True, 'cliVersion': '0.160.0',
               'cwd': WORKSPACE, 'turns': []}
-    turn = {'id': 'turn-1', 'status': 'inProgress', 'items': [], 'itemsView': 'full',
+    turn = {'id': 'turn-1', 'status': 'inProgress', 'items': [], 'itemsView': 'notLoaded',
             'error': None, 'startedAt': 1792224000, 'completedAt': None, 'durationMs': None}
     payload = json.dumps({'schema_version': 'c3-cpu-canary-worker-v1',
                           'outcome': 'success', 'reported_checksum': 333283335000})
@@ -60,9 +62,69 @@ def transcript():
         event('item/completed', {'threadId': 'thread-1', 'turnId': 'turn-1',
                                 'completedAtMs': 1792224000020, 'item': agent}),
         event('turn/completed', {'threadId': 'thread-1', 'turn': dict(
-            turn, status='completed', items=[command, agent], completedAt=1792224000,
+            turn, status='completed', items=[agent], itemsView='summary', completedAt=1792224000,
             durationMs=20)}),
     ]
+
+
+def rate_limits_event():
+    return event('account/rateLimits/updated', {'rateLimits': {
+        'limitId': 'codex', 'limitName': None, 'normalModelSlug': None,
+        'primary': {'usedPercent': 13, 'windowDurationMins': 300, 'resetsAt': 1792242000},
+        'secondary': None, 'credits': {'hasCredits': False, 'unlimited': False, 'balance': None},
+        'individualLimit': None, 'spendControlReached': None, 'planType': 'plus',
+        'rateLimitReachedType': None}})
+
+
+def complete_v0160_transcript():
+    """Source-derived fake sequence, not a live capture or credential evidence.
+
+    rust-v0.160.0 app-server/src/lib.rs sends disabled remote-control state on
+    initialization; bespoke_event_handling.rs handles turn start, model metadata,
+    token counts and summary completion; thread_state.rs selects the last
+    nonempty final/unknown-phase agent message. Payloads use generated v2 types.
+    Optional model metadata is included to exercise every admitted stable kind.
+    """
+    base = transcript()
+    wrapped = shlex.join(('/bin/bash', '-lc', sorted(SHELL_BODIES)[0]))
+    base[5]['params']['item']['command'] = wrapped
+    base[6]['params']['item']['command'] = wrapped
+    ids = {'threadId': 'thread-1', 'turnId': 'turn-1'}
+    counts = {'totalTokens': 34, 'inputTokens': 20, 'cachedInputTokens': 0,
+              'cacheWriteInputTokens': 0, 'outputTokens': 14, 'reasoningOutputTokens': 5}
+    reasoning = {'type': 'reasoning', 'id': 'reasoning-1', 'summary': [], 'content': []}
+    user = {'type': 'userMessage', 'id': 'user-1', 'clientId': None,
+            'content': [{'type': 'text', 'text': PROMPT, 'text_elements': []}]}
+    return [base[0],
+        event('remoteControl/status/changed', {'status': 'disabled', 'serverName': 'c3-canary',
+            'installationId': 'test-installation', 'environmentId': None}),
+        event('account/updated', {'authMode': 'chatgpt', 'planType': 'plus'}),
+        base[2], base[1],
+        event('thread/status/changed', {'threadId': 'thread-1',
+                                      'status': {'type': 'active', 'activeFlags': []}}),
+        base[3], base[4],
+        event('item/started', dict(ids, item=user, startedAtMs=1792224000000)),
+        event('item/completed', dict(ids, item=deepcopy(user), completedAtMs=1792224000000)),
+        event('model/verification', dict(ids, verifications=['trustedAccessForCyber'])),
+        event('model/safetyBuffering/updated', dict(ids, model='configured-model-v1',
+            useCases=[], reasons=[], showBufferingUi=False, fasterModel=None)),
+        event('item/started', dict(ids, item=deepcopy(reasoning), startedAtMs=1792224000000)),
+        event('item/reasoning/summaryPartAdded', dict(ids, itemId='reasoning-1', summaryIndex=0)),
+        event('item/reasoning/summaryTextDelta', dict(ids, itemId='reasoning-1',
+                                                   summaryIndex=0, delta='Run the fixed canary.')),
+        event('item/reasoning/textDelta', dict(ids, itemId='reasoning-1', contentIndex=0, delta='')),
+        event('item/completed', dict(ids, item=dict(reasoning, summary=['Run the fixed canary.']),
+                                    completedAtMs=1792224000001)),
+        base[5],
+        event('item/commandExecution/outputDelta', dict(ids, itemId='command-1', delta='333283335000\n')),
+        base[6],
+        event('thread/tokenUsage/updated', dict(ids, tokenUsage={
+            'total': counts, 'last': deepcopy(counts), 'modelContextWindow': 200000})),
+        rate_limits_event(), base[7],
+        event('item/agentMessage/delta', dict(ids, itemId='final-1', delta=base[8]['params']['item']['text'])),
+        base[8],
+        event('thread/status/changed', {'threadId': 'thread-1', 'status': {'type': 'idle'}}),
+        base[9]]
 
 
 class FakeTransport:
@@ -101,6 +163,9 @@ class AppServerAdapterTest(unittest.TestCase):
         self.assertNotIn('--ignore-user-config', self.request.argv)
         self.assertIn('forced_login_method="chatgpt"', self.request.argv)
         self.assertIn('cli_auth_credentials_store="file"', self.request.argv)
+        self.assertIn('suppress_unstable_features_warning=true', self.request.argv)
+        for alias in ('codex_hooks', 'connectors', 'memory_tool'):
+            self.assertNotIn(f'features.{alias}=false', self.request.argv)
         self.assertNotIn('--dangerously-bypass-approvals-and-sandbox', self.request.argv)
         for request in (replace(self.request, argv=('sh',)), replace(self.request, cwd='/control'),
                         replace(self.request, codex_home='/control/auth'),
@@ -170,7 +235,6 @@ class AppServerAdapterTest(unittest.TestCase):
                                   'startedAtMs': 1792224000003, 'item': dict(commentary, text='')}),
             event('item/completed', {'threadId': 'thread-1', 'turnId': 'turn-1',
                                     'completedAtMs': 1792224000004, 'item': commentary})]
-        frames[-1]['params']['turn']['items'].insert(1, commentary)
         self.assertEqual(self.run_fake(frames).candidate.reported_checksum, 333283335000)
         frames = transcript()
         frames[8]['params']['item']['phase'] = 'commentary'
@@ -208,14 +272,144 @@ class AppServerAdapterTest(unittest.TestCase):
                     admit_external=lambda request: None, recheck=lambda: None)
             self.assertNotIn('turn/start', [item.get('method') for item in transport.sent])
 
-    def test_empty_or_partial_completed_turn_snapshot_is_rejected(self):
+    def test_empty_or_partial_full_completed_turn_snapshot_is_rejected(self):
         for retained_indices in ((), (0,), (1,)):
             frames = transcript()
-            items = frames[-1]['params']['turn']['items']
+            items = [frames[6]['params']['item'], frames[8]['params']['item']]
+            frames[-1]['params']['turn']['itemsView'] = 'full'
             frames[-1]['params']['turn']['items'] = [items[index] for index in retained_indices]
             with self.subTest(retained_indices=retained_indices), self.assertRaisesRegex(
                     AppServerBlocked, 'incomplete final item snapshot'):
                 self.run_fake(frames)
+
+    def test_source_derived_complete_v0160_sequence_and_full_view(self):
+        for view in ('summary', 'full'):
+            frames = complete_v0160_transcript()
+            if view == 'full':
+                frames[-1]['params']['turn'].update(itemsView='full', items=[
+                    frame['params']['item'] for frame in frames if frame.get('method') == 'item/completed'])
+            with self.subTest(view=view):
+                result = self.run_fake(frames)
+                self.assertEqual(result.command_checksum, 333283335000)
+                self.assertFalse(result.candidate.independently_validated)
+                self.assertTrue(result.requires_namespace_restart)
+
+    def test_summary_must_match_the_streamed_final_candidate(self):
+        for replacement in ([], [transcript()[6]['params']['item']],
+                            [transcript()[8]['params']['item']] * 2,
+                            [dict(transcript()[8]['params']['item'], id='unobserved')],
+                            [dict(transcript()[8]['params']['item'], text='{}')]):
+            frames = transcript(); frames[-1]['params']['turn']['items'] = replacement
+            with self.subTest(items=replacement), self.assertRaises(AppServerBlocked):
+                self.run_fake(frames)
+        for view in (None, 'missing', 'notLoaded', 'partial', True, {}):
+            frames = transcript()
+            if view == 'missing': frames[-1]['params']['turn'].pop('itemsView')
+            else: frames[-1]['params']['turn']['itemsView'] = view
+            if view == 'notLoaded': frames[-1]['params']['turn']['items'] = []
+            with self.subTest(view=view), self.assertRaises(AppServerBlocked): self.run_fake(frames)
+
+    def test_summary_selection_follows_last_nonempty_noncommentary_message(self):
+        for phase, text, accepted in (('commentary', 'Finished.', True),
+                                      (None, '  ', True), (None, 'Finished.', False)):
+            frames = transcript()
+            extra = dict(frames[8]['params']['item'], id='after-final', phase=phase, text=text)
+            frames[-1:-1] = [
+                event('item/started', {'threadId': 'thread-1', 'turnId': 'turn-1',
+                                      'item': dict(extra, text=''), 'startedAtMs': 1792224000021}),
+                event('item/completed', {'threadId': 'thread-1', 'turnId': 'turn-1',
+                                        'item': extra, 'completedAtMs': 1792224000022})]
+            with self.subTest(phase=phase, text=text):
+                if accepted: self.assertTrue(self.run_fake(frames).requires_namespace_restart)
+                else:
+                    with self.assertRaisesRegex(AppServerBlocked, 'summary'):
+                        self.run_fake(frames)
+
+    def test_connection_metadata_is_valid_at_every_protocol_stage(self):
+        for position in (0, 1, 3, 5, 8, 9):
+            frames = transcript()
+            frames[position:position] = [rate_limits_event(),
+                event('account/updated', {'authMode': None, 'planType': None}),
+                event('remoteControl/status/changed', {'status': 'disabled', 'serverName': 'test',
+                    'installationId': 'test-installation', 'environmentId': None})]
+            with self.subTest(position=position):
+                self.assertEqual(self.run_fake(frames).candidate.reported_checksum, 333283335000)
+        update = rate_limits_event()
+        update['params']['rateLimits'] = {key: None for key in update['params']['rateLimits']}
+        frames = transcript(); frames.insert(5, update)
+        self.assertTrue(self.run_fake(frames).requires_namespace_restart)
+        update = rate_limits_event()
+        update['params']['rateLimits']['individualLimit'] = {
+            'limit': '100', 'used': '20', 'remainingPercent': 80, 'resetsAt': 1792242000}
+        frames = transcript(); frames.insert(5, update)
+        self.assertTrue(self.run_fake(frames).requires_namespace_restart)
+
+    def test_malformed_connection_metadata_and_remote_enablement_block(self):
+        mutations = [
+            lambda p: p.update(rateLimits=None),
+            lambda p: p.update(threadId='thread-1'),
+            lambda p: p['rateLimits'].update(primary=[]),
+            lambda p: p['rateLimits']['primary'].update(usedPercent=True),
+            lambda p: p['rateLimits']['primary'].update(usedPercent=12.5),
+            lambda p: p['rateLimits']['primary'].update(usedPercent=2**31),
+            lambda p: p['rateLimits']['primary'].update(usedPercent=float('inf')),
+            lambda p: p['rateLimits']['primary'].update(resetsAt='later'),
+            lambda p: p['rateLimits']['credits'].update(hasCredits=1),
+            lambda p: p['rateLimits'].update(planType='unknown-plan'),
+            lambda p: p['rateLimits'].update(spendControlReached=1),
+            lambda p: p['rateLimits'].update(individualLimit={'limit': '1'}),
+        ]
+        for mutate in mutations:
+            update = rate_limits_event(); mutate(update['params'])
+            frames = transcript(); frames.insert(0, update)
+            with self.subTest(mutation=mutate), self.assertRaises(AppServerBlocked): self.run_fake(frames)
+        for params in ({}, {'authMode': 'chatgpt', 'planType': []}):
+            with self.assertRaises(AppServerBlocked):
+                self.run_fake([event('account/updated', params)] + transcript())
+        for status in ('connected', 'connecting', 'errored', None, True):
+            update = event('remoteControl/status/changed', {'status': status,
+                'serverName': 'test', 'installationId': 'test-installation', 'environmentId': None})
+            with self.subTest(status=status), self.assertRaises(AppServerBlocked):
+                self.run_fake([update] + transcript())
+
+    def test_telemetry_does_not_replace_command_evidence_or_change_turn(self):
+        frames = complete_v0160_transcript()
+        frames = [frame for frame in frames if not (
+            frame.get('method', '').startswith('item/')
+            and (frame['params'].get('itemId') == 'command-1'
+                 or frame['params'].get('item', {}).get('id') == 'command-1'))]
+        with self.assertRaisesRegex(AppServerBlocked, 'command completion'): self.run_fake(frames)
+        for method in ('thread/tokenUsage/updated', 'model/verification', 'model/safetyBuffering/updated'):
+            for key in ('threadId', 'turnId'):
+                frames = complete_v0160_transcript()
+                next(frame for frame in frames if frame.get('method') == method)['params'][key] = 'other'
+                with self.subTest(method=method, key=key), self.assertRaises(AppServerBlocked):
+                    self.run_fake(frames)
+
+    def test_malformed_thread_telemetry_and_deltas_block(self):
+        mutations = [
+            ('thread/status/changed', lambda p: p.update(status={'type': 'active', 'activeFlags': [None]})),
+            ('thread/tokenUsage/updated', lambda p: p['tokenUsage']['last'].update(totalTokens=True)),
+            ('model/verification', lambda p: p.update(verifications=['unknown'])),
+            ('model/safetyBuffering/updated', lambda p: p.update(showBufferingUi=1)),
+            ('item/reasoning/summaryPartAdded', lambda p: p.update(summaryIndex=-1)),
+            ('item/reasoning/summaryTextDelta', lambda p: p.update(delta=[])),
+            ('item/reasoning/textDelta', lambda p: p.update(contentIndex=True)),
+            ('item/commandExecution/outputDelta', lambda p: p.update(delta=None)),
+            ('item/agentMessage/delta', lambda p: p.update(itemId='unknown')),
+        ]
+        for method, mutate in mutations:
+            frames = complete_v0160_transcript()
+            mutate(next(frame for frame in frames if frame.get('method') == method)['params'])
+            with self.subTest(method=method), self.assertRaises(AppServerBlocked): self.run_fake(frames)
+
+    def test_semantic_changes_warnings_and_experimental_notifications_remain_blocked(self):
+        for method in ('model/rerouted', 'warning', 'configWarning', 'deprecationNotice',
+                       'modelProvider/authRecoveryStarted', 'thread/settings/updated',
+                       'turn/moderationMetadata', 'hook/started', 'app/list/updated'):
+            frames = transcript()
+            frames.insert(5, event(method, {'threadId': 'thread-1', 'turnId': 'turn-1'}))
+            with self.subTest(method=method), self.assertRaises(AppServerBlocked): self.run_fake(frames)
 
     def test_response_and_event_ids_status_phase_and_final_are_strict(self):
         mutations = [

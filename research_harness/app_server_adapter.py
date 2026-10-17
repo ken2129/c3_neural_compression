@@ -93,10 +93,11 @@ def fixed_app_server_request(model):
     # must provide fresh/verified CODEX_HOME and clean repository/image config.
     argv = [BINARY, 'app-server', '--listen', 'stdio://', '--strict-config']
     extra = tuple(f'features.{name}=false' for name in (
-        'codex_hooks', 'plugin_hooks', 'plugins', 'apps', 'connectors', 'memory_tool',
+        'plugin_hooks', 'plugins', 'apps',
         'shell_snapshot', 'shell_snapshot_v2', 'skill_mcp_dependency_install',
         'skill_env_var_dependency_prompt', 'remote_control', 'daemon_auto_start'))
     for setting in (*CONFIG, *extra, 'features.skip_host_skill_discovery=true',
+                    'suppress_unstable_features_warning=true',
                     'sandbox_mode="read-only"', 'forced_login_method="chatgpt"',
                     'cli_auth_credentials_store="file"'):
         argv.extend(('-c', setting))
@@ -250,6 +251,133 @@ def _notification_envelope(value):
             raise AppServerBlocked('invalid app-server notification timestamp')
 
 
+def _metadata_object(value, keys):
+    if type(value) is not dict or set(value) != set(keys):
+        raise AppServerBlocked('invalid app-server telemetry fields')
+    return value
+
+
+def _telemetry_percentage(value):
+    # v0.160 account.rs serializes these rounded percentages as Rust i32.
+    return type(value) is int and -(2**31) <= value < 2**31
+
+
+def _connection_telemetry(method, params):
+    """Validate known connection-level metadata; never treat it as evidence."""
+    plan_types = (None, 'free', 'go', 'plus', 'pro', 'prolite', 'promax', 'team',
+        'self_serve_business_prolite', 'self_serve_business_usage_based', 'business',
+        'ent26', 'enterprise_cbp_automation', 'enterprise_cbp_usage_based',
+        'enterprise', 'edu', 'edu_plus', 'edu_pro', 'unknown')
+    if method == 'account/updated':
+        _metadata_object(params, ('authMode', 'planType'))
+        if (params['authMode'] not in (None, 'apikey', 'chatgpt', 'chatgptAuthTokens',
+                'headers', 'agentIdentity', 'personalAccessToken', 'bedrockApiKey', 'bedrockAccessKeys')
+                or params['planType'] not in plan_types):
+            raise AppServerBlocked('invalid account telemetry')
+        return True
+    if method == 'remoteControl/status/changed':
+        _metadata_object(params, ('status', 'serverName', 'installationId', 'environmentId'))
+        if (params['status'] != 'disabled'
+                or any(type(params[key]) is not str for key in ('serverName', 'installationId'))
+                or params['environmentId'] is not None):
+            raise AppServerBlocked('remote control is not disabled or telemetry is malformed')
+        return True
+    if method != 'account/rateLimits/updated':
+        return False
+    _metadata_object(params, ('rateLimits',))
+    limits = _metadata_object(params['rateLimits'], ('limitId', 'limitName',
+        'normalModelSlug', 'primary', 'secondary', 'credits', 'individualLimit',
+        'spendControlReached', 'planType', 'rateLimitReachedType'))
+    if (any(limits[key] is not None and type(limits[key]) is not str
+            for key in ('limitId', 'limitName', 'normalModelSlug'))
+            or limits['planType'] not in plan_types
+            or limits['rateLimitReachedType'] not in (None, 'rate_limit_reached',
+                'workspace_owner_credits_depleted', 'workspace_member_credits_depleted',
+                'workspace_owner_usage_limit_reached', 'workspace_member_usage_limit_reached')
+            or (limits['spendControlReached'] is not None
+                and type(limits['spendControlReached']) is not bool)):
+        raise AppServerBlocked('invalid rate-limit telemetry')
+    for key in ('primary', 'secondary'):
+        if limits[key] is None: continue
+        window = _metadata_object(limits[key], ('usedPercent', 'windowDurationMins', 'resetsAt'))
+        if (not _telemetry_percentage(window['usedPercent'])
+                or any(window[name] is not None and type(window[name]) is not int
+                       for name in ('windowDurationMins', 'resetsAt'))):
+            raise AppServerBlocked('invalid rate-limit window telemetry')
+    if limits['credits'] is not None:
+        credits = _metadata_object(limits['credits'], ('hasCredits', 'unlimited', 'balance'))
+        if (type(credits['hasCredits']) is not bool or type(credits['unlimited']) is not bool
+                or (credits['balance'] is not None and type(credits['balance']) is not str)):
+            raise AppServerBlocked('invalid credits telemetry')
+    if limits['individualLimit'] is not None:
+        spend = _metadata_object(limits['individualLimit'], ('limit', 'used', 'remainingPercent', 'resetsAt'))
+        if (type(spend['limit']) is not str or type(spend['used']) is not str
+                or not _telemetry_percentage(spend['remainingPercent']) or type(spend['resetsAt']) is not int):
+            raise AppServerBlocked('invalid spend-limit telemetry')
+    return True
+
+
+def _thread_status(params):
+    _metadata_object(params, ('threadId', 'status'))
+    status = _object(params['status'])
+    kind = status.get('type')
+    _metadata_object(status, ('type', 'activeFlags') if kind == 'active' else ('type',))
+    if kind not in ('notLoaded', 'idle', 'active'):
+        raise AppServerBlocked('invalid or failed thread status')
+    if kind == 'active' and (type(status['activeFlags']) is not list or any(
+            flag not in ('waitingOnApproval', 'waitingOnUserInput') for flag in status['activeFlags'])):
+        raise AppServerBlocked('invalid thread status flags')
+
+
+def _turn_telemetry(method, params):
+    if method == 'thread/tokenUsage/updated':
+        _metadata_object(params, ('threadId', 'turnId', 'tokenUsage'))
+        usage = _metadata_object(params['tokenUsage'], ('total', 'last', 'modelContextWindow'))
+        if usage['modelContextWindow'] is not None and type(usage['modelContextWindow']) is not int:
+            raise AppServerBlocked('invalid token-usage telemetry')
+        for key in ('total', 'last'):
+            counts = _metadata_object(usage[key], ('totalTokens', 'inputTokens', 'cachedInputTokens',
+                'cacheWriteInputTokens', 'outputTokens', 'reasoningOutputTokens'))
+            if any(type(count) is not int for count in counts.values()):
+                raise AppServerBlocked('invalid token-usage telemetry')
+        return True
+    if method == 'model/verification':
+        _metadata_object(params, ('threadId', 'turnId', 'verifications'))
+        if type(params['verifications']) is not list or any(
+                item != 'trustedAccessForCyber' for item in params['verifications']):
+            raise AppServerBlocked('invalid model-verification telemetry')
+        return True  # Backend metadata grants this adapter no capability.
+    if method == 'model/safetyBuffering/updated':
+        _metadata_object(params, ('threadId', 'turnId', 'model', 'useCases', 'reasons',
+                                  'showBufferingUi', 'fasterModel'))
+        if (type(params['model']) is not str or type(params['showBufferingUi']) is not bool
+                or (params['fasterModel'] is not None and type(params['fasterModel']) is not str)
+                or any(type(params[key]) is not list or any(type(item) is not str for item in params[key])
+                       for key in ('useCases', 'reasons'))):
+            raise AppServerBlocked('invalid safety-buffering telemetry')
+        return True  # A suggested faster model never changes the pinned request.
+    return False
+
+
+def _item_delta(method, params):
+    suffix = method.rsplit('/', 1)[-1]
+    keys = ['threadId', 'turnId', 'itemId']
+    if suffix == 'terminalInteraction':
+        keys += ['processId', 'stdin']
+    else:
+        if suffix != 'summaryPartAdded': keys.append('delta')
+        if suffix in ('summaryTextDelta', 'summaryPartAdded'): keys.append('summaryIndex')
+        if suffix == 'textDelta': keys.append('contentIndex')
+    _metadata_object(params, keys)
+    for key in keys[3:]:
+        if key in ('summaryIndex', 'contentIndex'):
+            valid = type(params[key]) is int and params[key] >= 0
+        else:
+            valid = type(params[key]) is str
+        if not valid:
+            raise AppServerBlocked('invalid item-delta telemetry')
+
+
 def _fixed_command(item):
     command = item.get('command')
     try:
@@ -358,6 +486,8 @@ class AppServerAdapter:
                             or set(value) - {'jsonrpc', 'id', 'result'} or type(value.get('result')) is not dict):
                         raise AppServerBlocked('mismatched app-server response')
                     return value['result']
+                if _connection_telemetry(value['method'], value['params']):
+                    continue
                 if len(pending) >= 64:
                     raise AppServerBlocked('too many notifications before response')
                 pending.append(value)
@@ -368,7 +498,7 @@ class AppServerAdapter:
         if (initialized.get('codexHome') != CODEX_HOME or initialized.get('platformOs') != 'linux'
                 or initialized.get('platformFamily') != 'unix' or not isinstance(initialized.get('userAgent'), str)):
             raise AppServerBlocked('app-server initialization configuration mismatch')
-        if any(item.get('method') != 'account/updated' for item in pending):
+        if pending:
             raise AppServerBlocked('unexpected activity before initialization')
         transport.send({'method': 'initialized'})
         result = rpc(2, 'thread/start', {'model': request.model, 'cwd': WORKSPACE,
@@ -386,10 +516,11 @@ class AppServerAdapter:
             raise AppServerBlocked('thread configuration or instruction sources mismatch')
         for value in pending:
             method, params = value.get('method'), _object(value.get('params'))
-            if method == 'account/updated': continue
             if method == 'thread/started':
                 if _object(params.get('thread')).get('id') == thread_id: continue
-            if method == 'thread/status/changed' and params.get('threadId') == thread_id: continue
+            if method == 'thread/status/changed' and params.get('threadId') == thread_id:
+                _thread_status(params)
+                continue
             raise AppServerBlocked('unexpected activity before the fixed turn')
         result = rpc(3, 'turn/start', {'threadId': thread_id, 'model': request.model,
             'cwd': WORKSPACE, 'approvalPolicy': 'never', 'approvalsReviewer': 'user',
@@ -402,6 +533,7 @@ class AppServerAdapter:
             raise AppServerBlocked('turn did not start in progress')
         started = False
         final = None
+        last_summary_item_id = None
         command_event = None
         command_id = None
         started_items, completed_items = {}, {}
@@ -410,8 +542,8 @@ class AppServerAdapter:
             value = pending.pop(0) if pending else receive()
             _notification_envelope(value)
             method, params = value.get('method'), value['params']
-            if method == 'account/updated':
-                continue  # Notification is not auth evidence; no auth RPC is sent.
+            if _connection_telemetry(method, params):
+                continue
             if method == 'thread/started':
                 notified = _object(params.get('thread'))
                 if notified.get('id') != thread_id or notified.get('ephemeral') is not True:
@@ -419,8 +551,11 @@ class AppServerAdapter:
                 continue
             if params.get('threadId') != thread_id:
                 raise AppServerBlocked('notification thread mismatch')
-            if method in ('thread/status/changed', 'thread/tokenUsage/updated'):
-                if 'turnId' in params and params['turnId'] != turn_id:
+            if method == 'thread/status/changed':
+                _thread_status(params)
+                continue
+            if _turn_telemetry(method, params):
+                if params['turnId'] != turn_id:
                     raise AppServerBlocked('notification turn mismatch')
                 continue
             if method in ('turn/started', 'turn/completed'):
@@ -436,10 +571,11 @@ class AppServerAdapter:
                     raise AppServerBlocked('turn completed without a valid final candidate')
                 if started_items.keys() != completed_items.keys():
                     raise AppServerBlocked('turn completed with unfinished items')
-                # The completion snapshot must contain exactly all streamed
-                # completed items, with each item unchanged.
+                # v0.160 emits a summary containing only the last nonempty
+                # final/unknown-phase agent message. A full view has all items.
                 items = event_turn.get('items')
-                if type(items) is not list:
+                view = event_turn.get('itemsView')
+                if type(items) is not list or view not in ('summary', 'full'):
                     raise AppServerBlocked('invalid completed-turn items')
                 snapshot_ids = set()
                 for item in items:
@@ -448,8 +584,11 @@ class AppServerAdapter:
                     if snapshot_id in snapshot_ids or completed_items.get(snapshot_id) != item:
                         raise AppServerBlocked('conflicting or unobserved final item snapshot')
                     snapshot_ids.add(snapshot_id)
-                if snapshot_ids != completed_items.keys():
+                if view == 'full' and snapshot_ids != completed_items.keys():
                     raise AppServerBlocked('incomplete final item snapshot')
+                if view == 'summary' and (
+                        snapshot_ids != {final[0]} or last_summary_item_id != final[0]):
+                    raise AppServerBlocked('summary does not match the streamed final candidate')
                 recheck()
                 candidate = _candidate(final[1])
                 if candidate.outcome == 'success' and (command_event is None or command_event[1] != 0):
@@ -499,6 +638,8 @@ class AppServerAdapter:
                                     and re.fullmatch(r'[0-9]+\n?', output) else None)
                         command_event = (command, code, checksum)
                     if item['type'] == 'agentMessage' and item.get('phase') != 'commentary':
+                        if item['text'].strip():
+                            last_summary_item_id = item_id
                         # MessagePhase.ts requires compatibility for unknown
                         # phases. Only closed-schema canary JSON is eligible;
                         # ordinary unlabelled commentary is never evidence.
@@ -520,5 +661,6 @@ class AppServerAdapter:
                 expected = method.split('/')[1]
                 if prior is None or prior.get('type') != expected or item_id in completed_items:
                     raise AppServerBlocked('delta item identity or lifecycle mismatch')
+                _item_delta(method, params)
                 continue  # Bound/count bytes, never assemble deltas as evidence.
             raise AppServerBlocked('unsupported app-server notification')

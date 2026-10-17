@@ -131,3 +131,9 @@ Codex 0.160.0の公式app-serverには、turn/startで`externalSandbox`を指定
 設定不足は MODEL_OPERATOR_SETUP_MISSING、認証形式不足は MODEL_DEDICATED_CHATGPT_LOGIN_REQUIRED、モデルや導入版不一致は MODEL_CONFIGURATION_REVISION_OR_MODEL_MISMATCH として起動前に停止します。設定や認証を自動取得・自動緩和しません。
 
 認証更新の制限: 現在は各試行に認証のコピーを使い、workerで更新された認証を管理領域へ自動で書き戻しません。ChatGPTのトークン更新・失効により、次回実行前に専用ログインの更新が必要になる場合があります。認証エラーを無制限に再試行しません。
+
+### 初回配置ファイルの所有者
+
+prepareはdeployment.jsonだけをroot:root・0644の明示tarで配置し、起動前に所有者・mode・本文を読み戻して一致を確認します。親の/controlは管理UID10001・0700で、workerは通過できません。起動時は管理UIDで読み、初期化完了時は管理UIDが作る別ファイルへos.replaceするため、root所有ファイルを直接書き込む必要はありません。認証ファイルにはこの0644契約を使わず、引き続き管理UID10001・0600です。
+
+起動の配置検証に失敗した場合は、子プロセスを作らずBLOCKED_STARTUPで待機します。実行後の失敗・終了では専用PID1を終了させる境界を維持します。古いイメージにはこの待機処理がないため、再起動を繰り返す場合は対象の専用コンテナだけを停止し、既存研究コンテナには触れません。
