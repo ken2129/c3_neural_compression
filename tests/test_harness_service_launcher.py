@@ -42,8 +42,9 @@ class LauncherTests(unittest.TestCase):
              patch.object(launcher.subprocess,'Popen',return_value=control) as popen, \
              patch.object(launcher,'OwnedUIDSupervisor',Supervisor), \
              patch.object(launcher,'LinuxUIDBackend',return_value=object()), \
-             patch.object(launcher.time,'sleep'),patch.object(launcher.sys,'stdout',io.StringIO()):
+             patch.object(launcher.time,'sleep') as restart_sleep,patch.object(launcher.sys,'stdout',io.StringIO()):
             launcher.supervise()
+            control.restart_sleeps=restart_sleep.call_args_list
         return control,popen
 
     def test_fixed_run_recheck_then_namespace_restart(self):
@@ -87,6 +88,47 @@ class LauncherTests(unittest.TestCase):
         self.assertFalse(result['research_success_verified'])
         self.assertTrue(result['requires_namespace_restart'])
         self.assertNotIn('observed_command',result)
+
+    def test_prepared_model_is_consumed_by_any_report_or_next_admission(self):
+        plan=dict(kind='codex-canary-v1',source_sha='b'*40,publish_result_pr=True,
+                  model='gpt-5.3-codex',sandbox_mode='externalSandbox',external_network='enabled',
+                  max_seconds=120,model_usage_approved=True)
+        binding=dict(binding_fixture(),plan_digest=hashlib.sha256(canonical(plan)).hexdigest())
+        outcomes=[
+            {'op':'prepare_plan','plan':plan},
+            {'op':'prepare_plan','plan':dict(kind='cpu-canary-v1',source_sha='b'*40,publish_result_pr=True)},
+            {'op':'preflight'},
+            {'op':'report','reports':[{'phase':'APPROVAL_REVOKED','dispatched':False}]},
+            {'op':'report','reports':[{'phase':'SOURCE_UNAVAILABLE','dispatched':False}]},
+            {'op':'report','reports':[]},
+        ]
+        for outcome in outcomes:
+            with self.subTest(outcome=outcome), \
+                 patch('research_harness.model_deployment.prepare_model',return_value=SimpleNamespace(model=plan['model'])) as prepare, \
+                 patch.object(Supervisor,'run_fixed_app_server_canary',create=True) as run_model, \
+                 patch.object(launcher.time,'monotonic',return_value=100):
+                control,_=self.invoke([{'op':'prepare_plan','plan':plan},{'op':'preflight'},outcome,
+                    {'op':'fixed_model','binding':binding},{'approved':True},{'op':'restart'}])
+                prepare.assert_called_once()
+                run_model.assert_not_called()
+                sent=[json.loads(line) for line in control.stdin.saved.splitlines()]
+                self.assertEqual(sent[1:],[{'prepared':True},{'ready':True}])
+                self.assertEqual(len(control.restart_sleeps),1)
+                self.assertEqual(control.restart_sleeps[0].args,(11,))
+                # A later candidate's dispatch is left unread, never admitted.
+                self.assertEqual(json.loads(control.stdout.readline())['op'],'fixed_model')
+
+    def test_partial_model_preparation_failure_exits_instead_of_quarantining(self):
+        plan=dict(kind='codex-canary-v1',source_sha='b'*40,publish_result_pr=True,
+                  model='gpt-5.3-codex',sandbox_mode='externalSandbox',external_network='enabled',
+                  max_seconds=120,model_usage_approved=True)
+        with patch('research_harness.model_deployment.prepare_model',side_effect=PermissionError('partial auth preparation')), \
+             patch.object(launcher,'blocked_startup') as blocked, \
+             patch.object(Supervisor,'run_fixed_app_server_canary',create=True) as run_model:
+            with self.assertRaises(PermissionError):
+                self.invoke([{'op':'prepare_plan','plan':plan},{'op':'preflight'}])
+            blocked.assert_not_called()
+            run_model.assert_not_called()
 
     def test_runtime_source_must_match_operator_revision(self):
         binding=dict(binding_fixture(),source_sha='c'*40)

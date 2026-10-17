@@ -135,6 +135,12 @@ def supervise():
     try:
         while True:
             frame=read_frame(control.stdout)
+            if model_request is not None and frame.get('op') in ('prepare_plan','preflight'):
+                # Preparation already copied auth into this generation's tmpfs.
+                # A revoked/unclaimed candidate can make once() advance before
+                # reporting. Never acknowledge another plan or reuse that auth.
+                time.sleep(max(0,11-(time.monotonic()-started)))
+                return
             if set(frame)=={'op','plan'} and frame['op']=='prepare_plan':
                 from research_harness.service import validate_canary_plan
                 if attempted:raise ContractError('one attempt per PID namespace')
@@ -146,10 +152,7 @@ def supervise():
                 OwnedUIDSupervisor(LinuxUIDBackend(),controller_pid=control.pid).reserve()
                 if selected_plan and selected_plan['kind']=='codex-canary-v1':
                     from research_harness.model_deployment import prepare_model
-                    if model_request is None:
-                        model_request=prepare_model(source_sha=config['source_sha'],model=selected_plan['model'])
-                    elif model_request.model!=selected_plan['model']:
-                        raise ContractError('MODEL_PREPARED_FOR_DIFFERENT_PLAN')
+                    model_request=prepare_model(source_sha=config['source_sha'],model=selected_plan['model'])
                 write_frame(control.stdin,{'ready':True})
             elif set(frame)=={'op','binding'} and frame['op'] in ('fixed_cpu','fixed_model'):
                 if attempted:raise ContractError('one attempt per PID namespace')
@@ -193,6 +196,11 @@ def supervise():
                         'elapsed_seconds':result.elapsed_seconds,'model_called':False}})
             elif set(frame)=={'op','reports'} and frame['op']=='report':
                 print(json.dumps({'mode':'approved-fixed-canary','reports':frame['reports']},ensure_ascii=False),flush=True)
+                if model_request is not None:
+                    # Even no-dispatch outcomes consume prepared model state.
+                    # Only PID1 exit/restart clears it; never delete/reuse it live.
+                    time.sleep(max(0,11-(time.monotonic()-started)))
+                    return
             elif frame=={'op':'restart'}:
                 # Docker restart policy only applies after successful startup.
                 time.sleep(max(0,11-(time.monotonic()-started)))
