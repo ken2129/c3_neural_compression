@@ -175,6 +175,8 @@ class RecordedProtocolTest(unittest.TestCase):
                          ['item/started', 'item/completed'])
         for frame in record['frames']:
             self.assertEqual(frame['params']['item']['source'], 'unifiedExecStartup')
+            self.assertEqual(shlex.split(frame['params']['item']['command'])[:2],
+                             ['/bin/bash', '-c'])
         observed = []
         with self.assertRaisesRegex(AppServerBlocked, 'canary command did not complete') as caught:
             AppServerAdapter(enabled=True).run(
@@ -252,7 +254,7 @@ class AppServerAdapterTest(unittest.TestCase):
         arguments = json.loads(code[len(prefix):-len(suffix)])
         self.assertEqual(arguments, {
             'cmd': 'python3 -I -S -c "print(sum(i*i for i in range(10000)))"',
-            'workdir': WORKSPACE})
+            'workdir': WORKSPACE, 'login': False})
         self.assertEqual(tuple(shlex.split(arguments['cmd'])), adapter_module.COMMAND)
         self.assertIn(arguments['cmd'], SHELL_BODIES)
         self.assertEqual(PROMPT.count(code), 1)

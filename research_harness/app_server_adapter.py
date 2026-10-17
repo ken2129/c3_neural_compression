@@ -48,7 +48,7 @@ SHELL_BODIES = frozenset((
 CODE_MODE_CANARY = (
     'const r = await tools.exec_command({"cmd":'
     '"python3 -I -S -c \\"print(sum(i*i for i in range(10000)))\\"",'
-    f'"workdir":"{WORKSPACE}"'
+    f'"workdir":"{WORKSPACE}","login":false'
     '}); text(r);'
 )
 PROMPT = (

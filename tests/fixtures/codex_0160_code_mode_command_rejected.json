@@ -1,5 +1,5 @@
 {
-  "source": "Official Codex 0.160.0, scripted loopback Responses, code-mode wrapper, 2026-10-17",
+  "source": "Official Codex 0.160.0, scripted loopback Responses, code-mode wrapper with login:false, 2026-10-17",
   "sandbox": "readOnly",
   "real_model_call": false,
   "command_execution_succeeded": false,
@@ -20,7 +20,7 @@
           "id": "command-1",
           "pluginId": null,
           "scriptPath": null,
-          "command": "/bin/bash -lc 'python3 -I -S -c \"print(sum(i*i for i in range(10000)))\"'",
+          "command": "/bin/bash -c 'python3 -I -S -c \"print(sum(i*i for i in range(10000)))\"'",
           "cwd": "/work/canary",
           "processId": "123",
           "source": "unifiedExecStartup",
@@ -37,9 +37,9 @@
         },
         "threadId": "thread-1",
         "turnId": "turn-1",
-        "startedAtMs": 1792252998689
+        "startedAtMs": 1792253508041
       },
-      "emittedAtMs": 1792252998691
+      "emittedAtMs": 1792253508042
     },
     {
       "method": "item/completed",
@@ -49,7 +49,7 @@
           "id": "command-1",
           "pluginId": null,
           "scriptPath": null,
-          "command": "/bin/bash -lc 'python3 -I -S -c \"print(sum(i*i for i in range(10000)))\"'",
+          "command": "/bin/bash -c 'python3 -I -S -c \"print(sum(i*i for i in range(10000)))\"'",
           "cwd": "/work/canary",
           "processId": "123",
           "source": "unifiedExecStartup",
@@ -66,9 +66,9 @@
         },
         "threadId": "thread-1",
         "turnId": "turn-1",
-        "completedAtMs": 1792252998790
+        "completedAtMs": 1792253508142
       },
-      "emittedAtMs": 1792252998791
+      "emittedAtMs": 1792253508143
     }
   ]
 }
