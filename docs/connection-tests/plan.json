@@ -1,0 +1,9 @@
+{
+  "schema": "connection-probe-plan-v1",
+  "purpose": "chat-github-receipt-only",
+  "request_id": "chat-roundtrip-20261017-01",
+  "revision": 1,
+  "repository": "ken2129/c3_neural_compression",
+  "expires_at": 1792207800,
+  "execute": false
+}
