@@ -7,9 +7,11 @@ services:
       context: ${C3_GOAL_CONTEXT:?prepared immutable context required}
       dockerfile: tools/research_goal/Dockerfile
       args:
+        DEPLOYMENT_ID: ${C3_DEPLOYMENT_ID:?fresh public deployment identity required}
         SOURCE_SHA: ${C3_RUNTIME_SHA:?reviewed runtime revision required}
         INPUT_SOURCE_SHA: ${C3_INPUT_SHA:?approved input revision required}
     labels:
+      c3.deployment-id: ${C3_DEPLOYMENT_ID}
       c3.purpose: dedicated-goal-controller
       c3.source-sha: ${C3_RUNTIME_SHA}
       c3.input-source-sha: ${C3_INPUT_SHA}
@@ -35,3 +37,5 @@ services:
       - /work:rw,noexec,nosuid,nodev,size=${C3_GOAL_WORK:?operator profile required},mode=0755,uid=0,gid=0
 volumes:
   goal-control:
+    labels:
+      c3.deployment-id: ${C3_DEPLOYMENT_ID}

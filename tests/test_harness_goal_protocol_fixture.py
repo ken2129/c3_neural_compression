@@ -16,7 +16,7 @@ FIXTURE = Path(__file__).parent / 'fixtures/goal_app_server_0160.json'
 
 
 def plan():
-    return dict(kind='codex-goal-v1', source_sha='a' * 40,
+    return dict(kind='codex-goal-v1',deployment_id='1'*32, source_sha='a' * 40,
                 publish_result_pr=True, model='gpt-6.1-sol',
                 sandbox_mode='externalSandbox', external_network='enabled',
                 max_seconds=120, model_usage_approved=True,

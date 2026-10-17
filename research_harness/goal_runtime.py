@@ -54,6 +54,7 @@ _RUNTIME_REASONS = frozenset((
     'GOAL_CONTAINER_IDENTITY_MISMATCH',
     'GOAL_CPU_QUOTA_REQUIRED',
     'GOAL_DEDICATED_ROOT_PID1_REQUIRED',
+    'GOAL_DEPLOYMENT_ID_MISMATCH',
     'GOAL_DEPLOYMENT_INITIALIZATION_INTENT',
     'GOAL_FINALIZATION_DEADLINE',
     'GOAL_FINALIZATION_RESERVE_REQUIRED',
@@ -63,6 +64,7 @@ _RUNTIME_REASONS = frozenset((
     'GOAL_INPUT_MANIFEST_INVALID',
     'GOAL_INPUT_NOT_READABLE',
     'GOAL_INPUT_WRITE_SCOPE_OVERLAP',
+    'GOAL_INSTALLED_PLAN_MISMATCH',
     'GOAL_IPC_NAMESPACE_CHANGED',
     'GOAL_IPC_TMPFS_LIMIT',
     'GOAL_MANAGER_DIRECTORY_PERMISSIONS',
@@ -437,17 +439,26 @@ class GoalLinuxUIDBackend(LinuxUIDBackend):
                                              owner=(0,CONTROLLER_UID)))
         finally:
             os.seteuid(0)
-        fields(config,('schema','enabled','input_source_sha','runtime_source_sha','model','resource_limits','risk_acknowledgements'))
+        fields(config,('schema','enabled','deployment_id','installed_plan_digest','input_source_sha','runtime_source_sha','model','resource_limits','risk_acknowledgements'))
         if (config['schema']!='c3-goal-runtime-v1' or config['input_source_sha']!=request.source_sha
                 or config['enabled'] is not True
                 or config['model']!=request.plan['model']
+                or type(config['deployment_id']) is not str
+                or re.fullmatch('[0-9a-f]{32}',config['deployment_id']) is None
+                or type(config['installed_plan_digest']) is not str
+                or re.fullmatch('[0-9a-f]{64}',config['installed_plan_digest']) is None
                 or type(config['runtime_source_sha']) is not str
                 or re.fullmatch('[0-9a-f]{40}',config['runtime_source_sha']) is None):
             raise GoalRuntimeBlocked('GOAL_OPERATOR_CONFIGURATION_MISMATCH')
+        if request.plan.get('deployment_id')!=config['deployment_id']:
+            raise GoalRuntimeBlocked('GOAL_DEPLOYMENT_ID_MISMATCH')
         fields(config['risk_acknowledgements'],CONSENTS)
         if any(config['risk_acknowledgements'][key] is not True for key in CONSENTS):
             raise GoalRuntimeBlocked('GOAL_OPERATOR_RISK_CONSENT_REQUIRED')
-        plan=validate_goal_plan(request.plan,request.source_sha,resource_limits=config['resource_limits'])
+        plan=validate_goal_plan(request.plan,request.source_sha,resource_limits=config['resource_limits'],
+                                deployment_id=config['deployment_id'])
+        if config['installed_plan_digest']!=request.digest:
+            raise GoalRuntimeBlocked('GOAL_INSTALLED_PLAN_MISMATCH')
         # Host inspect is collected/protected by the approved operator setup.
         # Internal procfs cannot independently prove Docker image/private IPC or
         # exclusive volume ownership. No consent boolean substitutes for this.
@@ -458,7 +469,7 @@ class GoalLinuxUIDBackend(LinuxUIDBackend):
         verified=validate_goal_deployment(deployment['inspect'],deployment['consumers'],
             runtime_source_sha=config['runtime_source_sha'],input_source_sha=request.source_sha,
             volume_name=deployment['volume_name'],volume_inspect=deployment['volume_inspect'],
-            resource_limits=config['resource_limits'])
+            resource_limits=config['resource_limits'],deployment_id=config['deployment_id'])
         if Path('/etc/hostname').read_text().strip()!=verified['container_id'][:12]:
             raise GoalRuntimeBlocked('GOAL_CONTAINER_IDENTITY_MISMATCH')
         ipc=os.readlink('/proc/self/ns/ipc')

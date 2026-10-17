@@ -9,7 +9,7 @@ SHA = 'a' * 40
 
 
 def goal_fixture():
-    return dict(kind='codex-goal-v1', source_sha=SHA, publish_result_pr=True,
+    return dict(kind='codex-goal-v1', deployment_id='1'*32, source_sha=SHA, publish_result_pr=True,
                 model='configured-model-v1', sandbox_mode='externalSandbox',
                 external_network='enabled', max_seconds=120,
                 model_usage_approved=True,
@@ -144,3 +144,21 @@ class GoalPlanTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class GoalDeploymentIdentityTests(unittest.TestCase):
+    def test_public_nonce_is_required_and_strict(self):
+        for value in (None, True, '', '1'*31, '1'*33, 'A'*32, 'z'*32):
+            plan = goal_fixture(); plan['deployment_id'] = value
+            with self.assertRaises(ContractError): validate_goal_plan(plan, SHA)
+        plan = goal_fixture(); del plan['deployment_id']
+        with self.assertRaises(ContractError): validate_goal_plan(plan, SHA)
+
+    def test_nonce_mismatch_rejects_even_when_input_source_is_identical(self):
+        plan = goal_fixture()
+        validate_goal_plan(plan, SHA, deployment_id='1'*32)
+        with self.assertRaises(ContractError):
+            validate_goal_plan(plan, SHA, deployment_id='2'*32)
+        changed = deepcopy(plan); changed['deployment_id'] = '2'*32
+        self.assertNotEqual(canonical(plan), canonical(changed))
+        validate_goal_plan(changed, SHA, deployment_id='2'*32)

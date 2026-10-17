@@ -11,11 +11,12 @@ from .schema import ContractError
 
 
 def validate_goal_deployment(inspect, consumers, *, runtime_source_sha, input_source_sha,
-                             volume_name, volume_inspect, resource_limits):
+                             volume_name, volume_inspect, resource_limits, deployment_id):
     """Validate a new goal-only installation; never normalize canary evidence."""
     source_sha = runtime_source_sha
     if (type(input_source_sha) is not str or re.fullmatch("[0-9a-f]{40}", input_source_sha) is None
-            or type(resource_limits) is not dict):
+            or type(resource_limits) is not dict
+            or type(deployment_id) is not str or re.fullmatch("[0-9a-f]{32}", deployment_id) is None):
         raise ContractError("invalid goal deployment configuration")
     try:
         ident=inspect['Id'];config=inspect['Config'];host=inspect['HostConfig']
@@ -27,6 +28,7 @@ def validate_goal_deployment(inspect, consumers, *, runtime_source_sha, input_so
         if config['Labels'].get('c3.purpose')!='dedicated-goal-controller':raise ValueError()
         if config['Labels'].get('c3.source-sha')!=source_sha:raise ValueError()
         if config['Labels'].get('c3.input-source-sha')!=input_source_sha:raise ValueError()
+        if config['Labels'].get('c3.deployment-id')!=deployment_id:raise ValueError()
         if config['Hostname']!=ident[:12] or config['User'] not in ('','0','0:0'):raise ValueError()
         if host['Privileged'] is not False or host['ReadonlyRootfs'] is not True:raise ValueError()
         if host['PidMode']!='' or host['IpcMode']!='private':raise ValueError()
@@ -60,7 +62,9 @@ def validate_goal_deployment(inspect, consumers, *, runtime_source_sha, input_so
         if mount['Type']!='volume' or mount['Name']!=volume_name or mount['Destination']!='/control' or mount['RW'] is not True:raise ValueError()
         if (type(volume_inspect) is not dict or volume_inspect['Name']!=volume_name
             or volume_inspect['Driver']!='local' or volume_inspect['Scope']!='local'
-            or volume_inspect['Options'] not in (None,{})):raise ValueError()
+            or volume_inspect['Options'] not in (None,{})
+            or type(volume_inspect.get('Labels')) is not dict
+            or volume_inspect['Labels'].get('c3.deployment-id')!=deployment_id):raise ValueError()
         source=mount['Source'];mountpoint=volume_inspect['Mountpoint']
         if (type(source) is not str or type(mountpoint) is not str
             or not source.startswith('/') or source.startswith('//') or '\x00' in source
@@ -70,5 +74,5 @@ def validate_goal_deployment(inspect, consumers, *, runtime_source_sha, input_so
         raise ContractError('goal deployment facts are incomplete or do not match') from None
     return dict(schema_version=1,container_id=ident,source_sha=input_source_sha,
                 runtime_source_sha=runtime_source_sha,input_source_sha=input_source_sha,
-                image_id=image_id,volume_name=volume_name,
+                image_id=image_id,volume_name=volume_name,deployment_id=deployment_id,
                 pid_mode='private',restart_policy='unless-stopped',exclusive_volume=True)

@@ -35,7 +35,7 @@ RESOURCE_BOUNDS = {
     'max_output_bytes': (1, 16 * 1024 * 1024),
 }
 _PLAN_FIELDS = (
-    'kind', 'source_sha', 'publish_result_pr', 'model', 'sandbox_mode',
+    'kind', 'deployment_id', 'source_sha', 'publish_result_pr', 'model', 'sandbox_mode',
     'external_network', 'max_seconds', 'model_usage_approved', 'goal',
     'completion_criteria', 'inputs', 'write_scope', 'resource_budget',
 )
@@ -71,7 +71,7 @@ def _paths(value, *, maximum, empty=False):
     return value
 
 
-def validate_goal_plan(plan, allowed_source_sha, *, resource_limits=None):
+def validate_goal_plan(plan, allowed_source_sha, *, resource_limits=None, deployment_id=None):
     """Return a detached validated plan; callers still need trusted approval.
 
     Path validation is lexical only. Staging must reject symlinks/special files
@@ -79,11 +79,19 @@ def validate_goal_plan(plan, allowed_source_sha, *, resource_limits=None):
     prompt do not enforce a filesystem boundary. With resource_limits omitted,
     only syntax and absolute parser bounds are checked. A supplied limits map
     contains all six RESOURCE_BOUNDS keys and represents operator ceilings, not
-    evidence that a supervisor enforces the requested resource budget.
+    evidence that a supervisor enforces the requested resource budget. The public
+    deployment nonce is always required; executable admission must additionally
+    match it to the protected operator profile before making a durable claim.
     """
     fields(plan, _PLAN_FIELDS)
     if plan['kind'] != GOAL_KIND:
         raise ContractError('unsupported goal kind')
+    if type(plan['deployment_id']) is not str or re.fullmatch('[0-9a-f]{32}', plan['deployment_id']) is None:
+        raise ContractError('public goal deployment identity required')
+    if deployment_id is not None:
+        if (type(deployment_id) is not str or re.fullmatch('[0-9a-f]{32}', deployment_id) is None
+                or plan['deployment_id'] != deployment_id):
+            raise ContractError('goal belongs to another deployment')
     if (type(allowed_source_sha) is not str
             or re.fullmatch(r'[0-9a-f]{40}', allowed_source_sha) is None
             or plan['source_sha'] != allowed_source_sha):

@@ -1,6 +1,7 @@
 FROM python:3.11-slim-bookworm
 ARG SOURCE_SHA
 ARG INPUT_SOURCE_SHA
+ARG DEPLOYMENT_ID
 RUN test "${#SOURCE_SHA}" = 40 \
  && apt-get update && apt-get install -y --no-install-recommends gh ca-certificates nodejs npm \
  && npm install --global --prefix /opt/codex @openai/codex@0.160.0 \
@@ -25,7 +26,7 @@ RUN test "${#SOURCE_SHA}" = 40 \
  && chown -R 10001:10001 /control && chmod 0700 /control /control/gh /control/home \
  && printf '%s\n' "$SOURCE_SHA" > /opt/service/source-sha \
  && printf 'c3-dedicated-pid1-goal-v1\n' > /opt/c3-runtime/dedicated-pid1-goal
-LABEL c3.purpose="dedicated-goal-controller" c3.source-sha="$SOURCE_SHA" c3.input-source-sha="$INPUT_SOURCE_SHA"
+LABEL c3.deployment-id="$DEPLOYMENT_ID" c3.purpose="dedicated-goal-controller" c3.source-sha="$SOURCE_SHA" c3.input-source-sha="$INPUT_SOURCE_SHA"
 COPY research_harness/ /opt/service/research_harness/
 COPY tools/research_goal/launcher.py /opt/service/goal_launcher.py
 COPY goal-inputs/ /opt/goal-inputs/

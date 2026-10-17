@@ -5,6 +5,7 @@ never enables this controller. Model candidates and workspace changes remain
 private until a separate approval of the exact resulting content is present.
 """
 import hashlib
+import re
 import time
 
 from .schema import ContractError, canonical
@@ -16,8 +17,8 @@ from .service import Controller, _RunApprovalRecheck
 from .goal_plan import validate_goal_plan
 
 
-def goal_binding(issue, request, source_sha, *, resource_limits=None):
-    plan = validate_goal_plan(request['plan'], source_sha, resource_limits=resource_limits)
+def goal_binding(issue, request, source_sha, *, resource_limits=None, deployment_id=None):
+    plan = validate_goal_plan(request['plan'], source_sha, resource_limits=resource_limits, deployment_id=deployment_id)
     number = positive_int(issue['number'])
     if number == 56:
         raise ContractError('design Issue cannot execute')
@@ -35,9 +36,15 @@ class GoalController(Controller):
     runtime performs actual preflight before the first durable claim.
     """
     def __init__(self, *args, enabled=False, resource_limits=None,
-                 content_authorizer=None, **kwargs):
+                 content_authorizer=None, deployment_id=None, installed_plan_digest=None, **kwargs):
         super().__init__(*args, **kwargs)
+        if enabled is True and (type(deployment_id) is not str or re.fullmatch('[0-9a-f]{32}', deployment_id) is None):
+            raise ContractError('explicit goal deployment identity required')
+        if enabled is True and (type(installed_plan_digest) is not str or re.fullmatch('[0-9a-f]{64}', installed_plan_digest) is None):
+            raise ContractError('explicit installed goal plan required')
+        self.installed_plan_digest = installed_plan_digest
         self.enabled = enabled
+        self.deployment_id = deployment_id
         self.resource_limits = resource_limits
         self.content_authorizer = content_authorizer
 
@@ -51,11 +58,13 @@ class GoalController(Controller):
             raise RecheckRejected('expired')
         if status != 'PENDING_TRUSTED_APPROVAL' or content_hash(issue) != receipt['content_sha256']:
             raise RecheckRejected('changed')
-        binding = goal_binding(issue, request, self.source_sha, resource_limits=self.resource_limits)
+        binding = goal_binding(issue, request, self.source_sha, resource_limits=self.resource_limits, deployment_id=self.deployment_id)
+        if binding['plan_digest'] != self.installed_plan_digest:
+            raise RecheckRejected('changed')
         if expected is not None and expected != binding:
             raise RecheckRejected('changed')
         return (binding, validate_goal_plan(request['plan'], self.source_sha,
-                    resource_limits=self.resource_limits), timestamp(request['expires_at']))
+                    resource_limits=self.resource_limits, deployment_id=self.deployment_id), timestamp(request['expires_at']))
 
     def _saved_result(self, number, old):
         from .goal_result import GoalPublicationRequest

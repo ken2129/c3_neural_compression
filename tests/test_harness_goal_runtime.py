@@ -21,7 +21,7 @@ from tests.test_harness_goal_runner import plan
 from tests.test_harness_uid_supervisor import FakeOS, worker
 
 
-def request(): return GoalRequest(plan(),'a'*40)
+def request(): return GoalRequest(dict(plan(),deployment_id='d'*32),'a'*40)
 def binding(req): return runtime.GoalRunBinding(req.source_sha,req.digest,'request-1','run-1')
 
 
@@ -286,7 +286,8 @@ class GoalAdmissionTests(unittest.TestCase):
         (self.root/'etc').mkdir();(self.root/'etc/hostname').write_text('c'*12)
         self.request=request();p=self.request.plan
         self.config=dict(schema='c3-goal-runtime-v1',enabled=True,input_source_sha='a'*40,
-            runtime_source_sha='b'*40,model=p['model'],
+            runtime_source_sha='b'*40,deployment_id=p['deployment_id'],model=p['model'],
+            installed_plan_digest=self.request.digest,
             resource_limits=dict(max_seconds=p['max_seconds'],**p['resource_budget']),
             risk_acknowledgements=dict.fromkeys(runtime.CONSENTS,True))
         raw=(self.root/'work/goal/data/input.csv').read_bytes()
@@ -330,8 +331,46 @@ class GoalAdmissionTests(unittest.TestCase):
             self.assertEqual(uid.call_args.args,(0,))
             self.assertEqual(deployment.call_args.kwargs['runtime_source_sha'],'b'*40)
             self.assertEqual(deployment.call_args.kwargs['input_source_sha'],'a'*40)
+            self.assertEqual(deployment.call_args.kwargs['deployment_id'],self.config['deployment_id'])
 
     def test_distinct_input_runtime_revisions_and_fresh_layout_admit(self):self.admit()
+
+    def test_deployment_id_is_bound_to_request_profile_and_host_manifest(self):
+        self.admit()
+        original_digest=self.request.digest
+        self.config['deployment_id']='e'*32
+        with self.assertRaisesRegex(ContractError,'DEPLOYMENT_ID_MISMATCH'):self.admit()
+        self.request.plan['deployment_id']='e'*32
+        self.assertNotEqual(self.request.digest,original_digest)
+        with self.assertRaisesRegex(ContractError,'INSTALLED_PLAN_MISMATCH'):self.admit()
+        self.config['installed_plan_digest']=self.request.digest
+        self.admit()
+
+    def test_only_exact_operator_installed_plan_is_admitted(self):
+        self.admit()
+        self.request.plan['goal']='A different otherwise valid goal on the same input.'
+        with self.assertRaisesRegex(ContractError,'INSTALLED_PLAN_MISMATCH'):self.admit()
+        self.config['installed_plan_digest']=self.request.digest
+        self.admit()
+
+    def test_missing_or_malformed_installed_plan_digest_rejects(self):
+        for value in (None,False,'','d'*63,'d'*65,'D'*64):
+            with self.subTest(value=value):
+                self.config['installed_plan_digest']=value
+                with self.assertRaises(ContractError):self.admit()
+        del self.config['installed_plan_digest']
+        with self.assertRaises(ContractError):self.admit()
+
+    def test_missing_or_malformed_deployment_identity_never_admits(self):
+        for value in (None,False,'','d'*31,'d'*33,'D'*32):
+            with self.subTest(value=value):
+                self.config['deployment_id']=value
+                with self.assertRaises(ContractError):self.admit()
+        del self.config['deployment_id']
+        with self.assertRaises(ContractError):self.admit()
+        self.config['deployment_id']='d'*32
+        del self.request.plan['deployment_id']
+        with self.assertRaises(ContractError):self.admit()
 
     def test_scope_permissions_hash_extra_state_and_risk_consent_reject(self):
         for case in ('scope','input','extra','risk','disabled','runtimehome'):

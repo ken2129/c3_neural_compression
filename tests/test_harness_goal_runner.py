@@ -8,7 +8,7 @@ from research_harness.goal_plan import GOAL_RESOURCE_BUDGET
 SHA='a'*40
 
 def plan():
-    return dict(kind='codex-goal-v1',source_sha=SHA,publish_result_pr=True,
+    return dict(kind='codex-goal-v1',deployment_id='1'*32,source_sha=SHA,publish_result_pr=True,
         model='gpt-6.1-sol',sandbox_mode='externalSandbox',external_network='enabled',
         max_seconds=120,model_usage_approved=True,goal='Summarize the public research inputs.',
         completion_criteria=['Preserve every numeric observation.'],

@@ -12,6 +12,7 @@ import json
 import os
 from pathlib import Path
 import re
+import secrets
 import subprocess
 import sys
 import tarfile
@@ -30,7 +31,7 @@ CONSENTS = ('worker_model_auth_readable', 'unrestricted_bridge_egress',
 
 
 def profile_template():
-    return dict(schema='c3-goal-runtime-v1', enabled=False,
+    return dict(schema='c3-goal-runtime-v1', enabled=False, deployment_id=secrets.token_hex(16),
                 input_source_sha='REVIEWED_INPUT_COMMIT', runtime_source_sha='REVIEWED_RUNTIME_COMMIT',
                 model='EXPLICIT_PINNED_MODEL',
                 resource_limits={'max_seconds': 900, **GOAL_RESOURCE_BUDGET,
@@ -39,7 +40,7 @@ def profile_template():
 
 
 def validate_profile(profile, plan):
-    fields(profile, ('schema', 'enabled', 'input_source_sha', 'runtime_source_sha',
+    fields(profile, ('schema', 'enabled', 'deployment_id', 'input_source_sha', 'runtime_source_sha',
                      'model', 'resource_limits', 'risk_acknowledgements'))
     if profile['schema'] != 'c3-goal-runtime-v1' or profile['enabled'] is not True:
         raise ContractError('goal deployment remains disabled')
@@ -49,7 +50,7 @@ def validate_profile(profile, plan):
     fields(profile['risk_acknowledgements'], CONSENTS)
     if any(profile['risk_acknowledgements'][key] is not True for key in CONSENTS):
         raise ContractError('explicit new goal execution and residual-risk approvals required')
-    checked = validate_goal_plan(plan, profile['input_source_sha'], resource_limits=profile['resource_limits'])
+    checked = validate_goal_plan(plan, profile['input_source_sha'], resource_limits=profile['resource_limits'], deployment_id=profile['deployment_id'])
     if checked['model'] != profile['model']:
         raise ContractError('approved goal and operator models differ')
     limits = profile['resource_limits']
@@ -63,6 +64,12 @@ def validate_profile(profile, plan):
         if checked['resource_budget'][key] != limits[key]:
             raise ContractError('initial plan must approve actual aggregate deployment allocation')
     return checked
+
+
+def installed_profile(profile, plan):
+    """Bind the validated prepared task; proposal files cannot supply this digest."""
+    checked = validate_profile(profile, plan)
+    return {**profile, 'installed_plan_digest': hashlib.sha256(canonical(checked)).hexdigest()}
 
 
 def run(argv, *, data=None, env=None):
@@ -136,6 +143,21 @@ def copy_records(container, records):
                 raise ContractError('deployment record ownership or contents differ')
 
 
+def require_fresh_deployment_id(deployment_id):
+    """Reject accidental profile reuse on this engine, including stopped state.
+
+    The operator must never intentionally reuse IDs on another host or after
+    deleting all installation evidence. The public nonce is not a secret.
+    """
+    if type(deployment_id) is not str or re.fullmatch('[0-9a-f]{32}', deployment_id) is None:
+        raise ContractError('fresh public deployment identity required')
+    label = 'label=c3.deployment-id=' + deployment_id
+    for command in (['docker', 'ps', '-aq'], ['docker', 'volume', 'ls', '-q'],
+                    ['docker', 'image', 'ls', '-q']):
+        if run([*command, '--filter', label]).strip():
+            raise ContractError('deployment identity has already been installed; create a fresh profile')
+
+
 def read_credential(path, maximum):
     path = Path(path); info = path.lstat()
     import stat
@@ -162,6 +184,7 @@ def main(argv=None):
         raise ContractError('invalid new project name')
     profile = loads(Path(args.profile).read_bytes())
     plan = validate_profile(profile, loads(Path(args.plan).read_bytes()))
+    require_fresh_deployment_id(profile['deployment_id'])
     # This installer is run by the user; never infer approval from file presence.
     auth = read_credential(args.codex_auth_file, 65536)
     from research_harness.model_deployment import validate_chatgpt_auth
@@ -177,7 +200,7 @@ def main(argv=None):
     with tempfile.TemporaryDirectory(prefix='c3-goal-install-') as tmp:
         context = Path(tmp); build_context(context, profile, plan)
         env = dict(os.environ, C3_GOAL_CONTEXT=str(context), C3_RUNTIME_SHA=profile['runtime_source_sha'],
-                   C3_INPUT_SHA=profile['input_source_sha'], C3_GOAL_PIDS=str(profile['resource_limits']['max_processes']),
+                   C3_INPUT_SHA=profile['input_source_sha'], C3_DEPLOYMENT_ID=profile['deployment_id'], C3_GOAL_PIDS=str(profile['resource_limits']['max_processes']),
                    C3_GOAL_MEMORY=str(profile['resource_limits']['memory_bytes']),
                    C3_GOAL_WORK=str(profile['resource_limits']['max_work_bytes']))
         compose = ['docker', 'compose', '--project-name', args.project, '-f',
@@ -191,11 +214,11 @@ def main(argv=None):
         consumers = run(['docker', 'ps', '-aq', '--no-trunc', '--filter', 'volume=' + volume]).decode().splitlines()
         validate_goal_deployment(inspect, consumers, runtime_source_sha=profile['runtime_source_sha'],
             input_source_sha=profile['input_source_sha'], volume_name=volume,
-            volume_inspect=volume_info, resource_limits=profile['resource_limits'])
+            volume_inspect=volume_info, resource_limits=profile['resource_limits'], deployment_id=profile['deployment_id'])
         deployment = dict(inspect=inspect, consumers=consumers, volume_name=volume,
                           volume_inspect=volume_info, initialize_new_state=True)
         copy_records(ident, {'goal-deployment.json': canonical(deployment),
-                            'goal-runtime.json': canonical(profile), 'codex-auth.json': auth,
+                            'goal-runtime.json': canonical(installed_profile(profile, plan)), 'codex-auth.json': auth,
                             'gh/hosts.yml': github})
         run(['docker', 'start', ident])
         print('New goal-only controller started: ' + ident)

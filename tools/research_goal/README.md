@@ -10,6 +10,7 @@
 
 `python3 -B tools/research_goal/prepare.py --template > goal-profile.json` で、無効状態の設定を作成します。本人が以下を確認してから編集します。
 
+- `deployment_id`: template が毎回新規生成する公開 32 桁 lowercase hex ID。`goal-plan.json` にも同じ値をコピーします。秘密の container ID や IP は plan に含めません。
 - `enabled: true` は新しい自由 CPU コマンド経路の明示有効化です。
 - `input_source_sha`: 承認する公開入力が存在する commit。
 - `runtime_source_sha`: 実装をレビューした現在の checkout commit。
@@ -30,7 +31,9 @@
 
 ## 2. 同じ goal plan を用いて一度だけ準備・起動する
 
-`goal-plan.json` は `codex-goal-v1` の plan オブジェクトそのものです。必須項目は `source_sha`, `publish_result_pr: true`, `model`, `sandbox_mode: "externalSandbox"`, `external_network: "enabled"`, `max_seconds`, `model_usage_approved: true`, `goal`, `completion_criteria`, `inputs`, `write_scope`, `resource_budget` です。
+初版は準備した 1 研究 task 専用です。prepare が検証済み plan 全体の canonical digest を計算し、保護設定の `installed_plan_digest` に保存します。この値を入力 template に手書きすることはできません。goal・完了条件・入力・write_scope・予算を含め、異なる plan は claim 前および runtime で拒否します。別の目的には新しい本人承認と準備が必要です。承認した goal の範囲で Codex が複数のコマンドや実装方法を選ぶ自由は維持されます。同一 deployment で複数の承認 goal を継続受付する operator 範囲は未実装であり、goal ごとの container 準備を本番 loop の完成形とは位置付けません。
+
+`goal-plan.json` は `codex-goal-v1` の plan オブジェクトそのものです。必須項目は `deployment_id`, `source_sha`, `publish_result_pr: true`, `model`, `sandbox_mode: "externalSandbox"`, `external_network: "enabled"`, `max_seconds`, `model_usage_approved: true`, `goal`, `completion_criteria`, `inputs`, `write_scope`, `resource_budget` です。
 
 `inputs` は入力 commit 内の regular file の相対パスだけです。installer はその Git blob を読み、immutable image 内に内容 hash とともに封入します。`write_scope` は新規の専用成果物ディレクトリとし、入力と重ねません。例えば公開 Issue 50 の JSON/CSV を読み、集計用コードと JSON/Markdown を `docs/research/generated/issue50-goal-review` 以下に生成する目的にできます。コマンドや実装言語を plan で固定する必要はありません。
 
@@ -45,11 +48,11 @@ python3 -B tools/research_goal/prepare.py \
   --github-hosts-file /PRIVATE/PATH/hosts.yml
 ```
 
-このコマンドは committed runtime と指定した入力だけから一時 build context を作り、新しい container と `goal-control` volume を作成し、host inspect/volume consumers/UID・mode・転送 bytes を確認して起動します。同名 container/volume が存在すれば拒否します。既存 deployment への fallback、削除、volume 初期化し直しはありません。失敗した新 deployment も自動削除しません。
+このコマンドは committed runtime と指定した入力だけから一時 build context を作り、新しい container と `goal-control` volume を作成し、host inspect/volume consumers/UID・mode・転送 bytes を確認して起動します。同名 container/volume が存在すれば拒否します。また同じ `deployment_id` を持つ container（停止済みを含む）・volume・image が同じ Docker engine に存在すれば拒否します。新しい installation は新しい template から ID を生成し、同じ volume の restart では ID を変えません。別ホストへの移送や全記録削除後にも、operator が過去の ID を意図的に再利用してはいけません。既存 deployment への fallback、削除、volume 初期化し直しはありません。失敗した新 deployment も自動削除しません。
 
 `enabled: false` または同意不足の profile は Docker 操作前に拒否します。起動後に profile が無効化・欠落・破損した場合、launcher は子プロセスを起動せず `GOAL_BLOCKED_STARTUP` で待機します。本人が設定を修復してから明示的に restart するまで、再試行しません。
 
-起動に成功しても、その時点では goal 実行の owner 承認はありません。準備に使った plan と同じ plan を、新しい実行用 Issue の `c3-execution-request` ブロックへ入れ、既存の owner receipt 手順で内容 hash・plan digest・期限を承認します。タイトルだけで実行されません。参照: `docs/research_issue_intake.md` と `docs/research_owner_approval.md`。
+起動に成功しても、その時点では goal 実行の owner 承認はありません。準備に使った plan と同じ plan を、新しい実行用 Issue の `c3-execution-request` ブロックへ入れ、既存の owner receipt 手順で内容 hash・plan digest・期限を承認します。タイトルだけで実行されません。同じ入力 commit でも、旧 deployment の Issue は `deployment_id` 不一致で claim 前に拒否されます。参照: `docs/research_issue_intake.md` と `docs/research_owner_approval.md`。
 
 ## 3. 進行・候補・公開を確認する
 

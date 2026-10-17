@@ -27,7 +27,7 @@ launcher = load('launcher')
 
 def profile_fixture():
     value = prepare.profile_template()
-    value.update(enabled=True, input_source_sha=SHA, runtime_source_sha=SOURCE_SHA,
+    value.update(enabled=True, deployment_id='1'*32, input_source_sha=SHA, runtime_source_sha=SOURCE_SHA,
                  model='configured-model-v1')
     value['risk_acknowledgements'] = {key: True for key in prepare.CONSENTS}
     return value
@@ -36,7 +36,7 @@ def profile_fixture():
 def goal_inspect():
     value = inspect_fixture(); profile = profile_fixture(); limits = profile['resource_limits']
     value['Image'] = 'sha256:' + '1'*64
-    value['Config']['Labels'].update({'c3.purpose':'dedicated-goal-controller', 'c3.input-source-sha':SHA})
+    value['Config']['Labels'].update({'c3.purpose':'dedicated-goal-controller', 'c3.input-source-sha':SHA,'c3.deployment-id':'1'*32})
     value['Config']['Entrypoint'] = ['python','-I','-B','/opt/service/goal_launcher.py']
     value['HostConfig'].update(Memory=limits['memory_bytes'], MemorySwap=limits['memory_bytes'],
         PidsLimit=limits['max_processes'], NanoCpus=10**9, ShmSize=64*1024**2,
@@ -47,7 +47,8 @@ def goal_inspect():
 class GoalDeploymentTests(unittest.TestCase):
     def validate(self, data, **kwargs):
         args = dict(runtime_source_sha=SOURCE_SHA, input_source_sha=SHA, volume_name=VOLUME_NAME,
-                    volume_inspect=volume_fixture(), resource_limits=profile_fixture()['resource_limits'])
+                    volume_inspect={**volume_fixture(),'Labels':{'c3.deployment-id':'1'*32}},
+                    resource_limits=profile_fixture()['resource_limits'], deployment_id='1'*32)
         args.update(kwargs)
         return validate_goal_deployment(data, [CONTAINER_ID], **args)
 
@@ -241,7 +242,7 @@ class GoalLauncherFailureIntegrationTests(unittest.TestCase):
         from research_harness.restart_boundary import RestartEpoch
         class Pipe(io.StringIO):
             def close(self): self.saved = self.getvalue(); super().close()
-        plan = goal_fixture(); profile = profile_fixture()
+        plan = goal_fixture(); profile = prepare.installed_profile(profile_fixture(), plan)
         binding = dict(source_sha=SHA, plan_digest=hashlib.sha256(canonical(plan)).hexdigest(),
                        request_id='req-1', run_id='run-1', issue_number=72, issue_content_sha256='d'*64)
         frames = [{'op':'prepare_goal','plan':plan},{'op':'preflight'},{'op':'goal','binding':binding}]
@@ -290,3 +291,64 @@ class GoalLauncherFailureIntegrationTests(unittest.TestCase):
     def test_uncertain_cleanup_never_waits_for_normal_failure_ack(self):
         frames = self.invoke('cleanup')
         self.assertFalse(any('goal_failure' in frame for frame in frames))
+
+
+class GoalFreshDeploymentIdentityTests(unittest.TestCase):
+    def test_template_creates_new_public_id_without_changing_consent_defaults(self):
+        import re
+        first, second = prepare.profile_template(), prepare.profile_template()
+        self.assertIsNotNone(re.fullmatch('[0-9a-f]{32}', first['deployment_id']))
+        self.assertNotEqual(first['deployment_id'], second['deployment_id'])
+        self.assertIs(first['enabled'], False)
+        self.assertTrue(all(value is False for value in first['risk_acknowledgements'].values()))
+
+    def test_profile_plan_and_both_deployment_labels_must_match(self):
+        profile = profile_fixture(); plan = goal_fixture()
+        profile['deployment_id'] = '2'*32
+        with self.assertRaises(ContractError): prepare.validate_profile(profile, plan)
+        for where in ('container', 'volume'):
+            data = goal_inspect()
+            volume = {**volume_fixture(), 'Labels':{'c3.deployment-id':'1'*32}}
+            if where == 'container': data['Config']['Labels']['c3.deployment-id'] = '2'*32
+            else: volume['Labels']['c3.deployment-id'] = '2'*32
+            with self.subTest(where=where), self.assertRaises(ContractError):
+                validate_goal_deployment(data, [CONTAINER_ID], runtime_source_sha=SOURCE_SHA,
+                    input_source_sha=SHA, volume_name=VOLUME_NAME, volume_inspect=volume,
+                    resource_limits=profile['resource_limits'], deployment_id='1'*32)
+
+    def test_existing_stopped_container_volume_or_image_rejects_reused_identity(self):
+        for index in range(3):
+            answers = [b'']*index + [b'existing\n']
+            with patch.object(prepare, 'run', side_effect=answers) as run:
+                with self.assertRaises(ContractError): prepare.require_fresh_deployment_id('1'*32)
+                self.assertEqual(run.call_count, index+1)
+                for args in run.call_args_list:
+                    self.assertEqual(args.args[0][-1], 'label=c3.deployment-id='+'1'*32)
+        with patch.object(prepare, 'run', return_value=b'') as run:
+            prepare.require_fresh_deployment_id('2'*32)
+            self.assertEqual(run.call_count, 3)
+
+
+class InstalledGoalPlanTests(unittest.TestCase):
+    def test_preparation_computes_digest_and_rejects_caller_digest(self):
+        import hashlib
+        from research_harness.schema import canonical
+        profile = profile_fixture(); plan = goal_fixture()
+        installed = prepare.installed_profile(profile, plan)
+        self.assertEqual(installed['installed_plan_digest'], hashlib.sha256(canonical(plan)).hexdigest())
+        self.assertNotIn('installed_plan_digest', profile)
+        self.assertNotIn('installed_plan_digest', prepare.profile_template())
+        with self.assertRaises(ContractError): prepare.validate_profile(installed, plan)
+        launcher.require_installed_plan(installed, plan)
+
+    def test_other_task_or_scope_rejected_before_pipe_or_staging(self):
+        plan = goal_fixture(); profile = prepare.installed_profile(profile_fixture(), plan)
+        for key, value in [('goal', 'Different research purpose'), ('write_scope', ['other-output'])]:
+            changed = deepcopy(plan); changed[key] = value
+            outgoing = io.StringIO()
+            runtime = launcher.GoalPipeRuntime(io.StringIO(), outgoing, None, profile)
+            with self.assertRaises(ContractError): runtime.prepare_plan(changed)
+            self.assertEqual(outgoing.getvalue(), '')
+        for digest in (None, 'f'*64, 'A'*64):
+            changed = dict(profile, installed_plan_digest=digest)
+            with self.assertRaises(ContractError): launcher.require_installed_plan(changed, plan)

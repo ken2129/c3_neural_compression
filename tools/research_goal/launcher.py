@@ -10,6 +10,7 @@ import hashlib
 import json
 import io
 import os
+import re
 from pathlib import Path
 import signal
 import select
@@ -102,8 +103,10 @@ def deployment():
         as_uid(CONTROL)
         private(Path('/control'), True)
         profile = protected_json('/control/goal-runtime.json')
-        fields(profile, ('schema', 'enabled', 'input_source_sha', 'runtime_source_sha',
-                         'model', 'resource_limits', 'risk_acknowledgements'))
+        fields(profile, ('schema', 'enabled', 'deployment_id', 'input_source_sha', 'runtime_source_sha',
+                         'model', 'resource_limits', 'risk_acknowledgements', 'installed_plan_digest'))
+        if type(profile['installed_plan_digest']) is not str or re.fullmatch('[0-9a-f]{64}', profile['installed_plan_digest']) is None:
+            raise ContractError('installed goal plan digest required')
         fields(profile['risk_acknowledgements'], CONSENTS)
         if (profile['schema'] != 'c3-goal-runtime-v1' or profile['enabled'] is not True
                 or any(profile['risk_acknowledgements'][key] is not True for key in CONSENTS)):
@@ -115,7 +118,7 @@ def deployment():
     verified = validate_goal_deployment(data['inspect'], data['consumers'],
         runtime_source_sha=profile['runtime_source_sha'], input_source_sha=profile['input_source_sha'],
         volume_name=data['volume_name'], volume_inspect=data['volume_inspect'],
-        resource_limits=profile['resource_limits'])
+        resource_limits=profile['resource_limits'], deployment_id=profile['deployment_id'])
     if (Path('/opt/service/source-sha').read_text().strip() != verified['runtime_source_sha']
             or Path('/etc/hostname').read_text().strip() != verified['container_id'][:12]
             or type(data['initialize_new_state']) is not bool):
@@ -220,6 +223,13 @@ def freeze_snapshot(snapshot, binding, baseline, plan):
     return candidate
 
 
+def require_installed_plan(profile, plan):
+    expected = profile.get('installed_plan_digest')
+    if (type(expected) is not str or re.fullmatch('[0-9a-f]{64}', expected) is None
+            or hashlib.sha256(canonical(plan)).hexdigest() != expected):
+        raise ContractError('goal differs from prepared operator task')
+
+
 class GoalPipeRuntime:
     deployment_contract_verified = True
 
@@ -231,7 +241,8 @@ class GoalPipeRuntime:
 
     def prepare_plan(self, plan):
         self.plan = validate_goal_plan(plan, self.profile['input_source_sha'],
-                                      resource_limits=self.profile['resource_limits'])
+                                      resource_limits=self.profile['resource_limits'], deployment_id=self.profile['deployment_id'])
+        require_installed_plan(self.profile, self.plan)
         write_frame(self.outgoing, {'op': 'prepare_goal', 'plan': self.plan})
         if read_frame(self.incoming) != {'prepared': True}: raise ContractError('goal preparation rejected')
 
@@ -308,7 +319,8 @@ def manager():
         controller = GoalController(state, ManagerGitHub(), comments, runtime,
             lambda persist: GitHubGoalPublisher(transport, persist_state=persist),
             source_sha=profile['input_source_sha'], publication_base_getter=transport.base_sha,
-            enabled=profile['enabled'], resource_limits=profile['resource_limits'],
+            enabled=profile['enabled'], resource_limits=profile['resource_limits'], deployment_id=profile['deployment_id'],
+            installed_plan_digest=profile['installed_plan_digest'],
             content_authorizer=content_authorizer)
         while True:
             try: reports = controller.once()
@@ -353,7 +365,8 @@ def supervise():
             frame = read_frame(control.stdout)
             if set(frame) == {'op', 'plan'} and frame['op'] == 'prepare_goal':
                 if plan is not None or attempted: return  # fresh generation only
-                plan = validate_goal_plan(frame['plan'], profile['input_source_sha'], resource_limits=profile['resource_limits'])
+                plan = validate_goal_plan(frame['plan'], profile['input_source_sha'], resource_limits=profile['resource_limits'], deployment_id=profile['deployment_id'])
+                require_installed_plan(profile, plan)
                 baseline = stage_workspace(plan)
                 write_frame(control.stdin, {'prepared': True})
             elif frame == {'op':'preflight'}:

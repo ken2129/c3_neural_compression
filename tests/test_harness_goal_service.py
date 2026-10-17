@@ -1,10 +1,11 @@
 """Goal controller integration, fake runtime only: no model or deployment."""
 from pathlib import Path
 import tempfile
+import hashlib
 import unittest
 from dataclasses import replace
 
-from research_harness.schema import ContractError
+from research_harness.schema import ContractError,canonical
 from research_harness.goal_service import GoalController
 from research_harness.goal_result import GoalResult
 from research_harness.goal_artifacts import GoalChangeCandidate,GoalChange,GoalEntry
@@ -59,7 +60,8 @@ class GoalServiceTests(unittest.TestCase):
             return Publisher()
         self.controller=GoalController(self.state,self.source,self.source,self.runtime,factory,
             source_sha=SOURCE_SHA,publication_base_getter=lambda:'a'*40,
-            clock=lambda:self.now,enabled=enabled,
+            clock=lambda:self.now,enabled=enabled,deployment_id='1'*32,
+            installed_plan_digest=hashlib.sha256(canonical(self.source.request['plan'])).hexdigest(),
             resource_limits=dict(max_seconds=120,**GOAL_RESOURCE_BUDGET),
             content_authorizer=lambda request:self.allowed)
 
@@ -98,6 +100,29 @@ class GoalServiceTests(unittest.TestCase):
         self.run_once();self.allowed=True
         with self.assertRaises(ContractError):self.controller.process(ISSUE)
         self.assertEqual(self.writes,0)
+
+    def test_fresh_ledger_same_input_rejects_previous_deployment_issue(self):
+        # Fresh state, same source/model/valid owner receipt, different operator
+        # generation: an old approved request must not create a new claim.
+        self.controller.deployment_id='2'*32
+        with self.assertRaises(ContractError):self.controller.process(ISSUE)
+        self.assertIsNone(self.state.get(ISSUE));self.assertEqual(self.runtime.runs,0)
+        self.assertEqual(self.runtime.preflights,0)
+
+    def test_matching_new_deployment_receipt_can_run(self):
+        self.source.request['plan']['deployment_id']='2'*32
+        self.source.render(refresh_receipt=True)
+        self.controller.deployment_id='2'*32
+        self.controller.installed_plan_digest=hashlib.sha256(canonical(self.source.request['plan'])).hexdigest()
+        self.run_once()
+
+    def test_owner_approved_different_plan_cannot_expand_installed_task(self):
+        self.source.request['plan']['goal']='A separately approved different purpose'
+        self.source.request['plan']['write_scope']=['other-output']
+        self.source.render(refresh_receipt=True)
+        with self.assertRaises(ContractError):self.controller.process(ISSUE)
+        self.assertIsNone(self.state.get(ISSUE));self.assertEqual(self.runtime.runs,0)
+        self.assertEqual(self.runtime.preflights,0)
 
     def test_old_canary_plan_cannot_enable_goal(self):
         self.source.request['plan']=dict(kind='cpu-canary-v1',source_sha=SOURCE_SHA,publish_result_pr=True)
