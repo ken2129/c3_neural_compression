@@ -39,6 +39,10 @@ QUERY = '''query($number:Int!, $cursor:String) {
 }'''
 
 
+class MissingApproval(ContractError):
+    pass
+
+
 class RevokedApproval(ContractError):
     pass
 
@@ -136,6 +140,8 @@ def matching_receipt(issue, comments, now):
             invalid = True
     if invalid:
         raise ContractError('invalid matching approval record')
+    if not matches:
+        raise MissingApproval('owner approval not yet present')
     if len(matches) != 1:
         raise ContractError('exactly one unedited owner approval required')
     return matches[0]
@@ -166,7 +172,7 @@ def inspect_once(client, comments_client, intake, number, clock):
         try:
             comment, body = matching_receipt(after, comments, now)
         except ContractError as exc:
-            if previous is not None or isinstance(exc, RevokedApproval):
+            if previous is not None or not isinstance(exc, MissingApproval):
                 db.execute('INSERT OR IGNORE INTO owner_approval_blocks VALUES (?)', (number,))
                 db.commit()
             raise

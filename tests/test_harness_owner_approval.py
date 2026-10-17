@@ -114,6 +114,24 @@ class OwnerApprovalTests(unittest.TestCase):
         for records in [[bad,cancel],[cancel,bad]]:
             with self.assertRaises(RevokedApproval):matching_receipt(issue,records,NOW)
 
+    def test_initial_ambiguity_and_invalid_record_latch(self):
+        data, issue, comment = issue_and_comment()
+        for records in [[comment,dict(comment,id='IC_extra')], [dict(comment,editor={'login':OWNER_LOGIN})]]:
+            db=Intake(':memory:'); comments=Comments(comment)
+            try:
+                with patch.object(comments,'comments',return_value=records):
+                    with self.assertRaises(ContractError):inspect_once(Client([data]),comments,db,100,lambda:NOW)
+                with self.assertRaises(ContractError):inspect_once(Client([data]),comments,db,100,lambda:NOW)
+            finally:db.close()
+
+    def test_merely_absent_initial_approval_does_not_latch(self):
+        data, issue, comment=issue_and_comment();db=Intake(':memory:');comments=Comments(comment)
+        try:
+            with patch.object(comments,'comments',return_value=[]):
+                with self.assertRaises(ContractError):inspect_once(Client([data]),comments,db,100,lambda:NOW)
+            self.assertEqual(inspect_once(Client([data]),comments,db,100,lambda:NOW)['approval'],'OWNER_RECORD_MATCHED')
+        finally:db.close()
+
     def test_graphql_missing_metadata_errors_and_pagination(self):
         def response(nodes, more=False, cursor=None):
             return type('Result',(),{'stdout':json.dumps({'data':{'repository':{'issue':{'number':100,'comments':{'nodes':nodes,'pageInfo':{'hasNextPage':more,'endCursor':cursor}}}}}}).encode()})()
