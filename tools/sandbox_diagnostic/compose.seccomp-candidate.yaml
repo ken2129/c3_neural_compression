@@ -1,0 +1,6 @@
+# Requires explicit approval before applying. Candidate, not proven on this host.
+services:
+  sandbox-check:
+    security_opt:
+      - no-new-privileges:true
+      - seccomp=./codex-security-seccomp.json
