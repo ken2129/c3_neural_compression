@@ -335,6 +335,45 @@ class ServiceStateTests(unittest.TestCase):
         self.assertEqual((self.root / 'claims' / '70.json').read_bytes(), witness)
         self.assertFalse(self.state.claim(self.binding, epoch=after))
 
+    def test_restart_confirmation_second_write_failure_cannot_leak_into_later_commit(self):
+        before, after = self.epoch_claim()
+        self.state.save_result(70, self.request, await_restart=True)
+        original = self.state.get(70)
+        witness = (self.root / 'claims' / '70.json').read_bytes()
+        self.state.db.execute("CREATE TEMP TRIGGER reject_confirmation BEFORE UPDATE ON service_runs "
+                              "BEGIN SELECT RAISE(ABORT, 'synthetic phase write failure'); END")
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.state.confirm_restart(70, after, deployment_contract_verified=True)
+        self.assertFalse(self.state.db.in_transaction)
+        # An unrelated state operation commits on this same connection. It must
+        # not persist the preceding failed confirmation's first UPDATE.
+        self.state.block(71)
+        self.close_state()
+        self.state = ServiceState(self.root, require_epochs=True)
+        self.assertEqual(self.state.get(70), original)
+        self.assertEqual(self.state.db.execute('SELECT * FROM service_epochs').fetchall(),
+                         [(70, canonical(before.to_dict()).decode(), None)])
+        self.assertEqual((self.root / 'claims' / '70.json').read_bytes(), witness)
+
+    def test_restart_confirmation_requires_both_guarded_updates_to_change_one_row(self):
+        before, after = self.epoch_claim()
+        self.state.save_result(70, self.request, await_restart=True)
+        original = self.state.get(70)
+        for table in ('service_epochs', 'service_runs'):
+            with self.subTest(table=table):
+                self.state.db.execute('CREATE TEMP TRIGGER ignore_confirmation BEFORE UPDATE ON ' + table +
+                                      ' BEGIN SELECT RAISE(IGNORE); END')
+                with self.assertRaises(ContractError):
+                    self.state.confirm_restart(70, after, deployment_contract_verified=True)
+                self.assertFalse(self.state.db.in_transaction)
+                self.state.db.execute('DROP TRIGGER ignore_confirmation')
+                self.state.block(71)
+                self.close_state()
+                self.state = ServiceState(self.root, require_epochs=True)
+                self.assertEqual(self.state.get(70), original)
+                self.assertEqual(self.state.db.execute('SELECT * FROM service_epochs').fetchall(),
+                                 [(70, canonical(before.to_dict()).decode(), None)])
+
     def test_interruption_preserves_claim_receipts_schema_and_epoch_history(self):
         before, after = self.epoch_claim()
         witness = self.root / 'claims' / '70.json'

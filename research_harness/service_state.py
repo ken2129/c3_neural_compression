@@ -217,9 +217,14 @@ class ServiceState:
         if not restart_boundary_candidate(prior,epoch,expected_container_id=prior.container_id,
                                           deployment_contract_verified=deployment_contract_verified):
             raise ContractError('restart deployment boundary is not verified')
-        self.db.execute('UPDATE service_epochs SET after_epoch=? WHERE issue=?',(canonical(epoch.to_dict()).decode(),issue))
-        self.db.execute("UPDATE service_runs SET phase='RESULT_READY' WHERE issue=?",(issue,))
-        self.db.commit()
+        # A failed phase write must not leave an epoch update for a later,
+        # unrelated commit to persist. Both guarded updates commit or roll back.
+        with self.db:
+            cur=self.db.execute('UPDATE service_epochs SET after_epoch=? WHERE issue=? AND before_epoch=? AND after_epoch IS NULL',
+                                (canonical(epoch.to_dict()).decode(),issue,row[0]))
+            if cur.rowcount!=1:raise ContractError('restart requires a pending epoch')
+            cur=self.db.execute("UPDATE service_runs SET phase='RESULT_READY' WHERE issue=? AND phase='RESULT_AWAITING_RESTART' AND result IS NOT NULL AND publication IS NULL",(issue,))
+            if cur.rowcount!=1:raise ContractError('restart requires an awaiting result')
 
     def save_publication(self,issue,state):
         from .result_publisher import parse_publication_request
