@@ -33,6 +33,11 @@ EXPECTED_CHECKSUM = sum(i * i for i in range(10000))
 MAX_CONTENT = 16384
 MAX_RESPONSE = 2 * 1024 * 1024
 MAX_SECONDS = 20
+# Diagnostic labels only. Even a definite HTTP error does not authorize replay
+# of a write whose intent was journaled before the response was received.
+TRANSPORT_REASONS = frozenset(('HTTP_401', 'HTTP_403', 'HTTP_422', 'HTTP_429',
+    'HTTP_OTHER', 'TIMEOUT', 'MALFORMED_RESPONSE', 'OUTPUT_LIMIT',
+    'TRANSPORT_UNAVAILABLE')) | frozenset(f'HTTP_{status}' for status in range(500, 600))
 _SHA = re.compile(r'[0-9a-f]{40}\Z')
 _DIGEST = re.compile(r'[0-9a-f]{64}\Z')
 _PREFIX = f'repos/{REPOSITORY}'
@@ -255,6 +260,13 @@ def parse_publication_request(value):
 
 @dataclass(frozen=True)
 class PublicationState:
+    """Durable replay state with an optional closed diagnostic observation.
+
+    A transport reason is the first observed failure while this intent remains
+    unresolved. It may come from a write or a later readback. In particular,
+    diagnosing an old journal cannot reconstruct its missing historical POST
+    response, and no HTTP status alone proves that a write had no side effect.
+    """
     request_digest: str
     branch: str
     phase: str = 'NEW'
@@ -277,7 +289,8 @@ class PublicationState:
             raise ContractError('published content identity missing')
         if self.phase == 'PUBLISHED' and self.pr_number is None:
             raise ContractError('published PR identity missing')
-        if self.reason not in (None, 'AUTHORIZATION_MISSING', 'REMOTE_CONFLICT', 'BASE_CHANGED'):
+        if (self.reason not in (None, 'AUTHORIZATION_MISSING', 'REMOTE_CONFLICT', 'BASE_CHANGED')
+                and (type(self.reason) is not str or self.reason not in TRANSPORT_REASONS)):
             raise ContractError('unsupported publication reason')
 
     def to_dict(self):
@@ -295,6 +308,15 @@ class PublicationState:
 
 class TransportUnknown(RuntimeError):
     """Request outcome unavailable; never contains remote text or credentials."""
+
+    def __init__(self, message=None, *, reason=None):
+        # Keep the legacy positional signature for existing adapters, but do not
+        # retain its arbitrary text. Only a closed diagnostic code may escape.
+        if reason is not None and (type(reason) is not str or reason not in TRANSPORT_REASONS):
+            raise ContractError('unsupported publication transport reason')
+        self.reason = reason
+        super().__init__('GitHub request outcome unavailable' +
+                         (f' ({reason})' if reason is not None else ''))
 
 
 class RemoteConflict(ContractError):
@@ -359,7 +381,7 @@ class GhResultTransport:
                 while selector.get_map():
                     remaining = deadline - time.monotonic()
                     if remaining <= 0:
-                        raise TransportUnknown('GitHub request deadline exceeded')
+                        raise TransportUnknown(reason='TIMEOUT')
                     for key, _ in selector.select(min(remaining, .1)):
                         if key.fileobj is process.stdin:
                             count = os.write(process.stdin.fileno(), payload[sent:sent + 4096])
@@ -373,17 +395,19 @@ class GhResultTransport:
                             continue
                         total += len(chunk)
                         if total > MAX_RESPONSE:
-                            raise TransportUnknown('GitHub response exceeded bound')
+                            raise TransportUnknown(reason='OUTPUT_LIMIT')
                         if key.fileobj is process.stdout:
                             output.extend(chunk)
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                raise TransportUnknown('GitHub request deadline exceeded')
+                raise TransportUnknown(reason='TIMEOUT')
             code = process.wait(timeout=remaining)
             completed = True
             return code, bytes(output)
+        except subprocess.TimeoutExpired:
+            raise TransportUnknown(reason='TIMEOUT') from None
         except (OSError, subprocess.SubprocessError):
-            raise TransportUnknown('GitHub request outcome unavailable') from None
+            raise TransportUnknown(reason='TRANSPORT_UNAVAILABLE') from None
         finally:
             if process is not None:
                 if not completed:
@@ -391,7 +415,12 @@ class GhResultTransport:
                         os.killpg(process.pid, signal.SIGKILL)
                     except ProcessLookupError:
                         pass
-                    process.wait(timeout=5)
+                    try:
+                        process.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        raise TransportUnknown(reason='TIMEOUT') from None
+                    except (OSError, subprocess.SubprocessError):
+                        raise TransportUnknown(reason='TRANSPORT_UNAVAILABLE') from None
                 for stream in (process.stdin, process.stdout, process.stderr):
                     if stream is not None:
                         stream.close()
@@ -428,19 +457,32 @@ class GhResultTransport:
             command += ['--input', '-']
         code, raw = self._run(command, encoded)
         try:
+            if type(raw) is not bytes or not raw or len(raw) > MAX_RESPONSE:
+                raise ValueError()
             separator = b'\r\n\r\n' if b'\r\n\r\n' in raw else b'\n\n'
             header, body = raw.split(separator, 1)
+            if len(header) > 16384:
+                raise ValueError()
             match = re.fullmatch(rb'HTTP/[0-9.]+ ([1-5][0-9]{2})(?: [^\r\n]*)?', header.splitlines()[0])
             if match is None:
                 raise ValueError()
             status = int(match.group(1))
-            if absent and method == 'GET' and status == 404:
-                return None
-            if code or not 200 <= status < 300:
-                raise ValueError()
+        except (ValueError, IndexError, UnicodeError, RecursionError):
+            raise TransportUnknown(reason='MALFORMED_RESPONSE') from None
+        if absent and method == 'GET' and status == 404:
+            return None
+        if not 200 <= status < 300:
+            reason = ('HTTP_' + str(status) if status in (401, 403, 422, 429)
+                      or 500 <= status <= 599 else 'HTTP_OTHER')
+            # Never inspect/retain HTTP error bodies, messages or stderr. A
+            # write error remains UNKNOWN until independent identity readback.
+            raise TransportUnknown(reason=reason)
+        if type(code) is not int or code != 0:
+            raise TransportUnknown(reason='TRANSPORT_UNAVAILABLE')
+        try:
             return loads(body)
         except (ValueError, IndexError, UnicodeError, RecursionError):
-            raise TransportUnknown('GitHub response could not be verified') from None
+            raise TransportUnknown(reason='MALFORMED_RESPONSE') from None
 
     @staticmethod
     def _validate_request(request):
@@ -573,6 +615,10 @@ class GitHubResultPublisher:
 
         def save(**changes):
             nonlocal state
+            # A verified phase transition resolves the old diagnostic. Merely
+            # finding no object or failing another read must not clear it.
+            if 'phase' in changes and changes['phase'] != state.phase:
+                changes.setdefault('reason', None)
             new_state = replace(state, **changes)
             self.persist_state(new_state)
             state = new_state
@@ -587,8 +633,18 @@ class GitHubResultPublisher:
 
         def call(method, *args):
             if time.monotonic() >= deadline:
-                raise TransportUnknown('publication pass deadline exceeded')
+                raise TransportUnknown(reason='TIMEOUT')
             return getattr(self.transport, method)(*args)
+
+        def remember_unknown(error):
+            # Preserve the first unresolved cause, including across restarts.
+            # Never serialize exception text or replace a write cause with a
+            # generic later read error. The phase/replay policy is unchanged.
+            reason = getattr(error, 'reason', None)
+            if (state.phase in ('BRANCH_UNKNOWN', 'CONTENT_UNKNOWN', 'PR_UNKNOWN')
+                    and state.reason is None and type(reason) is str
+                    and reason in TRANSPORT_REASONS):
+                save(reason=reason)
 
         def write(method, *args):
             permitted = False
@@ -629,8 +685,8 @@ class GitHubResultPublisher:
                     save(phase='BRANCH_UNKNOWN')
                     try:
                         write('create_branch', request)
-                    except TransportUnknown:
-                        pass
+                    except TransportUnknown as error:
+                        remember_unknown(error)
                 elif head == request.base_sha:
                     save(phase='BRANCH_READY')
                 elif content_verified(head):
@@ -658,8 +714,8 @@ class GitHubResultPublisher:
                     save(phase='CONTENT_UNKNOWN')
                     try:
                         write('create_content', request)
-                    except TransportUnknown:
-                        pass
+                    except TransportUnknown as error:
+                        remember_unknown(error)
             if state.phase == 'CONTENT_UNKNOWN':
                 head = call('branch_sha', request)
                 if not content_verified(head):
@@ -680,8 +736,8 @@ class GitHubResultPublisher:
                 save(phase='PR_UNKNOWN')
                 try:
                     write('create_pr', request)
-                except TransportUnknown:
-                    pass
+                except TransportUnknown as error:
+                    remember_unknown(error)
             if state.phase == 'PR_UNKNOWN':
                 pr = call('find_pr', request)
                 if pr is None:
@@ -690,7 +746,8 @@ class GitHubResultPublisher:
                 number = self._verify_pr(request, state, pr)
                 save(phase='PUBLISHED', pr_number=number)
             return state
-        except TransportUnknown:
+        except TransportUnknown as error:
+            remember_unknown(error)
             return state
         except RemoteConflict:
             save(phase='BLOCKED', reason='REMOTE_CONFLICT')

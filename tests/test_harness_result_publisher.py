@@ -12,7 +12,7 @@ from unittest.mock import patch
 from research_harness.schema import ContractError, REPOSITORY, canonical
 from research_harness.result_publisher import (EXPECTED_CHECKSUM, SCHEMA,
     GhResultTransport, GitHubResultPublisher, PublicationRequest, PublicationState,
-    RemoteConflict, TransportUnknown, ValidatedCanaryResult)
+    RemoteConflict, TransportUnknown, ValidatedCanaryResult, TRANSPORT_REASONS)
 
 
 def artifact(**changes):
@@ -274,6 +274,113 @@ class PublisherTests(unittest.TestCase):
                 self.assertEqual(state.phase, phase)
                 self.assertEqual(self.transport.events.count(operation), 1)
 
+    def test_classified_write_error_persists_unknown_without_authorizing_retry(self):
+        for operation, method, phase in (('branch', 'create_branch', 'BRANCH_UNKNOWN'),
+                                        ('content', 'create_content', 'CONTENT_UNKNOWN'),
+                                        ('pr', 'create_pr', 'PR_UNKNOWN')):
+            for reason in ('HTTP_401', 'HTTP_403', 'HTTP_422', 'HTTP_429',
+                           'HTTP_503', 'TIMEOUT', 'MALFORMED_RESPONSE'):
+                with self.subTest(operation=operation, reason=reason):
+                    self.setUp()
+                    def uncertain(request):
+                        self.transport.events.append(operation)
+                        raise TransportUnknown('SENSITIVE_SENTINEL', reason=reason)
+                    with patch.object(self.transport, method, side_effect=uncertain):
+                        state = self.publish()
+                        self.assertEqual((state.phase, state.reason), (phase, reason))
+                        self.assertEqual(self.saved[-1], state)
+                        for _ in range(2):
+                            state = self.publish(PublicationState.from_dict(state.to_dict()))
+                        state = self.publisher.publish(self.request, state, authorized=False)
+                    self.assertEqual((state.phase, state.reason), (phase, reason))
+                    self.assertEqual(self.transport.events.count(operation), 1)
+                    self.assertNotIn('SENSITIVE_SENTINEL', repr([item.to_dict() for item in self.saved]))
+
+    def test_specific_write_cause_survives_failed_and_absent_readback(self):
+        def uncertain(request):
+            self.transport.events.append('pr')
+            self.transport.fail_reads = True
+            raise TransportUnknown(reason='HTTP_422')
+        self.transport.create_pr = uncertain
+        state = self.publish()
+        self.assertEqual((state.phase, state.reason), ('PR_UNKNOWN', 'HTTP_422'))
+        self.transport.fail_reads = False
+        state = self.publish(PublicationState.from_dict(state.to_dict()))
+        self.assertEqual((state.phase, state.reason), ('PR_UNKNOWN', 'HTTP_422'))
+        with patch.object(self.transport, 'find_pr', side_effect=TransportUnknown(reason='HTTP_503')):
+            state = self.publisher.publish(self.request, state, authorized=False)
+        self.assertEqual((state.phase, state.reason), ('PR_UNKNOWN', 'HTTP_422'))
+        self.assertEqual(self.transport.events, ['branch', 'content', 'pr'])
+
+    def test_unknown_legacy_state_acquires_read_failure_reason_without_any_write(self):
+        state = PublicationState(self.request.digest, self.request.branch,
+                                 phase='PR_UNKNOWN', head_sha='e' * 40)
+        with patch.object(self.transport, 'find_pr', side_effect=TransportUnknown(reason='HTTP_401')):
+            state = self.publisher.publish(self.request, state, authorized=False)
+        self.assertEqual((state.phase, state.reason), ('PR_UNKNOWN', 'HTTP_401'))
+        self.assertEqual(self.saved[-1], state)
+        self.assertEqual(self.transport.events, [])
+
+    def test_http_error_after_side_effect_still_reconciles_without_repeating_write(self):
+        for method in ('create_branch', 'create_content', 'create_pr'):
+            with self.subTest(method=method):
+                self.setUp()
+                original = getattr(self.transport, method)
+                def uncertain(request):
+                    original(request)
+                    raise TransportUnknown(reason='HTTP_503')
+                with patch.object(self.transport, method, side_effect=uncertain):
+                    state = self.publish()
+                self.assertEqual(state.phase, 'PUBLISHED')
+                self.assertIsNone(state.reason)
+                self.assertTrue(any(item.reason == 'HTTP_503' for item in self.saved))
+                self.assertEqual(self.transport.events, ['branch', 'content', 'pr'])
+
+    def test_read_only_recovery_clears_resolved_diagnostic_without_new_authority(self):
+        self.transport.head = 'e' * 40
+        self.transport.content = self.request.content
+        self.transport.pr = pr_fixture(self.request)
+        state = PublicationState(self.request.digest, self.request.branch,
+            phase='PR_UNKNOWN', head_sha='e' * 40, reason='HTTP_422')
+        state = self.publisher.publish(self.request, state, authorized=False,
+            authorize_callback=lambda: self.fail('read-only recovery must not request a write'))
+        self.assertEqual(state.phase, 'PUBLISHED')
+        self.assertIsNone(state.reason)
+        self.assertEqual(self.transport.events, [])
+
+    def test_reason_schema_is_closed_and_old_six_field_journals_still_load(self):
+        old = dict(request_digest=self.request.digest, branch=self.request.branch,
+                   phase='PR_UNKNOWN', head_sha='e' * 40, pr_number=None, reason=None)
+        self.assertEqual(PublicationState.from_dict(old).to_dict(), old)
+        for reason in TRANSPORT_REASONS:
+            value = {**old, 'reason': reason}
+            self.assertEqual(PublicationState.from_dict(value).to_dict(), value)
+        for reason in ('HTTP_600', 'HTTP_200', 'HTTP_503 private detail',
+                       'SENSITIVE_SENTINEL', {'message': 'secret'}, 503):
+            with self.subTest(reason=reason), self.assertRaises(ContractError):
+                PublicationState.from_dict({**old, 'reason': reason})
+        with self.assertRaises(ContractError):
+            PublicationState.from_dict({**old, 'http_body': 'secret'})
+
+    def test_failed_diagnostic_journal_keeps_unknown_intent_without_replaying(self):
+        def uncertain(request):
+            self.transport.events.append('pr')
+            raise TransportUnknown(reason='HTTP_422')
+        self.transport.create_pr = uncertain
+        def journal(state):
+            if state.reason == 'HTTP_422':
+                raise OSError('journal unavailable')
+            self.saved.append(state)
+        self.publisher.persist_state = journal
+        with self.assertRaises(OSError):
+            self.publish()
+        self.assertEqual(self.saved[-1].phase, 'PR_UNKNOWN')
+        self.assertEqual(self.transport.events, ['branch', 'content', 'pr'])
+        self.publisher.persist_state = self.saved.append
+        state = self.publish(self.saved[-1])
+        self.assertEqual(state.phase, 'PR_UNKNOWN')
+        self.assertEqual(self.transport.events, ['branch', 'content', 'pr'])
+
     def test_restart_recovers_unknown_after_write_and_read_failure(self):
         original = self.transport.create_pr
         def create(request):
@@ -455,6 +562,51 @@ class GhTransportTests(unittest.TestCase):
                         self.assertNotIn('secret', str(context.exception))
                         self.assertNotIn('credentials', str(context.exception))
 
+    def test_http_classification_retains_safe_codes_without_parsing_error_body(self):
+        for status in (401, 403, 422, 429, 500, 503, 599, 302, 404, 418):
+            expected = f'HTTP_{status}' if status in (401, 403, 422, 429) or status >= 500 else 'HTTP_OTHER'
+            for code in (0, 1):
+                output = (f'HTTP/2.0 {status} SENSITIVE_SENTINEL\r\n'
+                          'Authorization: SENSITIVE_SENTINEL\r\n\r\n'
+                          'SENSITIVE_SENTINEL not JSON').encode()
+                with self.subTest(status=status, code=code), \
+                        patch.object(self.transport, '_executable', return_value='/usr/bin/gh'), \
+                        patch.object(self.transport, '_run', return_value=(code, output)):
+                    with self.assertRaises(TransportUnknown) as caught:
+                        self.transport.create_pr(self.request)
+                    self.assertEqual(caught.exception.reason, expected)
+                    self.assertNotIn('SENSITIVE_SENTINEL', repr(caught.exception) + repr(vars(caught.exception)))
+
+    def test_malformed_and_cli_failure_have_fixed_separate_diagnostics(self):
+        for code, output, expected in (
+                (0, b'SENSITIVE_SENTINEL', 'MALFORMED_RESPONSE'),
+                (0, b'HTTP/2.0 200 OK\r\n\r\n{"x":NaN}', 'MALFORMED_RESPONSE'),
+                (0, b'HTTP/2.0 200 OK\r\n\r\n{"x":1,"x":2}', 'MALFORMED_RESPONSE'),
+                (0, b'HTTP/2.0 200 OK\r\n\r\n\xff', 'MALFORMED_RESPONSE'),
+                (0, None, 'MALFORMED_RESPONSE'),
+                (1, b'HTTP/2.0 200 OK\r\n\r\n{"secret":"SENSITIVE_SENTINEL"}', 'TRANSPORT_UNAVAILABLE')):
+            with self.subTest(expected=expected), \
+                    patch.object(self.transport, '_executable', return_value='/usr/bin/gh'), \
+                    patch.object(self.transport, '_run', return_value=(code, output)):
+                with self.assertRaises(TransportUnknown) as caught:
+                    self.transport.create_pr(self.request)
+                self.assertEqual(caught.exception.reason, expected)
+                self.assertNotIn('SENSITIVE_SENTINEL', str(caught.exception))
+
+    def test_exception_legacy_text_and_process_failure_are_not_exposed(self):
+        error = TransportUnknown('SENSITIVE_SENTINEL')
+        self.assertIsNone(error.reason)
+        self.assertNotIn('SENSITIVE_SENTINEL', repr(error) + repr(vars(error)))
+        with self.assertRaises(ContractError):
+            TransportUnknown(reason='SENSITIVE_SENTINEL')
+        for error, reason in ((OSError('SENSITIVE_SENTINEL'), 'TRANSPORT_UNAVAILABLE'),
+                              (subprocess.TimeoutExpired('SENSITIVE_SENTINEL', 20), 'TIMEOUT')):
+            with patch('research_harness.result_publisher.subprocess.Popen', side_effect=error):
+                with self.assertRaises(TransportUnknown) as caught:
+                    GhResultTransport._run(['/usr/bin/gh', 'api'], b'')
+                self.assertEqual(caught.exception.reason, reason)
+                self.assertNotIn('SENSITIVE_SENTINEL', str(caught.exception))
+
     def test_environment_does_not_inherit_proxy_debug_path_or_host(self):
         with patch.dict(os.environ, {'HTTPS_PROXY': 'https://evil.test', 'GH_DEBUG': 'api',
                                      'GH_HOST': 'evil.test', 'PATH': '/untrusted', 'MODEL_TEXT': 'x'}, clear=True):
@@ -505,13 +657,15 @@ class GhTransportTests(unittest.TestCase):
 
     def test_process_output_limit_and_timeout_are_enforced_without_network(self):
         with patch('research_harness.result_publisher.MAX_RESPONSE', 1024):
-            with self.assertRaises(TransportUnknown):
+            with self.assertRaises(TransportUnknown) as caught:
                 GhResultTransport._run([sys.executable, '-I', '-S', '-c',
                                         'import os; os.write(1, b"x" * 2048)'], b'')
+            self.assertEqual(caught.exception.reason, 'OUTPUT_LIMIT')
         with patch('research_harness.result_publisher.MAX_SECONDS', .05):
-            with self.assertRaises(TransportUnknown):
+            with self.assertRaises(TransportUnknown) as caught:
                 GhResultTransport._run([sys.executable, '-I', '-S', '-c',
                                         'import time; time.sleep(10)'], b'')
+            self.assertEqual(caught.exception.reason, 'TIMEOUT')
         code, output = GhResultTransport._run([sys.executable, '-I', '-S', '-c',
                                               'import os; os.write(1, b"ok")'], b'')
         self.assertEqual((code, output), (0, b'ok'))
