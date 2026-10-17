@@ -53,7 +53,7 @@ def transcript():
     agent = {'type': 'agentMessage', 'id': 'final-1', 'phase': None, 'text': payload,
              'memoryCitation': None, 'delivery': None, 'questions': None}
     command = {'type': 'commandExecution', 'id': 'command-1', 'status': 'completed',
-               'command': 'python3 -I -S -c "print(sum(i*i for i in range(10000)))"',
+               'command': shlex.join(('/bin/bash', '-c', sorted(SHELL_BODIES)[0])),
                'cwd': WORKSPACE, 'exitCode': 0, 'aggregatedOutput': '333283335000\n',
                'processId': None, 'source': 'agent', 'commandActions': [],
                'pluginId': None, 'scriptPath': None, 'durationMs': 1}
@@ -112,7 +112,7 @@ def complete_v0160_transcript():
     Optional model metadata is included to exercise every admitted stable kind.
     """
     base = transcript()
-    wrapped = shlex.join(('/bin/bash', '-lc', sorted(SHELL_BODIES)[0]))
+    wrapped = shlex.join(('/bin/bash', '-c', sorted(SHELL_BODIES)[0]))
     base[5]['params']['item']['command'] = wrapped
     base[6]['params']['item']['command'] = wrapped
     ids = {'threadId': 'thread-1', 'turnId': 'turn-1'}
@@ -622,26 +622,39 @@ class AppServerAdapterTest(unittest.TestCase):
             with self.subTest(mutation=mutate), self.assertRaises(AppServerBlocked):
                 self.run_fake(frames)
 
-    def test_only_known_shell_wrappers_of_exact_literal_body_are_accepted(self):
-        for shell in ('/bin/bash', '/bin/sh'):
-            for mode in ('-c', '-lc'):
-                for body in SHELL_BODIES:
-                    command = shlex.join((shell, mode, body))
+    def test_only_nonlogin_bash_wrapper_of_exact_literal_body_is_accepted(self):
+        for body in SHELL_BODIES:
+            command = shlex.join(('/bin/bash', '-c', body))
+            frames = transcript()
+            frames[5]['params']['item']['command'] = command
+            frames[6]['params']['item']['command'] = command
+            with self.subTest(body=body):
+                result = self.run_fake(frames)
+                self.assertEqual(result.observed_command, command)
+
+    def test_login_other_shell_and_unwrapped_commands_rejected_at_both_events(self):
+        for body in SHELL_BODIES:
+            commands = [body, shlex.join(adapter_module.COMMAND)]
+            commands += [shlex.join((shell, mode, body)) for shell, mode in (
+                ('/bin/bash', '-lc'), ('/bin/sh', '-c'), ('/bin/sh', '-lc'))]
+            for command in commands:
+                for position in (5, 6):
                     frames = transcript()
-                    frames[5]['params']['item']['command'] = command
-                    frames[6]['params']['item']['command'] = command
-                    with self.subTest(shell=shell, mode=mode, body=body):
-                        result = self.run_fake(frames)
-                        self.assertEqual(result.observed_command, command)
+                    frames[position]['params']['item']['command'] = command
+                    with self.subTest(command=command, position=position):
+                        with self.assertRaises(AppServerBlocked) as caught:
+                            self.run_fake(frames)
+                        self.assertEqual(safe_app_server_diagnostic(caught.exception)['reason'],
+                                         'APP_SERVER_COMMAND_MISMATCH')
 
     def test_shell_metacharacters_substitution_newlines_and_extra_args_rejected(self):
         body = sorted(SHELL_BODIES)[0]
         bodies = (body + '; id', body + ' && true', body + ' > /tmp/out',
                   body + '\ntrue', body.replace(' -I', '\n-I'),
                   body + ' $(id)', body + ' `id`', 'exec ' + body)
-        commands = [shlex.join(('/bin/bash', '-lc', value)) for value in bodies]
-        commands += [shlex.join(('/usr/bin/bash', '-lc', body)),
-                     shlex.join(('/bin/bash', '-lc', body, 'extra'))]
+        commands = [shlex.join(('/bin/bash', '-c', value)) for value in bodies]
+        commands += [shlex.join(('/usr/bin/bash', '-c', body)),
+                     shlex.join(('/bin/bash', '-c', body, 'extra'))]
         for command in commands:
             frames = transcript(); frames[5]['params']['item']['command'] = command
             with self.subTest(command=command), self.assertRaises(AppServerBlocked):
@@ -700,7 +713,7 @@ class AppServerDiagnosticTest(unittest.TestCase):
                  if isinstance(node, ast.Raise) and isinstance(node.exc, ast.Call)
                  and isinstance(node.exc.func, ast.Name) and node.exc.func.id == 'AppServerBlocked'
                  and node.exc.args and isinstance(node.exc.args[0], ast.Constant)]
-        self.assertEqual(len(sites), 87)
+        self.assertEqual(len(sites), 88)
         self.assertEqual(set(sites), set(adapter_module._BLOCK_REASON_CODES))
         codes = list(adapter_module._BLOCK_REASON_CODES.values())
         self.assertEqual(len(codes), len(set(codes)))

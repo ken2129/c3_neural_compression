@@ -737,15 +737,15 @@ def _fixed_command(item):
         tokens = tuple(shlex.split(command)) if type(command) is str else ()
     except ValueError as exc:
         raise AppServerBlocked('malformed command event') from exc
-    if (len(tokens) == 3 and tokens[0] in ('/bin/bash', '/bin/sh')
-            and tokens[1] in ('-c', '-lc')):
-        # v0.160 emits shlex_join(raw argv), retaining a shell-tool wrapper.
-        # Token equality alone is insufficient for a shell body: an unquoted
-        # newline is a command separator although shlex.split treats it as
-        # whitespace. Admit only these two exact, fully quoted literal bodies.
-        if tokens[2] not in SHELL_BODIES:
-            raise AppServerBlocked('shell wrapper body is not the literal CPU canary')
-        tokens = tuple(shlex.split(tokens[2]))
+    if len(tokens) != 3 or tokens[:2] != ('/bin/bash', '-c'):
+        raise AppServerBlocked('command event differs from the literal CPU canary')
+    # v0.160 emits shlex_join(raw argv), retaining the non-login shell wrapper.
+    # Token equality alone is insufficient for a shell body: an unquoted
+    # newline is a command separator although shlex.split treats it as
+    # whitespace. Admit only these two exact, fully quoted literal bodies.
+    if tokens[2] not in SHELL_BODIES:
+        raise AppServerBlocked('shell wrapper body is not the literal CPU canary')
+    tokens = tuple(shlex.split(tokens[2]))
     if tokens != COMMAND or item.get('cwd') != WORKSPACE:
         raise AppServerBlocked('command event differs from the literal CPU canary')
     return command
