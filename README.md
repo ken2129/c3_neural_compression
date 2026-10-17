@@ -43,6 +43,18 @@ The rate-distortion values and MACs per pixel for C3 and other compression basel
 
 研究・実験の準備、GPU実行の役割分担、安全境界、データ・成果物の保管は[全体方針](docs/experiment_policy.md)にまとめています。個別の作業はIssue／PRで管理し、その時点の経過は以下の研究日記に残します。
 
+## Research control prototype (CPU only)
+
+[Research harness runbook](docs/research_harness.md) describes the fail-closed
+MVP0: strict plans, transactional claims, owned CPU fixture processes, mock
+chat/validation/publication/storage contracts. No GPU, live Codex worker, real
+chat approval, Box transfer or automatic GitHub merge is enabled.
+
+```shell
+python -m unittest discover -s tests -p "test_harness_*.py" -v
+python -m research_harness demo
+```
+
 ## Research diary
 
 [研究記録の索引](docs/research/README.md)から、結果・準備記録・検証記録を内容別に参照できます。

@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:c3:research-harness:fixture-plan:v1",
+  "title": "CPU fixture plan only; not live execution authorization",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "request_id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$"
+    },
+    "plan_id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$"
+    },
+    "environment": {
+      "const": "local-fixture"
+    },
+    "version": {
+      "const": 1
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "repo": {
+      "const": "ken2129/c3_neural_compression"
+    },
+    "issue": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "operation": {
+      "const": "cpu_fixture"
+    },
+    "source_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "allowed_paths": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "description": "Canonical POSIX relative file path; runtime also rejects symlinks/traversal."
+      }
+    },
+    "retry_codes": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "transient_io",
+          "transient_api"
+        ]
+      }
+    },
+    "storage_required": {
+      "type": "boolean"
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "wall_seconds",
+        "total_seconds",
+        "max_attempts",
+        "max_output_bytes",
+        "min_free_bytes"
+      ],
+      "properties": {
+        "wall_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 30
+        },
+        "total_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 120
+        },
+        "max_attempts": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4
+        },
+        "max_output_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "min_free_bytes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  },
+  "required": [
+    "request_id",
+    "plan_id",
+    "environment",
+    "version",
+    "revision",
+    "repo",
+    "issue",
+    "operation",
+    "source_sha",
+    "allowed_paths",
+    "retry_codes",
+    "storage_required",
+    "budget"
+  ]
+}

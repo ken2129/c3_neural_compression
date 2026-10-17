@@ -2,7 +2,8 @@
 
 These helpers use the unchanged C3 implementation at commit
 `0c3a60c703bd41956b6558d527470350bcc7dd5d`. That implementation is in
-unmerged PRs #22/#42; main's result documents alone are insufficient to run it.
+the historical PRs #22/#42. The current main tree now includes the runtime;
+the archived run still depends on its original pinned source and private assets.
 Use a separate clean checkout of the pinned commit as the Python package.
 Do not edit a previous experiment checkout or reuse its output directories.
 
