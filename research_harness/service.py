@@ -313,7 +313,13 @@ class Controller:
                 finally:
                     recheck.close()
                 _require_result(result,binding,plan)
-                self.approve(number,binding)
+                if model_plan:
+                    # Fresh, uncached approval within the model finalization
+                    # reserve; one shared budget covers every source read.
+                    with approval_read_budget(seconds=5.0):
+                        self.approve(number,binding)
+                else:
+                    self.approve(number,binding)
                 request_type=ModelPublicationRequest if model_plan else PublicationRequest
                 request=request_type(result,self.source_sha,binding['issue_content_sha256'])
                 self.state.save_result(number,request,await_restart=epoch is not None)

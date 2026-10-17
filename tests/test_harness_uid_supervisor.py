@@ -451,6 +451,104 @@ class FixedAppServerSupervisorTest(unittest.TestCase):
         self.assertFalse(any(event[0] == 'disarm' for event in self.backend.events))
         self.transport.close.assert_called_once()
 
+    def test_app_server_reserves_twenty_seconds_without_extending_hard_alarm(self):
+        self.backend.t = 27.0
+        with patch('research_harness.uid_supervisor.BoundedStdioTransport',
+                   return_value=self.transport) as transport:
+            result = self.supervisor.run_fixed_app_server_canary(self.request, lambda: None,
+                enabled=True, admit_external=lambda request: None)
+        self.assertEqual(transport.call_args.kwargs['deadline'], 127.0)
+        self.assertEqual([event for event in self.backend.events if event[0] == 'arm'],
+                         [('arm', 124)])
+        self.assertFalse(any(event[0] == 'disarm' for event in self.backend.events))
+        self.assertTrue(result.requires_namespace_restart)
+
+    def test_insufficient_finalization_budget_is_rejected_before_admission(self):
+        # The canonical request remains 120 seconds. An excessive protected
+        # reserve must fail closed rather than create a nonpositive model budget.
+        for reserve in (120, 121):
+            admit = Mock(return_value=None)
+            with self.subTest(reserve=reserve), patch(
+                    'research_harness.uid_supervisor.APP_SERVER_FINALIZATION_RESERVE_SECONDS',
+                    reserve), self.assertRaisesRegex(SupervisorBlocked, 'reserve exceeds'):
+                self.supervisor.run_fixed_app_server_canary(self.request, lambda: None,
+                    enabled=True, admit_external=admit)
+            admit.assert_not_called()
+        self.backend.launch_app_server.assert_not_called()
+        self.assertFalse(self.backend.events)
+
+    def test_soft_startup_deadline_prevents_release_after_slow_barrier_or_callback(self):
+        for slow in ('waiting', 'ready', 'before_release'):
+            with self.subTest(slow=slow):
+                self.setUp()
+                before = None
+                if slow == 'before_release':
+                    before = lambda identity: setattr(self.backend, 't', 100.0)
+                else:
+                    def ready(handle, timeout):
+                        self.assertLessEqual(timeout, 0.05)
+                        self.backend.t = 100.0
+                        return slow == 'ready'
+                    self.backend.ready = ready
+                with patch('research_harness.uid_supervisor.BoundedStdioTransport') as transport:
+                    with self.assertRaisesRegex(SupervisorBlocked, 'deadline exceeded'):
+                        self.supervisor.run_fixed_app_server_canary(self.request, lambda: None,
+                            enabled=True, admit_external=lambda request: None, before_release=before)
+                transport.assert_not_called()
+                self.assertFalse(self.backend.released)
+                self.assertNotIn(10, self.backend.members)
+                self.assertIn(('arm', 124), self.backend.events)
+                self.assertFalse(any(event[0] == 'disarm' for event in self.backend.events))
+                self.assertIn(('close_child',), self.backend.events)
+
+    def test_late_fake_transport_candidate_fails_and_cleans_at_soft_deadline(self):
+        for completion_time in (100.0, 100.1):
+            with self.subTest(completion_time=completion_time):
+                self.setUp()
+                original_receive = self.transport.receive
+                def receive():
+                    frame = original_receive()
+                    if frame.get('method') == 'turn/completed':
+                        self.backend.t = completion_time
+                    return frame
+                self.transport.receive = receive
+                with patch('research_harness.uid_supervisor.BoundedStdioTransport',
+                           return_value=self.transport):
+                    with self.assertRaisesRegex(SupervisorBlocked, 'model deadline exceeded'):
+                        self.supervisor.run_fixed_app_server_canary(self.request, lambda: None,
+                            enabled=True, admit_external=lambda request: None)
+                self.assertNotIn(10, self.backend.members)
+                self.assertIn(('arm', 124), self.backend.events)
+                self.assertFalse(any(event[0] == 'disarm' for event in self.backend.events))
+                self.transport.close.assert_called_once()
+                self.assertIn(('close_child',), self.backend.events)
+
+    def test_near_soft_deadline_candidate_keeps_full_cleanup_and_postcheck_budget(self):
+        original_receive = self.transport.receive
+        def receive():
+            frame = original_receive()
+            if frame.get('method') == 'turn/completed':
+                self.backend.t = 99.9
+            return frame
+        self.transport.receive = receive
+        original_stop = self.supervisor.stop_owned
+        def stop(reservation):
+            self.assertGreaterEqual(120 - self.backend.t, 20)
+            return original_stop(reservation)
+        def recheck():
+            if self.backend.released and 10 not in self.backend.members:
+                self.backend.t = 119.9
+        with patch('research_harness.uid_supervisor.BoundedStdioTransport',
+                   return_value=self.transport), \
+             patch.object(self.supervisor, 'stop_owned', side_effect=stop):
+            result = self.supervisor.run_fixed_app_server_canary(self.request, recheck,
+                enabled=True, admit_external=lambda request: None)
+        self.assertEqual(result.elapsed_seconds, 119.9)
+        self.assertTrue(result.requires_namespace_restart)
+        self.assertFalse(result.cleanup_verified)
+        self.assertIn(('arm', 124), self.backend.events)
+        self.assertFalse(any(event[0] == 'disarm' for event in self.backend.events))
+
     def test_failure_diagnostic_is_stage_only_and_preserves_cleanup(self):
         secret = 'MODEL_PRIVATE_TOKEN_https://secret.example/path'
         for stage in ('admission', 'spawn', 'barrier', 'turn'):

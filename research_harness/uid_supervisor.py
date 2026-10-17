@@ -48,6 +48,7 @@ MAX_WORK_BYTES = 256 * 1024 * 1024
 CODEX_BINARY = '/opt/codex/bin/codex'
 CODEX_WORKSPACE = '/work/canary'
 CODEX_SCHEMA = '/opt/c3-runtime/canary-schema.json'
+APP_SERVER_FINALIZATION_RESERVE_SECONDS = 20
 
 
 def report_failure(role, stage, exc, *, child_returncode=None):
@@ -678,6 +679,9 @@ class OwnedUIDSupervisor:
             if enabled is not True:
                 raise SupervisorBlocked('APP_SERVER_DISABLED')
             validate_app_server_request(request)
+            model_seconds = request.wall_seconds - APP_SERVER_FINALIZATION_RESERVE_SECONDS
+            if model_seconds <= 0:
+                raise SupervisorBlocked('app-server finalization reserve exceeds request budget')
             if (not callable(admit_external) or not callable(recheck)
                     or (before_release is not None and not callable(before_release))):
                 raise SupervisorBlocked('EXTERNAL_BOUNDARY_ADMISSION_NOT_CONFIGURED')
@@ -688,6 +692,9 @@ class OwnedUIDSupervisor:
             reservation = self.reserve()
             started = self.os.now()
             deadline = started + request.wall_seconds
+            # Finish model work early enough for cleanup, fresh approval and
+            # durable controller finalization under the unchanged hard alarm.
+            model_deadline = deadline - APP_SERVER_FINALIZATION_RESERVE_SECONDS
             stage = 'watchdog'
             self.os.arm_watchdog(request.wall_seconds + 4)
         except BaseException as exc:
@@ -701,9 +708,9 @@ class OwnedUIDSupervisor:
             stage = 'spawn'
             handle = self.os.launch_app_server(request)
             stage = 'barrier'
-            while not self.os.ready(handle, min(0.05, max(0, deadline - self.os.now()))):
+            while not self.os.ready(handle, min(0.05, max(0, model_deadline - self.os.now()))):
                 recheck()
-                if self.os.now() >= deadline:
+                if self.os.now() >= model_deadline:
                     raise SupervisorBlocked('app-server startup deadline exceeded')
             stage = 'identity'
             identity = self.os.process(handle.process.pid)
@@ -712,16 +719,18 @@ class OwnedUIDSupervisor:
             if before_release is not None:
                 before_release(identity)
             recheck()
-            if self.os.now() >= deadline:
+            if self.os.now() >= model_deadline:
                 raise SupervisorBlocked('app-server admission deadline exceeded')
             stage = 'release'
             self.os.release(handle)
             stage = 'transport'
-            transport = BoundedStdioTransport(handle.process, recheck=recheck, deadline=deadline,
+            transport = BoundedStdioTransport(handle.process, recheck=recheck, deadline=model_deadline,
                 clock=self.os.now, max_frame_bytes=request.max_frame_bytes,
                 max_capture_bytes=request.max_capture_bytes)
             stage = 'turn'
             result = adapter.run(request, transport, recheck=recheck)
+            if self.os.now() >= model_deadline:
+                raise SupervisorBlocked('app-server model deadline exceeded')
             stage = 'cleanup'
             cleanup_started = True
             self.stop_owned(reservation)

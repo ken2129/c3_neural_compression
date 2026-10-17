@@ -1,5 +1,6 @@
 """Per-run approval refresh uses fake clocks/sources, never network or models."""
 import math
+from dataclasses import replace
 from pathlib import Path
 import tempfile
 import unittest
@@ -9,10 +10,12 @@ from urllib.error import HTTPError
 from research_harness.intake_flow_fixture import FIXTURE_NOW
 from research_harness.manager_runtime import RecheckRejected, safe_recheck_failure
 from research_harness.owner_approval import approval_read_timeout
+from research_harness.result_publisher import parse_publication_request
 from research_harness.schema import ContractError
 from research_harness.service import Controller, _RunApprovalRecheck
 from research_harness.service_state import ServiceState, initialize
 from test_harness_service import FakeRuntime, ISSUE, PublisherFactory, ServiceSource, SOURCE_SHA
+from test_harness_service_model import ModelRuntime, ModelSource
 
 
 class Clock:
@@ -311,6 +314,100 @@ class ControllerRecheckTests(unittest.TestCase):
         report = self.controller.once()[0]
         self.assertEqual(report['phase'], 'BLOCKED')
         self.assertNotIn('approval_failure', report)
+
+    def make_model_controller(self):
+        self.source = ModelSource()
+        self.runtime = ModelRuntime()
+        self.controller = Controller(self.state, self.source, self.source, self.runtime,
+            self.publishers, source_sha=SOURCE_SHA, clock=lambda: self.clock.wall,
+            monotonic=lambda: self.clock.mono)
+
+    def test_model_final_approval_has_shared_budget_without_changing_other_fresh_checks(self):
+        self.make_model_controller()
+        budgets = []
+        original = self.controller._approval_snapshot
+        def snapshot(*args):
+            budgets.append(approval_read_timeout(20))
+            return original(*args)
+        with patch('research_harness.owner_approval.time.monotonic', side_effect=lambda: self.clock.mono), \
+             patch.object(self.controller, '_approval_snapshot', side_effect=snapshot):
+            report = self.controller.process(ISSUE)
+            self.assertEqual(report['phase'], 'RESULT_AWAITING_RESTART')
+            # Preflight/admission stay ordinary fresh checks; the initial run
+            # snapshot and distinct post-result approval each have a 5s budget.
+            self.assertEqual(budgets, [20, 20, 20, 5, 5])
+            self.assertEqual(self.source.reads, 15)
+            self.assertEqual(approval_read_timeout(20), 20)
+            budgets.clear()
+            self.runtime.epoch = replace(self.runtime.epoch, pid1_start_ticks=2000)
+            published = self.controller.process(ISSUE)
+            self.assertEqual(published['phase'], 'PUBLISHED')
+            self.assertGreaterEqual(len(budgets), 4)
+            self.assertTrue(all(budget == 20 for budget in budgets))
+        self.assertEqual(self.runtime.runs, 1)
+
+    def test_model_final_approval_timeout_blocks_claim_without_saving_result(self):
+        self.make_model_controller()
+        original = self.source.get_issue
+        def source_read(number):
+            if self.runtime.runs:
+                self.clock.advance(5)
+                approval_read_timeout(20)
+            return original(number)
+        with patch('research_harness.owner_approval.time.monotonic', side_effect=lambda: self.clock.mono), \
+             patch.object(self.source, 'get_issue', side_effect=source_read):
+            report = self.controller.once()[0]
+        self.assertEqual(report['phase'], 'BLOCKED')
+        self.assertEqual(report['approval_failure'], dict(reason='source_timeout', origin='manager'))
+        saved = self.state.get(ISSUE)
+        self.assertIsNone(saved['result'])
+        self.assertIsNone(saved['publication'])
+        self.assertTrue((self.root / 'claims' / (str(ISSUE) + '.json')).is_file())
+        self.assertEqual(self.state.db.execute('SELECT after_epoch FROM service_epochs').fetchone(), (None,))
+        self.assertEqual(self.controller.process(ISSUE)['phase'], 'BLOCKED')
+        self.assertEqual(self.runtime.runs, 1)
+        self.assertEqual(self.publishers.calls, 0)
+
+    def test_model_candidate_near_soft_deadline_saves_after_bounded_fresh_approval(self):
+        self.make_model_controller()
+        started = self.clock.mono
+        self.runtime.on_result = lambda: self.clock.advance(99.9)
+        self.runtime.result_transform = lambda result: replace(result, elapsed_seconds=99.9)
+        original = self.controller._approval_snapshot
+        def snapshot(*args):
+            if self.runtime.runs:
+                self.assertEqual(approval_read_timeout(20), 5)
+                self.clock.advance(4.9)
+            return original(*args)
+        with patch('research_harness.owner_approval.time.monotonic', side_effect=lambda: self.clock.mono), \
+             patch.object(self.controller, '_approval_snapshot', side_effect=snapshot):
+            report = self.controller.process(ISSUE)
+        self.assertEqual(report['phase'], 'RESULT_AWAITING_RESTART')
+        self.assertTrue(report['restart_required'])
+        self.assertAlmostEqual(self.clock.mono - started, 104.8)
+        request = parse_publication_request(self.state.get(ISSUE)['result'])
+        self.assertEqual(request.result.elapsed_seconds, 99.9)
+        self.assertEqual(request.result.status, 'candidate_only')
+        self.assertEqual(self.runtime.runs, 1)
+        self.assertEqual(self.publishers.calls, 0)
+
+    def test_model_final_approval_returning_after_budget_still_cannot_save(self):
+        self.make_model_controller()
+        original = self.controller._approval_snapshot
+        def snapshot(*args):
+            value = original(*args)
+            if self.runtime.runs:
+                self.clock.advance(5)
+            return value
+        with patch('research_harness.owner_approval.time.monotonic', side_effect=lambda: self.clock.mono), \
+             patch.object(self.controller, '_approval_snapshot', side_effect=snapshot):
+            with self.assertRaises(TimeoutError):
+                self.controller.process(ISSUE)
+        self.assertEqual(self.state.get(ISSUE)['phase'], 'BLOCKED')
+        self.assertIsNone(self.state.get(ISSUE)['result'])
+        self.assertEqual(self.runtime.runs, 1)
+        self.assertEqual(self.publishers.calls, 0)
+        self.assertEqual(approval_read_timeout(20), 20)
 
 
 if __name__ == '__main__':
