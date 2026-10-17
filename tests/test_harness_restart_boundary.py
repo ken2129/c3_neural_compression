@@ -93,18 +93,28 @@ class BoundaryComparisonTests(unittest.TestCase):
         return restart_boundary_candidate(self.before if before is None else before,
                                           self.after if after is None else after, **options)
 
-    def test_only_new_namespace_and_later_pid1_under_same_container_and_boot_is_candidate(self):
+    def test_later_pid1_under_same_container_and_boot_is_candidate(self):
         self.assertTrue(self.candidate())
         # New namespace numbers need not be numerically greater.
         self.assertTrue(self.candidate(after=replace(self.after, pid_namespace_inode=10)))
+
+    def test_reused_inode_with_later_pid1_requires_same_verified_container_contract(self):
+        after = replace(self.before, pid1_start_ticks=2000)
+        self.assertTrue(self.candidate(after=after))
+        for flag in (False, None, 1, 'verified'):
+            self.assertFalse(self.candidate(after=after, deployment_contract_verified=flag))
+        self.assertFalse(self.candidate(after=replace(after, container_id='b' * 64)))
+        self.assertFalse(self.candidate(after=replace(after, boot_id=OTHER_BOOT)))
+        self.assertFalse(self.candidate(after=after, expected_container_id='b' * 64))
 
     def test_external_deployment_contract_is_required_and_never_inferred(self):
         self.assertFalse(restart_boundary_candidate(self.before, self.after, expected_container_id=CONTAINER_ID))
         for flag in (False, None, 1, 'verified', {'trusted': True}):
             self.assertFalse(self.candidate(deployment_contract_verified=flag))
 
-    def test_same_epoch_pid1_only_or_namespace_only_change_never_suffices(self):
-        for after in (self.before, replace(self.before, pid1_start_ticks=2000),
+    def test_same_epoch_exec_namespace_only_and_nonnewer_birth_never_suffice(self):
+        # Exec preserves the PID 1 birth time, even when its executable changes.
+        for after in (self.before, replace(self.before, pid1_start_ticks=999),
                       replace(self.before, pid_namespace_inode=4026533002),
                       replace(self.after, pid1_start_ticks=999)):
             self.assertFalse(self.candidate(after=after))

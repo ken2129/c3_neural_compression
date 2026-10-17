@@ -305,6 +305,36 @@ class ServiceStateTests(unittest.TestCase):
                                                           deployment_contract_verified=True))
         return before, after
 
+    def test_reused_namespace_inode_confirms_result_and_reopens_under_live_policy(self):
+        before, _ = self.epoch_claim()
+        after = replace(before, pid1_start_ticks=34)
+        witness = (self.root / 'claims' / '70.json').read_bytes()
+        self.state.save_result(70, self.request, await_restart=True)
+        original = self.state.get(70)
+        self.state.confirm_restart(70, after, deployment_contract_verified=True)
+        self.close_state()
+        self.state = ServiceState(self.root, require_epochs=True)
+        self.assertEqual(self.state.get(70), {**original, 'phase': 'RESULT_READY'})
+        self.assertEqual(self.state.db.execute('SELECT * FROM service_epochs').fetchall(),
+                         [(70, canonical(before.to_dict()).decode(), canonical(after.to_dict()).decode())])
+        self.assertEqual((self.root / 'claims' / '70.json').read_bytes(), witness)
+        self.assertFalse(self.state.claim(self.binding, epoch=after))
+
+    def test_reused_namespace_inode_interrupts_claim_and_reopens_under_live_policy(self):
+        before, _ = self.epoch_claim()
+        after = replace(before, pid1_start_ticks=34)
+        witness = (self.root / 'claims' / '70.json').read_bytes()
+        self.assertTrue(self.state.interrupt_after_restart(70, after,
+                                                          deployment_contract_verified=True))
+        self.close_state()
+        self.state = ServiceState(self.root, require_epochs=True)
+        self.assertEqual(self.state.get(70), dict(binding=self.binding, phase='INTERRUPTED',
+                                                result=None, publication=None))
+        self.assertEqual(self.state.db.execute('SELECT * FROM service_epochs').fetchall(),
+                         [(70, canonical(before.to_dict()).decode(), canonical(after.to_dict()).decode())])
+        self.assertEqual((self.root / 'claims' / '70.json').read_bytes(), witness)
+        self.assertFalse(self.state.claim(self.binding, epoch=after))
+
     def test_interruption_preserves_claim_receipts_schema_and_epoch_history(self):
         before, after = self.epoch_claim()
         witness = self.root / 'claims' / '70.json'
@@ -395,7 +425,7 @@ class ServiceStateTests(unittest.TestCase):
         invalid = [None, '{}', canonical(before.to_dict()).decode(),
                    canonical(replace(after, container_id='b' * 64).to_dict()).decode(),
                    canonical(replace(after, boot_id='22222222-2222-2222-2222-222222222222').to_dict()).decode(),
-                   canonical(replace(after, pid_namespace_inode=before.pid_namespace_inode).to_dict()).decode(),
+                   canonical(replace(after, pid1_start_ticks=before.pid1_start_ticks - 1).to_dict()).decode(),
                    canonical(replace(after, pid1_start_ticks=before.pid1_start_ticks).to_dict()).decode()]
         for saved in invalid:
             with self.subTest(epoch=saved):

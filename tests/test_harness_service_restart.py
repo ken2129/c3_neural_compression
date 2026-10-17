@@ -118,11 +118,30 @@ class ServiceRestartTests(unittest.TestCase):
         self.assertEqual(self.runtime.runs, 1)
         self.assertEqual(self.publishers.calls, 1)
 
-    def test_foreign_container_reboot_partial_epoch_change_and_backward_time_rejected(self):
+    def test_reused_namespace_inode_publishes_saved_result_without_reexecution(self):
+        self.await_restart()
+        original = self.state.get(ISSUE)
+        self.runtime.epoch = replace(epoch(), pid1_start_ticks=2000)
+        self.reopen()
+        report = self.controller.process(ISSUE)
+        self.assertEqual(report['phase'], 'PUBLISHED')
+        self.assertFalse(report['dispatched'])
+        self.assertEqual(self.runtime.runs, 1)
+        self.assertEqual(self.runtime.preflights, 1)
+        self.assertEqual(self.publishers.calls, 1)
+        self.assertEqual(self.saved_epoch(), (epoch().to_dict(), self.runtime.epoch.to_dict()))
+        self.reopen()
+        self.assertEqual(self.state.get(ISSUE)['binding'], original['binding'])
+        self.assertEqual(self.state.get(ISSUE)['result'], original['result'])
+        self.assertTrue(self.controller.process(ISSUE)['historical'])
+        self.assertEqual(self.runtime.runs, 1)
+        self.assertEqual(self.publishers.calls, 1)
+
+    def test_foreign_container_reboot_namespace_only_and_backward_time_rejected(self):
         self.await_restart()
         changed = [replace(self.newer_epoch(), container_id='f' * 64),
                    replace(self.newer_epoch(), boot_id=OTHER_BOOT),
-                   replace(epoch(), pid1_start_ticks=2000),
+                   epoch(),
                    replace(epoch(), pid_namespace_inode=4026533002),
                    replace(self.newer_epoch(), pid1_start_ticks=999)]
         for value in changed:
@@ -197,12 +216,31 @@ class ServiceRestartTests(unittest.TestCase):
             self.assertEqual(self.runtime.runs, 0)
             self.assertEqual(self.publishers.calls, 0)
 
+    def test_reused_namespace_inode_recovers_claim_before_listing_without_dispatch(self):
+        binding = self.controller.approve(ISSUE)
+        self.state.claim(binding, epoch=epoch())
+        self.runtime.epoch = replace(epoch(), pid1_start_ticks=2000)
+        self.reopen()
+        with patch.object(self.source, 'list_candidates', side_effect=TimeoutError('unavailable')):
+            reports = self.controller.once()
+        self.assertEqual(reports[0]['phase'], 'INTERRUPTED')
+        self.assertFalse(reports[0]['dispatched'])
+        self.assertEqual(reports[0]['outcome'], 'unknown')
+        self.assertEqual(self.saved_epoch(), (epoch().to_dict(), self.runtime.epoch.to_dict()))
+        self.reopen()
+        self.assertEqual(self.state.get(ISSUE), dict(binding=binding, phase='INTERRUPTED',
+                                                   result=None, publication=None))
+        self.assertEqual(self.controller.process(ISSUE), reports[0])
+        self.assertEqual(self.runtime.runs, 0)
+        self.assertEqual(self.runtime.preflights, 0)
+        self.assertEqual(self.publishers.calls, 0)
+
     def test_interruption_requires_complete_verified_restart_evidence(self):
         binding = self.controller.approve(ISSUE)
         self.state.claim(binding, epoch=epoch())
         changed = [epoch(), replace(self.newer_epoch(), container_id='f' * 64),
                    replace(self.newer_epoch(), boot_id=OTHER_BOOT),
-                   replace(epoch(), pid1_start_ticks=2000),
+                   replace(epoch(), pid1_start_ticks=999),
                    replace(epoch(), pid_namespace_inode=4026533002),
                    replace(self.newer_epoch(), pid1_start_ticks=999)]
         for value in changed:

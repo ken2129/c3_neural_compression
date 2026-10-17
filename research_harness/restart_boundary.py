@@ -1,12 +1,25 @@
 """Conservative restart-epoch candidates, not standalone container-death proof.
 
-A changed PID namespace and newer PID 1 start time do NOT independently prove
-that Docker stopped the old container, killed all its workers, or enforced a
-security boundary. Using a candidate to release results requires an externally
+A newer PID 1 start time does NOT independently prove that Docker stopped the
+old container, killed all its workers, or enforced a security boundary. Using
+a candidate to release results requires an externally
 verified deployment contract: exactly one dedicated container may use this
 manager volume; the trusted manager is PID 1; exiting PID 1 causes Docker to stop
 that container and restart it under the configured policy; procfs and manager
-state cannot be forged by a worker. Host PID namespace sharing is excluded.
+state cannot be forged by a worker. Host PID namespace sharing, checkpoint/
+restore and changes to the trusted observer's time namespace/offset are excluded.
+
+Linux kills and waits for a PID namespace's remaining processes when its init
+exits; a terminated init cannot be replaced in that namespace. Under the above
+same-container lifecycle contract, a strictly later PID 1 birth identifies a
+new generation. An exec (including a nonleader-thread exec) preserves that
+birth time. Namespace inode numbers are freed and may be reused, so equality
+across generations must not veto this evidence. The inode remains required
+observation metadata, not a permanent generation identifier. Kernel references:
+https://github.com/torvalds/linux/blob/v6.12/kernel/pid_namespace.c
+https://github.com/torvalds/linux/blob/v6.12/fs/proc/generic.c
+https://github.com/torvalds/linux/blob/v6.12/fs/exec.c
+https://github.com/torvalds/linux/blob/v6.12/fs/proc/array.c
 
 The full container ID is an externally verified deployment binding supplied by
 the caller. It is NOT discovered or authenticated by this module. In particular,
@@ -89,9 +102,10 @@ def restart_boundary_candidate(before, after, *, expected_container_id,
                                deployment_contract_verified=False):
     """Pure, fail-closed comparison; True is a candidate under the above contract.
 
-    No same-epoch, PID-1-only replacement, namespace-only change, boot change,
-    container recreation, backwards time or incomplete observation is accepted.
-    Namespace inode reuse or equal-tick restarts are conservative false negatives.
+    No same-epoch/exec, namespace-only change, boot change, container recreation,
+    backwards time or incomplete observation is accepted. Inode reuse is allowed
+    only with a strictly newer PID 1 under the externally verified contract.
+    Equal-tick restarts remain conservative false negatives.
     Approval of publication, worker isolation and termination are separate gates.
     """
     if type(before) is not RestartEpoch or type(after) is not RestartEpoch:
@@ -101,7 +115,6 @@ def restart_boundary_candidate(before, after, *, expected_container_id,
         return False
     return (before.container_id == after.container_id == expected_container_id
             and before.boot_id == after.boot_id
-            and before.pid_namespace_inode != after.pid_namespace_inode
             and after.pid1_start_ticks > before.pid1_start_ticks)
 
 

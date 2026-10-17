@@ -72,7 +72,7 @@ bash tools/container_boundary/check_service.sh --allow-new-diagnostic-volume
 
 任意の子孫プロセスはforkを繰り返せるため、UIDの走査だけでは全終了を証明できません。UID走査は回収の補助に限定します。専用PID名前空間のPID1が終了すると、その名前空間のプロセスも終了します。[Linuxの仕様](https://man7.org/linux/man-pages/man7/pid_namespaces.7.html)
 
-結果はRESULT_AWAITING_RESTARTとして保存し、同じ専用コンテナの新しいPID名前空間と起動時刻を確認してから公開します。実行を繰り返す処理ではありません。Dockerのunless-stoppedを候補にしますが、手動停止や早期終了などで再起動されなければ、結果は待機したままです。[Dockerの再起動ポリシー](https://docs.docker.com/engine/containers/start-containers-automatically/)
+結果はRESULT_AWAITING_RESTARTとして保存し、検証済みの同じ専用コンテナで、同一boot IDとPID1の新しい開始時刻を確認してから公開します。namespace inodeは観測値として保持し、番号の再利用だけで拒否しません。実行を繰り返す処理ではありません。Dockerのunless-stoppedを候補にしますが、手動停止や早期終了などで再起動されなければ、結果は待機したままです。[Dockerの再起動ポリシー](https://docs.docker.com/engine/containers/start-containers-automatically/)
 
 この確認には、導入者がDocker inspectで確認した64桁のcontainer IDと設定、専用volumeの利用者がその1コンテナだけという配置契約が必要です。hostnameやJSONの自己申告だけでは認定しません。ホスト管理者を攻撃者として防御するものでもありません。
 
@@ -229,3 +229,30 @@ API上限到達が#75の実機原因だったと証明したわけではない�
 元の通常ContractErrorから詳細が欠落する経路を代替通信で再現し、
 修正版では期限切れ・変更・API制限・timeout・IPC異常などが固定分類として残る。
 実際のGitHub認証を使う負荷試験や新たなモデル試行は行っていない。
+
+### #76後の再起動確認の修正
+
+#76は結果の保存まで到達したが、再起動後もnamespace inodeが同じだったため、
+RESULT_AWAITING_RESTARTに留まった。コンテナID・boot IDは一致し、PID1の開始ticksは
+増えていた。この状態はユーザーの実機での読み取り報告に基づく。
+
+Linuxのnamespace inodeは解放後に再利用される。したがって番号の変化を必須にせず、
+検証済み専用コンテナ・保護されたprocfs/管理状態・同一boot・厳密に新しいPID1の
+開始時刻を世代確認の根拠とする。PID namespaceのPID1終了時には同namespaceの
+プロセスが終了し、終了済みnamespaceへ新たなPID1を作ることはできない。
+execだけでは開始時刻は変わらない。時刻名前空間の変更やcheckpoint/restore、
+ホストPID共有、別コンテナへの状態移植はこの信頼境界に含まれない。
+
+- [Linux PID namespaceの終了規則](https://man7.org/linux/man-pages/man7/pid_namespaces.7.html)
+- [Linux namespaceの割当・解放と終了処理](https://github.com/torvalds/linux/blob/v6.12/kernel/pid_namespace.c)
+- [inode番号の割当・解放](https://github.com/torvalds/linux/blob/v6.12/fs/proc/generic.c)
+
+同じPID1開始時刻・逆行・boot変更・コンテナ変更・未検証構成は引き続き拒否する。
+既存#76の結果・claimを改変したり、再計算したりする変更ではない。
+旧版の保存状態を別コンテナへそのまま移して公開することも許可しない。
+修正版の自動公開一巡はまだ実機で確認していない。
+
+修正版は従来schemaの履歴を読めるが、同じinodeのafter_epochを記録した台帳は
+旧版の比較条件では再び拒否される。そのvolumeを旧imageへ戻して起動しないこと。
+今回の通常更新は新しい専用状態を使い、#76の旧volumeと保存結果を保持する。
+旧結果を新しいcontainer IDへ移植・再bindする手順は含めない。
