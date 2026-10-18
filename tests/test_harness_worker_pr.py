@@ -91,7 +91,7 @@ class FakeGitHub:
             self.branch = payload['sha']
             response = dict(ref=payload['ref'])
         elif suffix == 'pulls':
-            self.pr = dict(number=99, user=deepcopy(ACTOR), title=payload['title'],
+            self.pr = dict(number=99, user=deepcopy(self.actor), title=payload['title'],
                 body=payload['body'], draft=payload['draft'], state='open',
                 head=dict(ref=self.p.branch, sha=HEAD, repo=dict(full_name=REPOSITORY)),
                 base=dict(ref='main', repo=dict(full_name=REPOSITORY)),
@@ -130,21 +130,61 @@ class WorkerPRTests(unittest.TestCase):
 
     def test_disabled_by_default_and_flags_are_strict(self):
         self.assertFalse(validate_worker_pr_config(None)['enabled'])
+        self.assertFalse(validate_worker_pr_config(None)['owner_identity_risk_accepted'])
         self.assertFalse(validate_worker_pr_config(dict(schema='c3-worker-pr-v1'))['enabled'])
         with self.assertRaises(ContractError):
             self.publish(config=default_worker_pr_config())
         self.assertEqual(self.client.reads, [])
-        for flag in ('enabled', *CONSENTS):
+        for flag in ('enabled', 'owner_identity_risk_accepted', *CONSENTS):
             with self.subTest(flag=flag), self.assertRaises(ContractError):
                 validate_worker_pr_config(dict(config(), **{flag: 1}))
 
-    def test_enabled_requires_dedicated_non_owner_and_all_consents(self):
+    def test_enabled_requires_worker_identity_and_all_consents(self):
         for change in [dict(actor_login='KEN2129'), dict(actor_id=OWNER_ID), dict(actor_id=True),
                        dict(actor_id=0), dict(actor_login=None), dict(actor_id=None),
                        *(dict(**{key: False}) for key in CONSENTS)]:
             with self.subTest(change=change), self.assertRaises(ContractError):
                 validate_worker_pr_config(dict(config(), **change))
         self.assertEqual(validate_worker_pr_config(config())['actor_id'], ACTOR['id'])
+
+    def test_owner_requires_explicit_risk_acceptance_and_matching_identity(self):
+        owner = dict(config(), actor_login='KEN2129', actor_id=OWNER_ID)
+        for risk in (False, 1, 'true', None):
+            with self.subTest(risk=risk), self.assertRaises(ContractError):
+                validate_worker_pr_config(dict(owner, owner_identity_risk_accepted=risk))
+        accepted = dict(owner, owner_identity_risk_accepted=True)
+        self.assertEqual(validate_worker_pr_config(accepted), accepted)
+        for change in (dict(actor_login=ACTOR['login']), dict(actor_id=ACTOR['id'])):
+            with self.subTest(change=change), self.assertRaises(ContractError):
+                validate_worker_pr_config(dict(accepted, **change))
+        for consent in CONSENTS:
+            with self.subTest(consent=consent), self.assertRaises(ContractError):
+                validate_worker_pr_config(dict(accepted, **{consent: False}))
+        with self.assertRaises(ContractError):
+            validate_worker_pr_config(dict(default_worker_pr_config(), owner_identity_risk_accepted=1))
+
+    def test_explicit_owner_can_publish_draft_and_reconcile_without_retry(self):
+        accepted = dict(config(), actor_login='KEN2129', actor_id=OWNER_ID,
+                        owner_identity_risk_accepted=True)
+        self.client.actor = dict(login='ken2129', id=OWNER_ID)
+        result = self.publish(config=accepted)
+        self.assertEqual(result['status'], 'PUBLISHED')
+        self.assertEqual(self.client.pr['user'], self.client.actor)
+        self.assertTrue(self.client.pr['draft'])
+        writes = list(self.client.writes)
+        self.assertEqual(self.publish(config=accepted), result)
+        self.assertEqual(self.client.writes, writes)
+
+    def test_owner_opt_in_does_not_accept_mismatched_actual_credential(self):
+        accepted = dict(config(), actor_login='ken2129', actor_id=OWNER_ID,
+                        owner_identity_risk_accepted=True)
+        for actor in (ACTOR, dict(login='ken2129', id=ACTOR['id']),
+                      dict(login=ACTOR['login'], id=OWNER_ID)):
+            self.client.actor = actor
+            with self.subTest(actor=actor), self.assertRaises(ContractError):
+                self.publish(config=accepted)
+            self.assertFalse(self.intent.exists())
+            self.assertEqual(self.client.writes, [])
 
     def test_unknown_config_fields_and_other_repository_rejected(self):
         for change in [dict(token_path='/control/github-token'), dict(repository='someone/else'),

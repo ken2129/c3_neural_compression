@@ -41,34 +41,42 @@ PID namespace の終了と再起動は、子孫プロセスを残さないため
 既存 canary の container・volume・履歴・認証も変更しません。
 既存 installation を新経路に読み替えず、用途に合う方を明示して準備してください。
 
-## 2. GitHub の権限を先に分ける
+## 2. GitHub の名義と、受け入れるリスク
 
-現在の owner-comment 承認は、GitHub の `ken2129`、固定ユーザー ID `55587773` を信頼します。
-worker がこの identity の書込認証を使うと、自分で owner 承認を作成できてしまいます。
-このため **worker の GitHub actor は `ken2129` と異なる identity に限定**します。
-既存 manager token のコピーは認めません。この変更では新しい account の作成・ログイン・token の発行をしていません。
+本人の方針により、worker は同じ `ken2129`（固定ユーザー ID `55587773`）の名義でも使えます。
+新しい account や GitHub App は必須ではありません。
+設定の `owner_identity_risk_accepted` は厳密な boolean で、既定は `false` です。
+同じ名義を有効にするには `actor_login: "ken2129"`、`actor_id: 55587773` を指定し、
+`owner_identity_risk_accepted` と既存の 3 consent flags をすべて `true` にして、別途 `enabled: true` にします。
 
-本人が actor と限定した repository access を決めたうえで、新しい persistent credential access を明示的に承認し、
-専用 credential を安全な経路で用意してください。token を Issue、PR、チャット、plan、profile、ログへ貼らないでください。
-新経路の protected config は `/control/worker-pr.json`、専用 token は `/control/worker-github-token` に分けます。
-worker が自身の token を読めることと、外向き通信があることは、明示的に受け入れる残余リスクです。
+現在の owner-comment 承認は GitHub の名義を信頼します。同じ名義の token を worker が使うと、
+**本人が書いた承認コメントと worker が作った承認コメントを区別できず、worker 自身が owner 承認を作成できます。**
+`owner_identity_risk_accepted` はこのリスクを明示して受け入れる設定であり、承認の偽造防止を証明するものではありません。
+OS の UID 分離や manager の保護を残しても、この GitHub identity の問題は解消しません。
 
-### fine-grained token だけでは main を守れない
+同じ名義でも、対象 repository を絞った worker 専用 token を別途承認・用意します。
+既存 manager token を暗黙にコピー・流用しません。この変更では account 作成・ログイン・token 発行をしていません。
+新しい persistent credential access を明示的に承認し、安全な経路で用意してください。
+token を Issue、PR、チャット、plan、profile、ログへ貼らないでください。
+protected config は `/control/worker-pr.json`、専用 token は `/control/worker-github-token` に分けます。
+worker が自身の token を読めることと、外向き通信があることも、明示的に受け入れる残余リスクです。
 
-repository と権限を絞った token でも、Contents／Pull requests の書込権限だけで、
-main への直接 write や merge を禁止したことにはなりません。
-「merge しない」という prompt や worker の申告も、GitHub 側の権限制限の代わりにはなりません。
+### main と merge の制限は実際の GitHub 設定で確認する
 
-有効化前に本人が GitHub の branch protection／rulesets を確認し、対象の worker identity に対して次を保証する必要があります。
+repository と権限を絞った token、worker helper、「merge しない」という prompt だけでは、
+main への直接 write や merge を技術的に禁止したことにはなりません。
+有効化前に branch protection／rulesets と token の権限を確認し、直接 push・force push・削除、
+bypass、merge、保護設定の変更のうち、実際に何が禁止され、何が可能かを記録してください。
 
-- `main` への直接 push・force push・削除を禁止する
-- branch protection／rulesets の bypass を許さない
-- 必要な owner review を受けずに merge できない
-- worker が保護設定や権限を変更して、これらを回避できない
+同じ `ken2129` が作成した PR を `ken2129` 自身が approve することはできません。
+したがって「同じ名義で PR を作り、同じ owner の required review を必須にする」という条件は使いません。
+本人が内容を確認して手動 merge する運用は選べますが、これは運用上の約束です。
+GitHub に同じ identity として見える操作を、本人と worker に暗号学的に区別させることはできません。
+本人には merge を許しながら同じ名義の worker だけを技術的に禁止できる、と説明しないでください。
 
-保護設定の attestation は operator が設定を確認した記録です。
-それ自体が GitHub の現在の保護状態や、すべての write 経路に対する安全性を証明するわけではありません。
-必要な制約を実際に設けられない場合は、新経路を OFF のままにしてください。
+`protected_branches_confirmed` は実際の保護設定と残る権限を確認した記録です。
+すべての write 経路を安全に制限した証明ではありません。
+必要とする技術的制限が設けられない場合は、その制約と残余リスクを本人へ示し、具体的な判断を受けてください。
 権限・credential・保護設定の追加や変更は、この文書の存在だけでは承認されません。
 
 ## 3. goal と installation の範囲
@@ -130,16 +138,18 @@ python3 -B tools/research_goal/prepare.py --direct-plan-template > goal-plan.jso
 ```
 
 profile と worker 設定は `enabled: false`、plan はモデル利用・公開の承認が false です。worker 設定の `actor_login` と `actor_id` は未設定で、
-以下の 3 項目も `false` になっています。
+以下の 4 項目も `false` になっています。
 
 - `credential_access_approved`: 専用 worker credential の継続利用を本人が承認した
 - `repository_scope_confirmed`: 対象 repository と必要な access scope を確認した
-- `protected_branches_confirmed`: worker に適用される GitHub 側の保護設定を確認した
+- `protected_branches_confirmed`: worker に適用される GitHub 側の保護設定と残る権限を確認した
+- `owner_identity_risk_accepted`: 同じ owner 名義では worker が owner 承認を作成できるリスクを受け入れた
 
 `repository` は `ken2129/c3_neural_compression` に固定します。
 `actor_login` と `actor_id` は実際の専用 credential の identity に一致させます。
 installer と起動時の staging は、明示された token による読取専用の `/user` 照会で identity を確認します。
-設定に別 actor を書くだけでは owner token を使えません。
+同じ名義を選んでも `/user` と設定の login／ID の一致を省略しません。
+別 actor を設定したまま owner token を渡すことはできません。
 
 従来の goal profile にある 5 項目の `risk_acknowledgements` も必要です。
 任意 CPU コマンド、worker が自身のモデル認証を読めること、制限のない bridge egress、
@@ -159,8 +169,8 @@ source と runtime は別に指定できますが、`plan.source_sha` と `direc
 本番の設定・起動を代理で行う場合は、新 container／volume／network と credential の永続利用を含む必要な承認を先に得ます。
 本人が安全な経路で準備した private regular file（mode `0600`、hardlink なし）を指定します。
 `auth.json` は worker のモデル用、`hosts.yml` は manager の GitHub 読取用、
-`worker-token` は非 owner actor の専用 GitHub token です。
-manager の token を worker 用ファイルにコピーしてはいけません。
+`worker-token` は承認した actor の専用 GitHub token です。同じ owner 名義も前述の明示 opt-in で選べます。
+既存 manager token を自動コピーせず、worker 用に別途承認・用意した token を指定します。
 
 以下は承認後に本人が実行する形式です。placeholder を実値に置き換えたこと自体は承認ではありません。
 clean checkout の runtime commit を確認し、新しい project 名と template から生成した deployment ID を使います。
@@ -225,8 +235,9 @@ PR は `ken2129/c3_neural_compression` の `main` を対象とし、タイトル
 失敗した実験や未実施の確認を、成功したように報告しません。merge は本人の別判断です。
 
 現在の親側 PR 通知条件は、repository が `ken2129/c3_neural_compression`、
-author が `ken2129`、タイトルが `^[Codex]`、event が opened です。
-新経路は別 actor を必要とするため、**専用 actor を決めた後に author filter の更新が必要**です。
+author が `ken2129`、タイトルが `^\[Codex\]`、event が opened です。
+同じ `ken2129` 名義なら現在の author filter に一致します。
+別 actor を選ぶ場合だけ、その actor に合わせて author filter を変更します。
 PR が作成できたこと、通知の設定が保存されたこと、実イベントが dot へ届いたことは、それぞれ別に確認します。
 この変更では通知設定の更新も実 webhook の疎通試験も行っていません。
 
@@ -238,7 +249,7 @@ repository root で、通常 Python と最適化 Python の両方を確認しま
 host の precheck も安定版を使い、`3.11.0rc1` のようなリリース候補版を導入判定には使いません。
 
 staging fixture は `pathlib` の内部的な subclass 初期化に依存しない構成です。
-互換修正後は Python 3.10.22 / 3.11.17 / 3.12.14 で全 988 件を通常・`-O` の両方で確認しました。
+互換修正時点では Python 3.10.22 / 3.11.17 / 3.12.14 で、当時の全 988 件を通常・`-O` の両方で確認しました。
 3.10.12 と 3.11.0rc1 の実行確認は含みません。rc1 で報告された別の HTTPError 失敗は、
 traceback 未確認のため、この staging 修正で解消したとは扱いません。
 
@@ -272,6 +283,8 @@ python3 -B -O -m unittest discover -s tests -p 'test_harness_*.py' -v
 コード、設定の形式、既存の実行環境と resource allocation を読取専用で確認してください。
 認証ファイルの中身や token を表示・転記・ログ出力せず、存在・所有者・mode 等だけを確認してください。
 既存 manager token を worker へコピーする方法は使いません。
+本人の最新方針では同じ ken2129 名義を選べます。新 account／GitHub App を必須にしないでください。
+同じ名義での承認偽造リスクを明記し、owner_identity_risk_accepted の明示 opt-in を確認してください。
 
 この fresh checkout で、文書にある通常 Python と python -O のモデルなし unittest を実行し、
 実行コマンド、結果、未検証事項を記録してください。外部サービスへの write、Docker build／create／start、
@@ -280,18 +293,20 @@ python3 -B -O -m unittest discover -s tests -p 'test_harness_*.py' -v
 既存ファイルを上書きしないでください。template の生成や値の編集を、実行承認とは扱わないでください。
 
 次へ進むために私が判断すべき事項を、一つの承認依頼にまとめて提示してください。
-- worker の専用 GitHub actor と ID。承認 owner ken2129／55587773 とは別であること
+- worker の GitHub actor と ID。同じ ken2129／55587773 も選べるが、本人と worker の承認コメントを区別できないこと
 - 対象 repository、credential の権限・保管場所・継続利用・失効方法
-- main への直接 write、保護の bypass、owner review なしの merge を止める GitHub 側の設定
+- main への直接 write、bypass、merge の実際の GitHub 側の制限と残る権限。手動 merge 方針は技術的な本人識別とは別であること
 - 新しい container／volume／network、runtime と入力の commit、固定モデル、既存環境との分離
 - wall、各プロセス CPU、aggregate memory、PID、work、output の各上限
 - worker が自身のモデル認証・GitHub token を読めること、外向き通信、任意 CPU コマンド、
   runtime home／IPC の書込、利用料金のハード上限がないことのリスク
 - 公開してよい入力・書込 scope・成果物、source_sha と base_sha の一致、最初の小さい CPU task
-- 専用 actor に合わせた PR 通知 filter の変更と、実 webhook 疎通を別途確認する手順
+- 同じ ken2129 名義なら既存通知 filter を使い、別 actor のときだけ変更する方針と、実 webhook の確認手順
 
 安全性を確認できた部分、設定不足、今回のモデルなし試験では証明できない部分を区別してください。
 fine-grained token だけでは main への write や merge を禁止できません。
+同じ名義で作った PR を同じ owner が approve する required-review 条件は使えません。
+本人には許可し、同じ identity の worker だけを技術的に拒否できると説明しないでください。
 worker helper の制限を、worker 全体の security boundary として説明しないでください。
 不明な command、flag、API を推測で作らず、対象 HEAD の実装と文書で確かめてください。
 

@@ -240,6 +240,52 @@ class DirectFilesystemStagingTests(unittest.TestCase):
         self.assertEqual(list((self.root / 'work/codex-home').iterdir()), [])
         self.assertEqual(os.geteuid(), self.real_euid)
 
+    def test_explicit_same_owner_risk_consent_allows_matching_actor_roundtrip(self):
+        self.config.update(actor_login=OWNER_LOGIN, actor_id=OWNER_ID,
+            owner_identity_risk_accepted=True)
+        (self.root / 'control/worker-pr.json').write_bytes(canonical(self.config))
+        self.client.request.return_value = dict(id=OWNER_ID, login=OWNER_LOGIN)
+        with self.fixture():
+            self.stage()
+            direct_runtime.validate_direct_workspace(self.plan, self.manifest)
+            direct_runtime.validate_worker_home(self.plan)
+            self.assertEqual(self.uid, 0)
+        staged = json.loads((self.root / 'work/worker-home/worker-pr.json').read_bytes())
+        self.assertEqual(staged, self.config)
+        self.assertEqual(len(self.writes), len(self.input_bytes) + 4)
+        self.client.request.assert_called_once_with('GET', '/user')
+        self.assertEqual(os.geteuid(), self.real_euid)
+
+    def test_same_owner_without_risk_consent_refuses_before_actor_read_or_secret_copy(self):
+        self.config.update(actor_login=OWNER_LOGIN, actor_id=OWNER_ID,
+            owner_identity_risk_accepted=False)
+        (self.root / 'control/worker-pr.json').write_bytes(canonical(self.config))
+        self.client.request.return_value = dict(id=OWNER_ID, login=OWNER_LOGIN)
+        with self.fixture():
+            with self.assertRaises(ContractError):
+                self.stage()
+            self.assertEqual(self.uid, 0)
+        self.client.request.assert_not_called()
+        self.assertEqual(len(self.writes), len(self.input_bytes))
+        self.assertEqual(list((self.root / 'work/worker-home').iterdir()), [])
+        self.assertEqual(list((self.root / 'work/codex-home').iterdir()), [])
+        self.assertEqual(os.geteuid(), self.real_euid)
+
+    def test_same_owner_risk_consent_still_rejects_a_different_actual_actor(self):
+        self.config.update(actor_login=OWNER_LOGIN, actor_id=OWNER_ID,
+            owner_identity_risk_accepted=True)
+        (self.root / 'control/worker-pr.json').write_bytes(canonical(self.config))
+        # Keep the configured fixture worker's actor response from setUp.
+        with self.fixture():
+            with self.assertRaisesRegex(ContractError, 'actual worker credential identity mismatch'):
+                self.stage()
+            self.assertEqual(self.uid, 0)
+        self.client.request.assert_called_once_with('GET', '/user')
+        self.assertEqual(len(self.writes), len(self.input_bytes))
+        self.assertEqual(list((self.root / 'work/worker-home').iterdir()), [])
+        self.assertEqual(list((self.root / 'work/codex-home').iterdir()), [])
+        self.assertEqual(os.geteuid(), self.real_euid)
+
     def test_input_stage_failure_restores_euid_without_staging_credentials(self):
         with self.fixture(), patch.object(direct_runtime, '_write_new', side_effect=OSError('offline disk fault')):
             with self.assertRaises(OSError):

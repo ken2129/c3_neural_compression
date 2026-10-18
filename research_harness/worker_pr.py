@@ -1,9 +1,11 @@
 """Optional worker-run direct draft-PR helper; never called by the manager.
 
 Configuration is disabled by default. A separately authorized installer must
-provide a dedicated, non-owner credential at WORKER_TOKEN_PATH. No gh config,
-environment token, manager credential, or automatic credential installation is
-used here. The three configuration attestations are operator acknowledgments,
+provide a worker credential at WORKER_TOKEN_PATH. A non-owner identity is the
+default; using the owner requires owner_identity_risk_accepted=True because the
+worker could author owner approval comments. No gh config, environment token,
+manager credential fallback, or automatic credential installation is used here.
+The three configuration attestations are operator acknowledgments,
 not proof of GitHub permissions or technical branch-level token restrictions.
 The credential itself remains usable by worker code: this helper is a publishing
 convenience, not a security boundary or an approval verifier.
@@ -53,18 +55,20 @@ _SHA = re.compile(r'[0-9a-f]{40}\Z')
 
 def default_worker_pr_config():
     return dict(schema=SCHEMA, enabled=False, repository=REPOSITORY,
-                actor_login=None, actor_id=None, **dict.fromkeys(CONSENTS, False))
+                actor_login=None, actor_id=None, owner_identity_risk_accepted=False,
+                **dict.fromkeys(CONSENTS, False))
 
 
 def validate_worker_pr_config(value):
     """Validate intent only; this does not install credentials or grant access."""
     if value is None:
         return default_worker_pr_config()
-    fields(value, ('schema',), ('enabled', 'repository', 'actor_login', 'actor_id', *CONSENTS))
+    fields(value, ('schema',), ('enabled', 'repository', 'actor_login', 'actor_id',
+                              'owner_identity_risk_accepted', *CONSENTS))
     result = {**default_worker_pr_config(), **value}
     if result['schema'] != SCHEMA or result['repository'] != REPOSITORY:
         raise ContractError('worker PR schema/repository mismatch')
-    if any(type(result[key]) is not bool for key in ('enabled', *CONSENTS)):
+    if any(type(result[key]) is not bool for key in ('enabled', 'owner_identity_risk_accepted', *CONSENTS)):
         raise ContractError('worker PR policy flags must be booleans')
     login, actor_id = result['actor_login'], result['actor_id']
     if login is not None and (type(login) is not str or
@@ -75,8 +79,12 @@ def validate_worker_pr_config(value):
     if result['enabled']:
         if login is None or actor_id is None or not all(result[key] for key in CONSENTS):
             raise ContractError('explicit dedicated worker authorization required')
-        if login.lower() == OWNER_LOGIN or actor_id == OWNER_ID:
-            raise ContractError('worker credential must not impersonate the approval owner')
+        owner_login = login.lower() == OWNER_LOGIN
+        owner_id = actor_id == OWNER_ID
+        if owner_login != owner_id:
+            raise ContractError('owner login and actor ID must match')
+        if owner_login and not result['owner_identity_risk_accepted']:
+            raise ContractError('owner approval impersonation risk must be explicitly accepted')
     return result
 
 

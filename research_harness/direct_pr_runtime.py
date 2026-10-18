@@ -80,7 +80,8 @@ def stage_direct_workspace(plan, *, as_uid):
         if not token.strip() or b'\n' in token.strip() or b'\r' in token.strip():
             raise ContractError('dedicated worker token must be one line')
         # This must precede worker access, not just happen in the optional helper.
-        # A config claiming a different actor cannot make an owner token safe.
+        # Same-owner access needs its explicit config acknowledgment; a token
+        # must still match that selected actor before it reaches the worker.
         actor = WorkerGitHub(token.decode('ascii').strip()).request('GET', '/user')
         if (type(actor) is not dict or type(actor.get('id')) is not int or actor.get('id') != config['actor_id']
                 or type(actor.get('login')) is not str
