@@ -140,7 +140,7 @@ class GoalQuarantineTests(unittest.TestCase):
         def path(value):
             return self.root if str(value) == '/control/quarantine' else actual_path(value)
         reader = readback or (lambda p, limit: loads(actual_path(p).read_bytes()))
-        with patch.object(launcher, 'as_uid'), patch.object(launcher, 'private'), \
+        with patch.object(launcher, 'as_uid'), patch.object(launcher, 'protected_control_directory'), \
              patch.object(launcher, 'Path', side_effect=path), \
              patch.object(launcher, 'protected_json', side_effect=reader):
             return launcher.freeze_snapshot(self.snapshot, self.binding, self.baseline, self.plan)

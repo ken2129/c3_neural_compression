@@ -13,6 +13,8 @@ import os
 import re
 from pathlib import Path
 import signal
+import stat
+from contextlib import contextmanager
 import select
 import subprocess
 import sys
@@ -40,6 +42,54 @@ CONTROL = 10001
 WORKER = 10002
 SCRIPT = '/opt/service/goal_launcher.py'
 MAX_RECORD = 128 * 1024 * 1024
+
+
+STARTUP_STAGES = frozenset(('identity', 'control_directory', 'profile',
+    'deployment_manifest', 'deployment_validation', 'installed_identity', 'epoch',
+    'manager_start', 'manager_hello', 'manager_profile', 'manager_initialize', 'manager_state'))
+
+
+class GoalStartupFailure(ContractError):
+    """Fixed-vocabulary startup metadata, with no external exception text."""
+    def __init__(self, stage, exc):
+        super().__init__('goal startup rejected')
+        self.stage = stage if stage in STARTUP_STAGES else 'identity'
+        if isinstance(exc, PermissionError): self.reason = 'PERMISSION_DENIED'
+        elif isinstance(exc, FileNotFoundError): self.reason = 'FILE_MISSING'
+        elif isinstance(exc, ContractError): self.reason = 'CONTRACT_REJECTED'
+        elif isinstance(exc, OSError): self.reason = 'IO_FAILED'
+        elif isinstance(exc, (ValueError, KeyError, TypeError)): self.reason = 'DATA_INVALID'
+        else: self.reason = 'STARTUP_FAILED'
+
+
+@contextmanager
+def startup_stage(stage):
+    try:
+        yield
+    except GoalStartupFailure:
+        raise
+    except Exception as exc:
+        raise GoalStartupFailure(stage, exc) from None
+
+
+def report_startup_failure(role, exc):
+    # Never trust arbitrary exception attributes, messages, paths or JSON values.
+    value = exc if type(exc) is GoalStartupFailure else GoalStartupFailure('identity', exc)
+    print(json.dumps({'phase': 'GOAL_BLOCKED_STARTUP',
+        'role': role if role in ('launcher', 'manager') else 'launcher',
+        'stage': value.stage, 'reason': value.reason}), file=sys.stderr, flush=True)
+
+
+def protected_control_directory(path):
+    """Validate manager-owned directories during a temporary PID1 EUID drop.
+
+    Real/saved UID remain root in PID1. Do not change the real-UID contract of
+    persistent_fixture.private, which is also used by permanently dropped roles.
+    """
+    info = path.lstat()
+    if (os.geteuid() != CONTROL or not stat.S_ISDIR(info.st_mode)
+            or stat.S_IMODE(info.st_mode) != 0o700 or info.st_uid != CONTROL):
+        raise ContractError('goal control directory identity/type/permissions mismatch')
 
 
 def read_frame(stream):
@@ -97,32 +147,38 @@ def protected_json(path, limit=65536):
 
 
 def deployment():
-    if os.getresuid() != (0, 0, 0) or os.getpid() != 1:
-        raise ContractError('goal requires dedicated root PID1')
+    with startup_stage('identity'):
+        if os.getresuid() != (0, 0, 0) or os.getpid() != 1:
+            raise ContractError('goal requires dedicated root PID1')
     try:
-        as_uid(CONTROL)
-        private(Path('/control'), True)
-        profile = protected_json('/control/goal-runtime.json')
-        fields(profile, ('schema', 'enabled', 'deployment_id', 'input_source_sha', 'runtime_source_sha',
-                         'model', 'resource_limits', 'risk_acknowledgements', 'installed_plan_digest'))
-        if type(profile['installed_plan_digest']) is not str or re.fullmatch('[0-9a-f]{64}', profile['installed_plan_digest']) is None:
-            raise ContractError('installed goal plan digest required')
-        fields(profile['risk_acknowledgements'], CONSENTS)
-        if (profile['schema'] != 'c3-goal-runtime-v1' or profile['enabled'] is not True
-                or any(profile['risk_acknowledgements'][key] is not True for key in CONSENTS)):
-            raise ContractError('new goal execution remains disabled')
-        data = protected_json('/control/goal-deployment.json', 1024*1024)
+        with startup_stage('control_directory'):
+            as_uid(CONTROL)
+            protected_control_directory(Path('/control'))
+        with startup_stage('profile'):
+            profile = protected_json('/control/goal-runtime.json')
+            fields(profile, ('schema', 'enabled', 'deployment_id', 'input_source_sha', 'runtime_source_sha',
+                             'model', 'resource_limits', 'risk_acknowledgements', 'installed_plan_digest'))
+            if type(profile['installed_plan_digest']) is not str or re.fullmatch('[0-9a-f]{64}', profile['installed_plan_digest']) is None:
+                raise ContractError('installed goal plan digest required')
+            fields(profile['risk_acknowledgements'], CONSENTS)
+            if (profile['schema'] != 'c3-goal-runtime-v1' or profile['enabled'] is not True
+                    or any(profile['risk_acknowledgements'][key] is not True for key in CONSENTS)):
+                raise ContractError('new goal execution remains disabled')
+        with startup_stage('deployment_manifest'):
+            data = protected_json('/control/goal-deployment.json', 1024*1024)
     finally:
         as_uid(0)
-    fields(data, ('inspect', 'consumers', 'volume_name', 'volume_inspect', 'initialize_new_state'))
-    verified = validate_goal_deployment(data['inspect'], data['consumers'],
-        runtime_source_sha=profile['runtime_source_sha'], input_source_sha=profile['input_source_sha'],
-        volume_name=data['volume_name'], volume_inspect=data['volume_inspect'],
-        resource_limits=profile['resource_limits'], deployment_id=profile['deployment_id'])
-    if (Path('/opt/service/source-sha').read_text().strip() != verified['runtime_source_sha']
-            or Path('/etc/hostname').read_text().strip() != verified['container_id'][:12]
-            or type(data['initialize_new_state']) is not bool):
-        raise ContractError('goal installed identity mismatch')
+    with startup_stage('deployment_validation'):
+        fields(data, ('inspect', 'consumers', 'volume_name', 'volume_inspect', 'initialize_new_state'))
+        verified = validate_goal_deployment(data['inspect'], data['consumers'],
+            runtime_source_sha=profile['runtime_source_sha'], input_source_sha=profile['input_source_sha'],
+            volume_name=data['volume_name'], volume_inspect=data['volume_inspect'],
+            resource_limits=profile['resource_limits'], deployment_id=profile['deployment_id'])
+    with startup_stage('installed_identity'):
+        if (Path('/opt/service/source-sha').read_text().strip() != verified['runtime_source_sha']
+                or Path('/etc/hostname').read_text().strip() != verified['container_id'][:12]
+                or type(data['initialize_new_state']) is not bool):
+            raise ContractError('goal installed identity mismatch')
     return verified, profile, data['initialize_new_state']
 
 
@@ -194,7 +250,7 @@ def freeze_snapshot(snapshot, binding, baseline, plan):
     try:
         as_uid(CONTROL)
         directory = Path('/control/quarantine'); directory.mkdir(mode=0o700, exist_ok=True)
-        private(directory, True)
+        protected_control_directory(directory)
         temporary = directory / (name + '.copying.json')
         final = directory / (name + '.snapshot.json')
         if final.exists(): raise ContractError('quarantine run already exists')
@@ -281,16 +337,7 @@ class GoalPipeRuntime:
             return result
 
 
-def manager():
-    from research_harness.manager_github import ManagerGitHub
-    from research_harness.owner_approval import GitHubOwnerComments, MissingApproval, RevokedApproval
-    from research_harness.goal_publisher import GitHubGoalPublisher, GhGoalTransport, matching_goal_publication_receipt
-    from research_harness.goal_service import GoalController
-    from research_harness.service import source_failure_report, source_retry_delay
-    if os.getresuid() != (CONTROL,)*3: raise ContractError('goal manager identity mismatch')
-    os.umask(0o077)
-    hello = read_frame(sys.stdin); epoch = RestartEpoch.from_dict(hello['epoch'])
-    profile = protected_json('/control/goal-runtime.json')
+def initialize_manager_state(hello, epoch):
     root = Path('/control/state'); marker = Path('/control/state-initialized.json')
     if hello['initialize_new_state'] is True:
         if marker.exists(): raise ContractError('interrupted goal initialization requires reconciliation')
@@ -305,8 +352,27 @@ def manager():
         private(marker)
         if loads(marker.read_bytes()) != {'container_id': epoch.container_id}:
             raise ContractError('goal state belongs to another container')
+    return root
+
+
+def manager():
+    from research_harness.manager_github import ManagerGitHub
+    from research_harness.owner_approval import GitHubOwnerComments, MissingApproval, RevokedApproval
+    from research_harness.goal_publisher import GitHubGoalPublisher, GhGoalTransport, matching_goal_publication_receipt
+    from research_harness.goal_service import GoalController
+    from research_harness.service import source_failure_report, source_retry_delay
+    with startup_stage('identity'):
+        if os.getresuid() != (CONTROL,)*3: raise ContractError('goal manager identity mismatch')
+    os.umask(0o077)
+    with startup_stage('manager_hello'):
+        hello = read_frame(sys.stdin); epoch = RestartEpoch.from_dict(hello['epoch'])
+    with startup_stage('manager_profile'):
+        profile = protected_json('/control/goal-runtime.json')
+    with startup_stage('manager_initialize'):
+        root = initialize_manager_state(hello, epoch)
     runtime = GoalPipeRuntime(sys.stdin, sys.stdout, epoch, profile)
-    state = ServiceState(root, require_epochs=True)
+    with startup_stage('manager_state'):
+        state = ServiceState(root, require_epochs=True)
     try:
         transport = GhGoalTransport(enabled=True, manager_credentials_isolated=True, runtime_verified=True)
         comments = GitHubOwnerComments()
@@ -339,8 +405,6 @@ def manager():
 
 
 def blocked_startup():
-    print(json.dumps({'phase': 'GOAL_BLOCKED_STARTUP', 'detail': 'operator configuration or deployment validation required'}),
-          file=sys.stderr, flush=True)
     signal.signal(signal.SIGTERM, lambda *_: os._exit(125))
     signal.signal(signal.SIGINT, lambda *_: os._exit(125))
     while True: signal.pause()
@@ -350,15 +414,17 @@ def supervise():
     started = time.monotonic()
     try:
         config, profile, initialize_new = deployment()
-        epoch = read_epoch(container_id=config['container_id'])
+        with startup_stage('epoch'):
+            epoch = read_epoch(container_id=config['container_id'])
     except Exception as exc:
-        report_failure('launcher', 'goal_deployment', exc); blocked_startup(); return
-    control = subprocess.Popen([sys.executable, '-I', '-B', SCRIPT, 'manager'],
-        user=CONTROL, group=CONTROL, extra_groups=[],
-        env={'LANG':'C.UTF-8', 'PATH':'/usr/local/bin:/usr/bin:/bin',
-             'HOME':'/control/home', 'GH_CONFIG_DIR':'/control/gh'},
-        stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=False, bufsize=0, close_fds=True)
-    write_frame(control.stdin, {'epoch':epoch.to_dict(), 'initialize_new_state':initialize_new})
+        report_startup_failure('launcher', exc); blocked_startup(); return
+    with startup_stage('manager_start'):
+        control = subprocess.Popen([sys.executable, '-I', '-B', SCRIPT, 'manager'],
+            user=CONTROL, group=CONTROL, extra_groups=[],
+            env={'LANG':'C.UTF-8', 'PATH':'/usr/local/bin:/usr/bin:/bin',
+                 'HOME':'/control/home', 'GH_CONFIG_DIR':'/control/gh'},
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=False, bufsize=0, close_fds=True)
+        write_frame(control.stdin, {'epoch':epoch.to_dict(), 'initialize_new_state':initialize_new})
     plan = baseline = None; attempted = False; preflight_complete = False
     try:
         while True:
@@ -450,5 +516,9 @@ if __name__ == '__main__':
         elif not sys.argv[1:]: supervise()
         else: raise ContractError('unsupported goal launcher mode')
     except BaseException as exc:
-        report_failure('launcher', 'goal_entrypoint', exc); os._exit(125)
+        if type(exc) is GoalStartupFailure:
+            report_startup_failure('manager' if sys.argv[1:] == ['manager'] else 'launcher', exc)
+        else:
+            report_failure('manager' if sys.argv[1:] == ['manager'] else 'launcher', 'entrypoint', exc)
+        os._exit(125)
     os._exit(0)
