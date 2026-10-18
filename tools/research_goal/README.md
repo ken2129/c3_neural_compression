@@ -88,6 +88,10 @@ installer が表示する container ID を使って `docker logs --tail 30 CONTA
 - 通信切断、期限、形式不一致は `app_server.reason` で区別します。
   `GOAL_SERVER_ERROR` は goal protocol のサーバーエラー応答の拒否です。
   いずれも例外本文、リモートの任意メッセージ、stderr、モデル出力は記録しません。
+- [Codex 0.160 の `warning`](https://github.com/openai/codex/blob/rust-v0.160.0/codex-rs/app-server-protocol/schema/json/v2/WarningNotification.json)
+  は `message` と任意の nullable `threadId` を持つ通知で、`turnId` は必須ではありません。
+  goal runner はこの通知だけを情報として扱い、明示された別 thread/turn は拒否します。
+  警告本文は記録せず、通知を権限付与や最終結果の代わりには扱いません。
 - `observed_child_returncode` は停止処理より前に `poll()` で実測できた場合だけ存在します。
   欠落を exit 0 や、強制停止による終了コードに置き換えてはいけません。
 - root の `GOAL_RUNTIME_BLOCKED` / `GOAL_RUNTIME_FAILED` と管理側の

@@ -145,10 +145,29 @@ def _object(value):
     return value
 
 
+def _warning_metadata(method, params, *, thread_id=None, turn_id=None):
+    # v0.160 WarningNotification requires message, with an optional nullable
+    # threadId. It is advisory metadata, not an item or proof of completion.
+    if method != 'warning':
+        return False
+    if type(params.get('message')) is not str:
+        raise GoalBlocked('GOAL_NOTIFICATION_ENVELOPE')
+    target = params.get('threadId')
+    if target is not None and _identifier(target) != thread_id:
+        raise GoalBlocked('GOAL_THREAD_MISMATCH')
+    # Not required by v0.160, but never ignore an explicit conflicting scope.
+    target_turn = params.get('turnId')
+    if target_turn is not None and _identifier(target_turn) != turn_id:
+        raise GoalBlocked('GOAL_TURN_MISMATCH')
+    return True
+
+
 def _connection_metadata(method, params):
     # Optional metadata is bounded by transport, never used as authority. New
     # server metadata fields must not turn a usable agent into a canary parser.
     # The actual thread settings and OS boundary are checked separately.
+    if method == 'warning' and params.get('threadId') is None and params.get('turnId') is None:
+        return _warning_metadata(method, params)
     if method == 'remoteControl/status/changed':
         if params.get('status') != 'disabled':
             raise GoalBlocked('GOAL_REMOTE_CONTROL_NOT_DISABLED')
@@ -252,6 +271,7 @@ class GoalAppServerRunner:
                 or initialized.get('platformFamily') != 'unix'):
             raise GoalBlocked('GOAL_INITIALIZATION_MISMATCH')
         if pending:
+            _diagnostic_frame(pending[0])
             raise GoalBlocked('GOAL_PREINITIALIZATION_ACTIVITY')
         _diagnostic_milestone('initialized')
         _diagnostic_rpc('initialized')
@@ -273,7 +293,10 @@ class GoalAppServerRunner:
         _diagnostic_milestone('thread_started')
         # No tool work is expected before the explicitly admitted goal turn.
         for value in pending:
+            _diagnostic_frame(value)
             params = value['params']
+            if _warning_metadata(value['method'], params, thread_id=thread_id):
+                continue
             if value['method'] == 'thread/started' and _object(params.get('thread')).get('id') == thread_id:
                 continue
             if value['method'] == 'thread/status/changed' and params.get('threadId') == thread_id:
@@ -302,6 +325,7 @@ class GoalAppServerRunner:
             if request.digest != digest:
                 raise GoalBlocked('GOAL_PLAN_CHANGED')
             value = pending.pop(0) if pending else receive()
+            _diagnostic_frame(value)
             if 'id' in value:
                 raise GoalBlocked('GOAL_UNEXPECTED_RPC_RESPONSE')
             method, params = value['method'], value['params']
@@ -310,6 +334,8 @@ class GoalAppServerRunner:
             events += 1
             if events > 10000:
                 raise GoalBlocked('GOAL_EVENT_LIMIT')
+            if _warning_metadata(method, params, thread_id=thread_id, turn_id=turn_id):
+                continue
             if method == 'thread/started':
                 if _object(params.get('thread')).get('id') != thread_id:
                     raise GoalBlocked('GOAL_THREAD_MISMATCH')

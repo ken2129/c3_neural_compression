@@ -2,7 +2,8 @@ import copy
 import json
 import unittest
 
-from research_harness.goal_runner import GoalAppServerRunner, GoalRequest, GoalBlocked
+from research_harness.goal_runner import (GoalAppServerRunner, GoalRequest, GoalBlocked,
+                                         safe_goal_diagnostic)
 from research_harness.goal_plan import GOAL_RESOURCE_BUDGET
 
 SHA='a'*40
@@ -101,6 +102,121 @@ class GoalRunnerTests(unittest.TestCase):
     def test_optional_progress_fields_do_not_gate_commands(self):
         values=frames();values.insert(6,event('item/newProgressEvent',extra={'arbitrary':'bounded data'}))
         self.assertEqual(self.run_frames(values)[0].outcome,'completed')
+
+    def test_warning_after_tools_allows_global_or_matching_optional_scope(self):
+        scopes=({}, {'threadId':None}, {'threadId':None,'turnId':None}, {'threadId':'t'},
+                {'threadId':'t','turnId':None}, {'threadId':'t','turnId':'u'})
+        for scope in scopes:
+            with self.subTest(scope=scope):
+                values=frames()
+                values.insert(-3,{'method':'warning','params':dict(
+                    message='Optional bounded metadata.',**scope)})
+                result,transport=self.run_frames(values)
+                self.assertEqual(result.outcome,'completed')
+                self.assertEqual(transport.values,[])
+
+    def test_global_warning_is_metadata_in_every_protocol_phase(self):
+        for index in (0,2,3,4,-3,-1):
+            for scope in ({},{'threadId':None}):
+                with self.subTest(index=index,scope=scope):
+                    values=frames()
+                    values.insert(index,{'method':'warning','params':dict(
+                        message='Optional bounded metadata.',**scope)})
+                    self.assertEqual(self.run_frames(values)[0].outcome,'completed')
+
+    def test_thread_scoped_warning_needs_no_turn_id_or_started_turn(self):
+        for index in (2,3,4,-3,-1):
+            with self.subTest(index=index):
+                values=frames()
+                values.insert(index,{'method':'warning','params':{
+                    'message':'Optional bounded metadata.','threadId':'t'}})
+                self.assertEqual(self.run_frames(values)[0].outcome,'completed')
+
+    def test_warning_with_explicit_wrong_scope_is_rejected(self):
+        cases=[({'threadId':'other'},'GOAL_THREAD_MISMATCH'),
+               ({'threadId':'t','turnId':'other'},'GOAL_TURN_MISMATCH')]
+        for scope,reason in cases:
+            with self.subTest(scope=scope):
+                values=frames()
+                values.insert(-3,{'method':'warning','params':dict(
+                    message='Optional bounded metadata.',**scope)})
+                with self.assertRaisesRegex(GoalBlocked,reason):self.run_frames(values)
+
+    def test_warning_requires_a_string_message(self):
+        for params in ({},{'message':None},{'message':False},{'message':17},
+                       {'message':{}},{'message':[]}):
+            for index in (0,2,3,-3):
+                with self.subTest(params=params,index=index):
+                    values=frames();values.insert(index,{'method':'warning','params':params})
+                    with self.assertRaisesRegex(GoalBlocked,'GOAL_NOTIFICATION_ENVELOPE'):
+                        self.run_frames(values)
+
+    def test_warning_rejects_malformed_explicit_scope_identifiers(self):
+        for field in ('threadId','turnId'):
+            for value in (False,17,'','bad\nidentifier','x'*257,{},[]):
+                with self.subTest(field=field,value=value):
+                    params={'message':'Optional bounded metadata.',field:value}
+                    values=frames();values.insert(-3,{'method':'warning','params':params})
+                    with self.assertRaisesRegex(GoalBlocked,'GOAL_PROTOCOL_IDENTIFIER'):
+                        self.run_frames(values)
+
+    def test_warning_cannot_replace_the_final_response(self):
+        values=frames()
+        final_text=values[-2]['params']['item']['text']
+        values[-3:-1]=[{'method':'warning','params':{'message':final_text}}]
+        with self.assertRaisesRegex(GoalBlocked,'GOAL_FINAL_RESPONSE_MISSING'):
+            self.run_frames(values)
+
+    def test_missing_or_wrong_thread_on_item_or_turn_is_rejected(self):
+        for index in (4,5,6,-2,-1):
+            for thread in ('missing',None,'other'):
+                with self.subTest(method=frames()[index]['method'],thread=thread):
+                    values=frames()
+                    if thread == 'missing':del values[index]['params']['threadId']
+                    else:values[index]['params']['threadId']=thread
+                    with self.assertRaisesRegex(GoalBlocked,'GOAL_THREAD_MISMATCH'):
+                        self.run_frames(values)
+
+    def test_threadless_unknown_notification_is_not_treated_as_warning(self):
+        values=frames()
+        values.insert(-3,{'method':'warning/newProgressEvent','params':{
+            'message':'Optional bounded metadata.'}})
+        with self.assertRaisesRegex(GoalBlocked,'GOAL_THREAD_MISMATCH'):
+            self.run_frames(values)
+
+    def test_warning_does_not_allow_additional_permission_requests(self):
+        values=frames()
+        values[-3:-3]=[{'method':'warning','params':{'message':'Optional bounded metadata.'}},
+            {'id':99,'method':'item/commandExecution/requestApproval','params':{}}]
+        with self.assertRaisesRegex(GoalBlocked,'GOAL_ADDITIONAL_PERMISSION_REQUEST'):
+            self.run_frames(values)
+
+    def test_id_bearing_warning_is_still_an_unapproved_server_request(self):
+        for index in (0,2,3,-3):
+            with self.subTest(index=index):
+                values=frames()
+                values.insert(index,{'id':99,'method':'warning','params':{
+                    'message':'Optional bounded metadata.'}})
+                with self.assertRaisesRegex(GoalBlocked,'GOAL_ADDITIONAL_PERMISSION_REQUEST'):
+                    self.run_frames(values)
+
+    def test_pending_event_failure_diagnostic_identifies_the_notification(self):
+        cases=[(0,'GOAL_PREINITIALIZATION_ACTIVITY','initialize_validate',False),
+               (2,'GOAL_PRETURN_ACTIVITY','thread_start_validate',False),
+               (3,'GOAL_THREAD_MISMATCH','stream',True)]
+        for index,reason,phase,turn_accepted in cases:
+            with self.subTest(index=index):
+                values=frames()
+                pending=event('item/started',item={'id':'pending','type':'commandExecution'})
+                pending['params']['threadId']='other'
+                values.insert(index,pending)  # Notification is queued before an RPC response.
+                with self.assertRaisesRegex(GoalBlocked,reason) as raised:
+                    self.run_frames(values)
+                protocol=safe_goal_diagnostic(raised.exception)['protocol']
+                self.assertEqual((protocol['phase'],protocol['frame_kind'],protocol['method']),
+                                 (phase,'notification','item/started'))
+                self.assertEqual(protocol['turn_accepted'],turn_accepted)
+                self.assertFalse(protocol['final_validated'])
 
     def test_failure_candidate_is_not_protocol_failure(self):
         values=frames()
