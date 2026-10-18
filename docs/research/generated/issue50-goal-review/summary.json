@@ -1,0 +1,373 @@
+{
+  "JPEG": {
+    "AP_percent": 47.432959401770944,
+    "CSV_only_delete_one_AP_range": [
+      44.11318318086129,
+      51.874101429124806
+    ],
+    "CSV_only_range_cross_checked_with_JSON": false,
+    "bpp": null
+  },
+  "audit": {
+    "JPEG_rows": 1,
+    "all_uint8_reused_C3_points": 8,
+    "comparison": "exact numeric equality after float parsing; all six AP fields, bpp and shared delete-one extrema",
+    "compressed_points": 24,
+    "csv_rows": 25,
+    "method_precision_groups": 6,
+    "new_measurements_this_run": 0,
+    "primary_points": 16,
+    "status": "pass",
+    "supplementary_external_uint8_points": 8
+  },
+  "four_way_rate_overlap": [
+    0.11394990474969535,
+    0.27705573918739584
+  ],
+  "groups": {
+    "adapt_icmh/float32": {
+      "AP_range_percent": [
+        42.657516264253175,
+        48.03575454294868
+      ],
+      "bpp_range": [
+        0.09387180804749973,
+        0.27705573918739584
+      ],
+      "count": 4
+    },
+    "adapt_icmh/uint8": {
+      "AP_range_percent": [
+        43.472440225018005,
+        47.354949297733626
+      ],
+      "bpp_range": [
+        0.09387180804749973,
+        0.27705573918739584
+      ],
+      "count": 4
+    },
+    "c3/uint8": {
+      "AP_range_percent": [
+        29.733242364695784,
+        41.971638025658436
+      ],
+      "bpp_range": [
+        0.1051765044229496,
+        0.3169445500418172
+      ],
+      "count": 4
+    },
+    "c3_prime/uint8": {
+      "AP_range_percent": [
+        36.164844702269846,
+        42.390498997230246
+      ],
+      "bpp_range": [
+        0.09457139983328176,
+        0.2897194231980741
+      ],
+      "count": 4
+    },
+    "transtic/float32": {
+      "AP_range_percent": [
+        41.47825055150135,
+        46.12199844211216
+      ],
+      "bpp_range": [
+        0.11394990474969535,
+        0.33941894029419173
+      ],
+      "count": 4
+    },
+    "transtic/uint8": {
+      "AP_range_percent": [
+        41.23298067925865,
+        46.540253311135416
+      ],
+      "bpp_range": [
+        0.11394990474969535,
+        0.33941894029419173
+      ],
+      "count": 4
+    }
+  },
+  "historical_metadata_not_new_measurements": {
+    "category_support_range": [
+      26,
+      30
+    ],
+    "codec_alignment": {
+      "adapt_icmh": "256-multiple right/bottom zero pad then crop",
+      "c3": "native detector-sized input",
+      "transtic": "official 256-multiple bilinear resize before/after codec, align_corners=False; user-approved exception"
+    },
+    "costs": {
+      "codec_attempts": 160,
+      "gpu_seconds_including_startup_and_exit": 188.23444253765047,
+      "new_artifact_bytes_at_report": 1951379691
+    }
+  },
+  "inputs": [
+    {
+      "path": "docs/research/assets/issue50_four_method.json",
+      "sha256": "90bc064100ddda3c39a5eff8b03912bfc47435ae3e183c6bcafcbd4caabacc8b",
+      "source_sha": "a3c285fb191f95bdf3ecea54408c53adb177b5c1"
+    },
+    {
+      "path": "docs/research/assets/issue50_four_method.csv",
+      "sha256": "96cbd38c693642149d8a7acec694e533e5e800015943db31129d33d3bf3078bf",
+      "source_sha": "a3c285fb191f95bdf3ecea54408c53adb177b5c1"
+    },
+    {
+      "path": "docs/research/2026-10-16_four_method_comparison.md",
+      "sha256": "5e8bfb54753743d3fcc634377377c80dd247541db64c6dba16cdadbceac916f0",
+      "source_sha": "a3c285fb191f95bdf3ecea54408c53adb177b5c1"
+    }
+  ],
+  "pairwise_rate_overlap": {
+    "c3 / adapt_icmh": [
+      0.1051765044229496,
+      0.27705573918739584
+    ],
+    "c3 / c3_prime": [
+      0.1051765044229496,
+      0.2897194231980741
+    ],
+    "c3 / transtic": [
+      0.11394990474969535,
+      0.3169445500418172
+    ],
+    "c3_prime / adapt_icmh": [
+      0.09457139983328176,
+      0.27705573918739584
+    ],
+    "c3_prime / transtic": [
+      0.11394990474969535,
+      0.2897194231980741
+    ],
+    "transtic / adapt_icmh": [
+      0.11394990474969535,
+      0.27705573918739584
+    ]
+  },
+  "precision_AP_deltas": [
+    {
+      "bpp": 0.09387180804749973,
+      "float32_AP": 42.657516264253175,
+      "method": "adapt_icmh",
+      "quality": 1,
+      "uint8_AP": 43.472440225018005,
+      "uint8_minus_float32_AP_pp": 0.8149239607648298
+    },
+    {
+      "bpp": 0.12863316129653543,
+      "float32_AP": 48.03575454294868,
+      "method": "adapt_icmh",
+      "quality": 2,
+      "uint8_AP": 47.04414075314234,
+      "uint8_minus_float32_AP_pp": -0.991613789806344
+    },
+    {
+      "bpp": 0.196752735343637,
+      "float32_AP": 47.749066823476106,
+      "method": "adapt_icmh",
+      "quality": 3,
+      "uint8_AP": 47.354949297733626,
+      "uint8_minus_float32_AP_pp": -0.39411752574248027
+    },
+    {
+      "bpp": 0.27705573918739584,
+      "float32_AP": 45.11616695176849,
+      "method": "adapt_icmh",
+      "quality": 4,
+      "uint8_AP": 46.0565311035291,
+      "uint8_minus_float32_AP_pp": 0.9403641517606118
+    },
+    {
+      "bpp": 0.11394990474969535,
+      "float32_AP": 41.47825055150135,
+      "method": "transtic",
+      "quality": 1,
+      "uint8_AP": 41.23298067925865,
+      "uint8_minus_float32_AP_pp": -0.24526987224269448
+    },
+    {
+      "bpp": 0.16784634025691966,
+      "float32_AP": 46.12199844211216,
+      "method": "transtic",
+      "quality": 2,
+      "uint8_AP": 46.540253311135416,
+      "uint8_minus_float32_AP_pp": 0.4182548690232579
+    },
+    {
+      "bpp": 0.22133516867872652,
+      "float32_AP": 45.12085241881525,
+      "method": "transtic",
+      "quality": 3,
+      "uint8_AP": 44.61473453133477,
+      "uint8_minus_float32_AP_pp": -0.5061178874804781
+    },
+    {
+      "bpp": 0.33941894029419173,
+      "float32_AP": 44.62005401912134,
+      "method": "transtic",
+      "quality": 4,
+      "uint8_AP": 45.3957267920371,
+      "uint8_minus_float32_AP_pp": 0.7756727729157618
+    }
+  ],
+  "primary_rate_ranges": {
+    "adapt_icmh": [
+      0.09387180804749973,
+      0.27705573918739584
+    ],
+    "c3": [
+      0.1051765044229496,
+      0.3169445500418172
+    ],
+    "c3_prime": [
+      0.09457139983328176,
+      0.2897194231980741
+    ],
+    "transtic": [
+      0.11394990474969535,
+      0.33941894029419173
+    ]
+  },
+  "sensitivity": {
+    "confidence_interval": false,
+    "paired_difference_ranges_source_only_not_recomputed": {
+      "adapt_icmh_1": [
+        -0.012370203606942853,
+        0.9471650096737061
+      ],
+      "adapt_icmh_2": [
+        -1.3025450446745523,
+        -0.34815763193536964
+      ],
+      "adapt_icmh_3": [
+        -0.5086826158633928,
+        -0.06629433356084014
+      ],
+      "adapt_icmh_4": [
+        -0.06389555168505034,
+        1.1000301804876378
+      ],
+      "transtic_1": [
+        -0.35282272627783495,
+        0.09449284781784528
+      ],
+      "transtic_2": [
+        0.08853847795105008,
+        0.4826017719499087
+      ],
+      "transtic_3": [
+        -1.1028085476051774,
+        0.16608494398572815
+      ],
+      "transtic_4": [
+        -0.08667793601292995,
+        0.9765409702747752
+      ]
+    },
+    "raw_delete_one_values_available": false,
+    "shared_point_extrema_cross_checked": 24
+  },
+  "tests": {
+    "errors": 0,
+    "failures": 0,
+    "outcomes": [
+      {
+        "outcome": "pass",
+        "test": "__main__.AuditTests.test_disjoint_overlap"
+      },
+      {
+        "outcome": "pass",
+        "test": "__main__.AuditTests.test_duplicate_csv"
+      },
+      {
+        "outcome": "pass",
+        "test": "__main__.AuditTests.test_duplicate_json"
+      },
+      {
+        "outcome": "pass",
+        "test": "__main__.AuditTests.test_image_count_mismatch"
+      },
+      {
+        "outcome": "pass",
+        "test": "__main__.AuditTests.test_jpeg_ap_mismatch"
+      },
+      {
+        "outcome": "pass",
+        "test": "__main__.AuditTests.test_jpeg_null_and_csv_only_sensitivity"
+      },
+      {
+        "outcome": "pass",
+        "test": "__main__.AuditTests.test_jpeg_zero_bpp"
+      },
+      {
+        "outcome": "pass",
+        "test": "__main__.AuditTests.test_metric_mismatch"
+      },
+      {
+        "outcome": "pass",
+        "test": "__main__.AuditTests.test_missing_csv_point"
+      },
+      {
+        "outcome": "pass",
+        "test": "__main__.AuditTests.test_missing_jpeg"
+      },
+      {
+        "outcome": "pass",
+        "test": "__main__.AuditTests.test_missing_json_point"
+      },
+      {
+        "outcome": "pass",
+        "test": "__main__.AuditTests.test_missing_metric"
+      },
+      {
+        "outcome": "pass",
+        "test": "__main__.AuditTests.test_negative_rate"
+      },
+      {
+        "outcome": "pass",
+        "test": "__main__.AuditTests.test_no_input_mutation"
+      },
+      {
+        "outcome": "pass",
+        "test": "__main__.AuditTests.test_nonfinite"
+      },
+      {
+        "outcome": "pass",
+        "test": "__main__.AuditTests.test_order_independence_and_determinism"
+      },
+      {
+        "outcome": "pass",
+        "test": "__main__.AuditTests.test_overlap_and_precision_deltas"
+      },
+      {
+        "outcome": "pass",
+        "test": "__main__.AuditTests.test_overlap_mismatch"
+      },
+      {
+        "outcome": "pass",
+        "test": "__main__.AuditTests.test_pairwise_overlap_mismatch"
+      },
+      {
+        "outcome": "pass",
+        "test": "__main__.AuditTests.test_reversed_sensitivity"
+      },
+      {
+        "outcome": "pass",
+        "test": "__main__.AuditTests.test_unexpected_precision"
+      },
+      {
+        "outcome": "pass",
+        "test": "__main__.AuditTests.test_valid_counts_and_groups"
+      }
+    ],
+    "skipped": 0,
+    "tests_run": 22
+  }
+}
