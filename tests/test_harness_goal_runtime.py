@@ -88,6 +88,21 @@ class GoalLifecycleTests(unittest.TestCase):
         self.assertIn(('arm',244),self.os.events)
         self.assertEqual(self.factory.call_args.kwargs['deadline'],220)
 
+    def test_post_cleanup_failure_does_not_report_cleanup_exit_as_its_cause(self):
+        process=SimpleNamespace(pid=10,poll=Mock(return_value=-15))
+        original=self.os.launch_goal
+        def launch(req):
+            handle=original(req);handle.process=process;return handle
+        self.os.launch_goal=launch
+        self.writer.side_effect=OSError('private persistence failure')
+        with redirect_stderr(io.StringIO()),self.assertRaises(ContractError) as caught:
+            self.run_goal()
+        detail=runtime.safe_goal_runtime_diagnostic(caught.exception)
+        self.assertEqual(detail['stage'],'persist')
+        self.assertNotIn('observed_child_returncode',detail)
+        process.poll.assert_not_called()
+        self.assertNotIn(10,self.os.members)
+
     def test_late_model_and_quarantine_failure_cleanup_without_disarming(self):
         for kind in ('late','writer','runner'):
             with self.subTest(kind=kind):

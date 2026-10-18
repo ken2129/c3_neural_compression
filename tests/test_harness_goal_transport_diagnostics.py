@@ -229,6 +229,25 @@ class GoalTransportDiagnosticsTests(unittest.TestCase):
         negative=json.loads(outgoing.getvalue().splitlines()[-1])
         self.assertEqual(negative,{'approved':False,'reason':'source_timeout','origin':'manager'})
 
+    def test_existing_finalization_failure_is_accepted_blocked_and_not_reexecuted(self):
+        helper=GoalServiceTests();helper.setUp();self.addCleanup(helper.doCleanups)
+        failure={'reason':'GOAL_FINALIZATION_FAILED','stage':'persist'}
+        self.assertEqual(runtime.validated_goal_failure(failure),failure)
+        pipes=[]
+        def failed(b,recheck):
+            pipe=launcher.GoalPipeRuntime(io.StringIO(canonical({'goal_failure':failure}).decode()+'\n'),
+                io.StringIO(),helper.runtime.current_epoch(),profile_fixture())
+            pipes.append(pipe)
+            return pipe.run(b,recheck)
+        helper.runtime.run=failed;log=io.StringIO()
+        with redirect_stderr(log),self.assertRaises(ContractError):helper.controller.process(ISSUE)
+        self.assertEqual(pipes[0].failed_issue,ISSUE)  # Manager can send the required BLOCKED ACK.
+        self.assertEqual(helper.state.get(ISSUE)['phase'],'BLOCKED')
+        self.assertIsNone(helper.state.get(ISSUE)['result'])
+        self.assertEqual(json.loads(log.getvalue())['reason'],failure['reason'])
+        helper.restart();self.assertEqual(helper.controller.process(ISSUE)['phase'],'BLOCKED')
+        self.assertEqual(len(pipes),1)
+
     def test_manager_recheck_rejection_is_durably_blocked_without_failure_frame(self):
         helper=GoalServiceTests();helper.setUp();self.addCleanup(helper.doCleanups)
         attempts=[]

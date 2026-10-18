@@ -118,7 +118,7 @@ _CONTEXT = ContextVar('goal_runtime_diagnostic',default=None)
 _NORMALIZED_REASONS = frozenset(('GOAL_RUNTIME_FAILURE','GOAL_TIMEOUT','GOAL_OS_FAILURE',
     'GOAL_CONTRACT_FAILURE','GOAL_TRANSPORT_FAILURE','GOAL_TRANSPORT_OUTPUT_LIMIT',
     'GOAL_TRANSPORT_FRAME_LIMIT','GOAL_TRANSPORT_DEADLINE','GOAL_TRANSPORT_EARLY_EOF',
-    'GOAL_APPROVAL_RECHECK_FAILED'))
+    'GOAL_APPROVAL_RECHECK_FAILED','GOAL_FINALIZATION_FAILED'))
 
 
 class GoalRuntimeBlocked(ContractError):
@@ -665,6 +665,7 @@ class GoalUIDSupervisor(OwnedUIDSupervisor):
         deadline=started+plan['max_seconds'];model_deadline=deadline-FINALIZATION_RESERVE
         _stage('watchdog');self.os.arm_watchdog(plan['max_seconds']+4)
         handle=transport=None
+        cleanup_started=False
         def check():
             if self.os.now()>=deadline:raise GoalRuntimeBlocked('GOAL_FINALIZATION_DEADLINE')
             recheck()
@@ -692,7 +693,7 @@ class GoalUIDSupervisor(OwnedUIDSupervisor):
                 max_capture_bytes=min(1024*1024,budget['max_output_bytes']))
             _stage('turn');candidate=GoalAppServerRunner(enabled=True).run(request,transport,admit=admitted,recheck=check)
             if self.os.now()>=model_deadline:raise GoalRuntimeBlocked('GOAL_MODEL_DEADLINE')
-            _stage('cleanup');self.stop_owned(reservation)
+            _stage('cleanup');cleanup_started=True;self.stop_owned(reservation)
             _stage('quarantine');check();snapshot=self.os.collect_goal(request,binding,check)
             if type(snapshot) is not UntrustedGoalSnapshot or snapshot.binding!=binding:
                 raise GoalRuntimeBlocked('GOAL_QUARANTINE_CONTRACT')
@@ -702,7 +703,7 @@ class GoalUIDSupervisor(OwnedUIDSupervisor):
             _stage('postcheck');check()
             return PendingGoalResult(candidate,self.os.now()-started,snapshot.digest)
         except BaseException as exc:
-            if handle is not None:
+            if handle is not None and not cleanup_started:
                 try:code=handle.process.poll()
                 except Exception:code=None
                 if type(code) is int and -128<=code<=255:

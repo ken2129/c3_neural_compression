@@ -88,11 +88,31 @@ installer が表示する container ID を使って `docker logs --tail 30 CONTA
   `GOAL_MANAGER_BLOCKED` に閉じた診断を伝えます。管理側が先に再確認を拒否して終了する場合は
   `GOAL_MANAGER_RECHECK_REJECTED` に固定 reason/origin を記録します。
   診断の有無は BLOCKED 保存や namespace 終了の代わりにはなりません。
+- GitHub 読取の失敗地点では `MANAGER_GITHUB_READ_FAILED` に固定 reason と、
+  取得できた CLI 終了コード・HTTP status・OS errno を残します。
+  `cgroup_pids_current/max/denied_total` は専用 allocation 全体の実測値です。
+  denied の累積値だけで当該照会や Codex が PID 上限に達したとは断定しません。
+  取得できなかった数値は省略し、応答本文・stderr・コマンド引数は出しません。
+  分類や診断出力の失敗で再確認を成功扱いしたり、自動 retry したりしません。
 
 Issue83 の 13ab 実機ログは `GOAL_TRANSPORT_FAILURE / turn` だけで、元の分類は保存されていません。
 13ab のモデルなし実 pipe 再現では、管理側 `source_timeout` と不正 JSON の両方が同じ外側診断になりました。
 したがって、過去の原因をネットワーク障害や承認期限切れと確定しません。
 fixture による正常応答・結果保存と、実物 Codex/実モデルの接続・成果物保存は区別します。
-後者の専用診断は本人の追加承認後に実施し、その成功前に本番更新の根拠としません。
+
+2026-10-18 の本人承認済み専用診断では、cb5fbd5 の runtime と実物 Codex 0.160.0、
+gpt-6.1-sol を使い、manager UID10001 から worker UID10002 の
+`initialize`・`thread/start`・`turn/start` 各1回と `turn/started` を観測しました。
+受付/承認は明示した合成 fixture、配置検証は診断用 entrypoint/purpose と restart=no を期待する
+別 validator です。実測 inspect の書換えや、UID/capability/resources/reserve の検査省略はしていません。
+並行する実 GitHub 読取は過去 Issue83 の観測だけで、期限切れの承認を実行許可には使いませんでした。
+stream 中の管理再確認が contract で拒否され、`GOAL_APPROVAL_RECHECK_FAILED` /
+`APP_SERVER_RECHECK_FAILED` / `recheck_origin=manager` で停止しました。
+台帳 BLOCKED、result/snapshot なし、container は停止、再起動0回です。
+停止後のモデルなし4照会は成功しましたが、失敗時の CLI/status/errno/PID counter は
+残っておらず、API形式、プロセス資源、その他のどれかを確定できません。
+この診断は実物接続の到達証拠であり、成果物保存成功、Issue83の過去原因、
+本番 owner intake、再起動境界や公開の成功証拠ではありません。
+新しいモデル試験や本番更新は、この不足を明示して別途承認を受けるまで実施しません。
 
 旧経路の PR #78 の手動復旧と PR #80 の自動失敗結果は、新 goal 経路の成功実績ではありません。

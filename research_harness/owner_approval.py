@@ -111,8 +111,15 @@ class GitHubOwnerComments:
                 output = response.stdout
             if len(output) > MAX_BYTES:
                 raise ContractError('GraphQL response too large')
-            data = loads(output)
+            try:
+                data = loads(output)
+            except (ContractError, ValueError, UnicodeError, RecursionError, TypeError):
+                from .manager_github import report_read_failure
+                report_read_failure('GRAPHQL_JSON_INVALID')
+                raise
             if data.get('errors'):
+                from .manager_github import report_read_failure
+                report_read_failure('GRAPHQL_ERRORS')
                 raise ContractError('GraphQL returned errors')
             try:
                 item = data['data']['repository']['issue']
@@ -130,6 +137,8 @@ class GitHubOwnerComments:
                     raise ContractError('invalid/repeated pagination cursor')
                 seen.add(cursor)
             except (KeyError, TypeError) as exc:
+                from .manager_github import report_read_failure
+                report_read_failure('GRAPHQL_METADATA_INVALID')
                 raise ContractError('missing comment metadata') from exc
         raise ContractError('comment pagination exceeded')
 

@@ -15,12 +15,14 @@ gate for later reads. A process restart does not preserve this in-memory gate.
 from __future__ import annotations
 
 from email.message import Message
+import json
 import math
 import os
 import re
 import selectors
 import signal
 import subprocess
+import sys
 import time
 from urllib.error import HTTPError
 
@@ -36,6 +38,43 @@ MAX_RETRY_SECONDS = 86400
 MIN_RATE_DELAY = 300
 _PREFIX = f'repos/{REPOSITORY}'
 _LIST = '/issues?state=open&sort=created&direction=asc&per_page=100&page='
+
+
+def report_read_failure(reason, *, command_exit_code=None, http_status=None, os_errno=None):
+    """Closed failure evidence, before recheck normalization discards context.
+
+    No response body, stderr, argv, route, credentials or exception text. Cgroup
+    counters describe the whole dedicated allocation, not attribution to gh.
+    Failure to collect diagnostics must never change rejection or cleanup.
+    """
+    if type(reason) is not str or reason not in (
+            'CLI_TIMEOUT', 'CLI_PROCESS_FAILED', 'CLI_CLEANUP_FAILED', 'CLI_EXIT_FAILED',
+            'CLI_OUTPUT_LIMIT', 'HTTP_ENVELOPE_INVALID', 'HTTP_STATUS_REJECTED',
+            'HTTP_CLI_MISMATCH', 'HTTP_JSON_INVALID', 'GRAPHQL_JSON_INVALID',
+            'GRAPHQL_ERRORS', 'GRAPHQL_METADATA_INVALID'):
+        return
+    try:
+        record = dict(phase='MANAGER_GITHUB_READ_FAILED', reason=reason)
+        for key, value, lower, upper in (
+                ('command_exit_code', command_exit_code, -255, 255),
+                ('http_status', http_status, 100, 599), ('os_errno', os_errno, 1, 4095)):
+            if type(value) is int and lower <= value <= upper:
+                record[key] = value
+        for filename, key in (('pids.current', 'cgroup_pids_current'),
+                              ('pids.max', 'cgroup_pids_max'),
+                              ('pids.events', 'cgroup_pids_denied_total')):
+            try:
+                with open('/sys/fs/cgroup/' + filename, encoding='ascii') as stream:
+                    value = stream.read(128).strip()
+                if filename == 'pids.events':
+                    values = dict(line.split() for line in value.splitlines())
+                    value = values.get('max', '')
+                if re.fullmatch('[0-9]{1,12}', value): record[key] = int(value)
+            except (OSError, ValueError, UnicodeError):
+                pass
+        print(json.dumps(record), file=sys.stderr, flush=True)
+    except Exception:
+        pass
 
 
 class ManagerGitHubError(ContractError):
@@ -160,6 +199,7 @@ class ManagerGitHub(PublicGitHub):
                             continue
                         total += len(chunk)
                         if total > MAX_RESPONSE:
+                            report_read_failure('CLI_OUTPUT_LIMIT')
                             raise ManagerGitHubError('GitHub manager response exceeded bound')
                         if key.fileobj is process.stdout:
                             output.extend(chunk)
@@ -168,10 +208,14 @@ class ManagerGitHub(PublicGitHub):
                 raise ManagerGitHubTimeout('GitHub manager read deadline exceeded')
             code = process.wait(timeout=remaining)
             completed = True
+            if code != 0: report_read_failure('CLI_EXIT_FAILED', command_exit_code=code)
             return code, bytes(output)
         except (TimeoutError, subprocess.TimeoutExpired):
+            report_read_failure('CLI_TIMEOUT')
             raise ManagerGitHubTimeout('GitHub manager read deadline exceeded') from None
-        except (OSError, subprocess.SubprocessError):
+        except (OSError, subprocess.SubprocessError) as exc:
+            report_read_failure('CLI_PROCESS_FAILED',
+                                os_errno=exc.errno if isinstance(exc, OSError) else None)
             raise ManagerGitHubError('GitHub manager read unavailable') from None
         finally:
             if process is not None:
@@ -184,7 +228,9 @@ class ManagerGitHub(PublicGitHub):
                         except ProcessLookupError:
                             pass
                         process.wait(timeout=5)
-                except (OSError, subprocess.SubprocessError):
+                except (OSError, subprocess.SubprocessError) as exc:
+                    report_read_failure('CLI_CLEANUP_FAILED',
+                                        os_errno=exc.errno if isinstance(exc, OSError) else None)
                     raise ManagerGitHubError('GitHub manager read cleanup unavailable') from None
                 finally:
                     for stream in (process.stdout, process.stderr):
@@ -232,7 +278,11 @@ class ManagerGitHub(PublicGitHub):
                    '-H', 'Accept: application/vnd.github+json',
                    '-H', 'X-GitHub-Api-Version: 2022-11-28', _PREFIX + suffix]
         code, raw = self._run(command)
-        status, headers, body = _response(raw)
+        try:
+            status, headers, body = _response(raw)
+        except ManagerGitHubError:
+            report_read_failure('HTTP_ENVELOPE_INVALID', command_exit_code=code)
+            raise
         remaining = headers.get(b'x-ratelimit-remaining')
         reset = headers.get(b'x-ratelimit-reset')
         retry_after = headers.get(b'retry-after')
@@ -248,11 +298,14 @@ class ManagerGitHub(PublicGitHub):
             self._retry_monotonic = monotonic + delay
             self._rate_status = status if limited else 429
         if not 200 <= status < 300:
+            report_read_failure('HTTP_STATUS_REJECTED', command_exit_code=code, http_status=status)
             error_type = ManagerGitHubRateLimited if limited else ManagerGitHubHTTPError
             raise error_type(status, remaining=remaining, reset=reset, retry_at=self.retry_at)
         if type(code) is not int or code != 0 or status != 200:
+            report_read_failure('HTTP_CLI_MISMATCH', command_exit_code=code, http_status=status)
             raise ManagerGitHubError('GitHub manager read did not complete successfully')
         try:
             return loads(body.decode('utf-8'))
         except (ValueError, UnicodeError, RecursionError, TypeError):
+            report_read_failure('HTTP_JSON_INVALID', command_exit_code=code, http_status=status)
             raise ManagerGitHubError('invalid GitHub manager response JSON') from None
