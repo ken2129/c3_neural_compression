@@ -105,14 +105,24 @@ gpt-6.1-sol を使い、manager UID10001 から worker UID10002 の
 `initialize`・`thread/start`・`turn/start` 各1回と `turn/started` を観測しました。
 受付/承認は明示した合成 fixture、配置検証は診断用 entrypoint/purpose と restart=no を期待する
 別 validator です。実測 inspect の書換えや、UID/capability/resources/reserve の検査省略はしていません。
-並行する実 GitHub 読取は過去 Issue83 の観測だけで、期限切れの承認を実行許可には使いませんでした。
-stream 中の管理再確認が contract で拒否され、`GOAL_APPROVAL_RECHECK_FAILED` /
+過去 Issue83 の期限切れ承認を実行許可には使いませんでしたが、当時の診断 driver は
+追加の `ShadowRead.observe()` を承認 snapshot の前に直列接続していました。
+4回の観測成功後にこの追加観測が例外を出し、合成承認の確認へ到達せず、
+stream 中の再確認が contract で拒否され、`GOAL_APPROVAL_RECHECK_FAILED` /
 `APP_SERVER_RECHECK_FAILED` / `recheck_origin=manager` で停止しました。
 台帳 BLOCKED、result/snapshot なし、container は停止、再起動0回です。
 停止後のモデルなし4照会は成功しましたが、失敗時の CLI/status/errno/PID counter は
-残っておらず、API形式、プロセス資源、その他のどれかを確定できません。
+残っておらず、API形式、プロセス資源、観測内のローカル検証のどれかを確定できません。
+モデルなし再現でも、REST例外・GraphQL例外・観測対象の不正な日時が同じ診断になりました。
 この診断は実物接続の到達証拠であり、成果物保存成功、Issue83の過去原因、
 本番 owner intake、再起動境界や公開の成功証拠ではありません。
 新しいモデル試験や本番更新は、この不足を明示して別途承認を受けるまで実施しません。
+
+診断用コードとモデルなし検証を `diagnostic_driver.py` / `diagnostic_observation.py` /
+`diagnostic_boundary.py` に保存しました。修正版は追加観測を承認 callback から完全に外し、
+独立した5秒の読取予算で管理起動時に1回だけ実施します。通常の観測例外は固定分類だけ記録し、
+予算の context を解放後に新しい合成承認を作り、本番そのままの `GoalController` を呼びます。
+観測失敗を承認と見なしたり、本番の拒否を成功へ変えたりしません。
+診断固有の差分、fixture と実測の区別、未実施の次試験は [DIAGNOSTIC.md](DIAGNOSTIC.md) を参照してください。
 
 旧経路の PR #78 の手動復旧と PR #80 の自動失敗結果は、新 goal 経路の成功実績ではありません。
