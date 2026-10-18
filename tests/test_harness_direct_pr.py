@@ -186,7 +186,11 @@ class DirectRunnerTests(unittest.TestCase):
         self.assertIn('Issue reference', prompt)
         self.assertIn(canonical(value).decode(), prompt)
         self.assertIn('Choose your own commands', prompt)
-        self.assertIn('draft GitHub PR', prompt)
+        self.assertIn('normal (non-draft) GitHub PR', prompt)
+        self.assertIn('description in Japanese', prompt)
+        self.assertIn('actual tests and unverified limitations', prompt)
+        self.assertIn('body containing your nonempty public PR description', prompt)
+        self.assertIn('No manual ready-for-review step is needed', prompt)
         self.assertIn('never merges', prompt)
         self.assertIn('never create a replacement or repeat the research', prompt)
 

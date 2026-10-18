@@ -338,7 +338,7 @@ def main(argv=None):
         print('New goal-only controller started: ' + ident)
         if direct:
             print('Direct PR controller started. Each execution requires a fresh owner-approved Issue including public PR scope.')
-            print('Codex creates its own draft PR. GitHub PR notification is external and must be configured for the dedicated actor.')
+            print('Codex creates its own normal PR with a public description. GitHub PR notification is external and must be configured for the dedicated actor.')
         else:
             print('Execution still requires a fresh owner-approved goal Issue. Publication requires separate exact-content approval.')
         print('Inspect status: docker logs --tail 30 ' + ident)

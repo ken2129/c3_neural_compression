@@ -1,4 +1,4 @@
-"""Thin approved-Issue dispatcher. Codex owns its draft PR; manager never writes GitHub.
+"""Thin approved-Issue dispatcher. Codex owns its PR; manager never writes GitHub.
 
 The worker's final URL is an untrusted report, not proof of publication or research
 success. GitHub's PR event/readback is the independent notification channel.

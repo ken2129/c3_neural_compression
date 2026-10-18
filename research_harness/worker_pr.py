@@ -1,4 +1,4 @@
-"""Optional worker-run direct draft-PR helper; never called by the manager.
+"""Optional worker-run direct PR helper; never called by the manager.
 
 Configuration is disabled by default. A separately authorized installer must
 provide a worker credential at WORKER_TOKEN_PATH. A non-owner identity is the
@@ -13,7 +13,9 @@ convenience, not a security boundary or an approval verifier.
 Run ``python -m research_harness.worker_pr publish --approved-plan plan.json
 --manifest files.json --intent /work/worker-home/pr-intent.json`` inside the
 worker. The approved plan carries write_scope and direct_pr; the manifest is
-{"files": ["relative/file", ...]}. Only listed regular files are uploaded.
+{"files": ["relative/file", ...], "body": "Human-readable public description"}.
+Only listed regular files are uploaded. The worker-authored description is public
+and part of the immutable publication intent, not a secret-filtered field.
 A durable intent precedes every remote mutation. Any later invocation is
 read-only reconciliation, even if no branch/PR exists. An uncertain publication
 requires operator inspection; this helper never blindly retries remote writes.
@@ -50,6 +52,7 @@ MAX_FILES = 32
 MAX_FILE_BYTES = 256 * 1024
 MAX_TOTAL_BYTES = 1024 * 1024
 MAX_JSON_BYTES = 2 * 1024 * 1024
+MAX_BODY_BYTES = 16 * 1024
 _SHA = re.compile(r'[0-9a-f]{40}\Z')
 
 
@@ -140,6 +143,23 @@ class Publication:
     files: tuple
 
 
+def _description(value):
+    """Bound public text, reserving only the helper's identity comment prefix."""
+    if type(value) is not str or not value.strip():
+        raise ContractError('nonempty public PR description required')
+    try:
+        size = len(value.encode('utf-8'))
+    except UnicodeError:
+        raise ContractError('UTF-8 PR description required') from None
+    if (size > MAX_BODY_BYTES or
+            any((ord(char) < 32 and char not in '\n\t') or 127 <= ord(char) < 160
+                for char in value)):
+        raise ContractError('bounded PR description without unsafe controls required')
+    if re.search(r'<!--\s*c3-worker-pr\b', value, re.IGNORECASE):
+        raise ContractError('PR description contains a reserved identity marker')
+    return value
+
+
 def prepare_publication(plan, manifest, work_root):
     """Caller supplies an already-approved plan; untrusted JSON is not approval."""
     if type(plan) is not dict or 'write_scope' not in plan or 'direct_pr' not in plan:
@@ -163,7 +183,8 @@ def prepare_publication(plan, manifest, work_root):
         raise ContractError('bounded approved write scope required')
     for path in scope:
         _safe_path(path)
-    fields(manifest, ('files',))
+    fields(manifest, ('files', 'body'))
+    description = _description(manifest['body'])
     paths = manifest['files']
     if type(paths) is not list or not 1 <= len(paths) <= MAX_FILES:
         raise ContractError('bounded file manifest required')
@@ -180,13 +201,15 @@ def prepare_publication(plan, manifest, work_root):
         blob_sha = hashlib.sha1(b'blob ' + str(len(content)).encode() + b'\0' + content).hexdigest()
         files.append((path, mode, content, blob_sha))
     files.sort()
-    identity = dict(plan=plan, files=[dict(path=p, mode=m, sha=s) for p, m, _, s in files])
+    identity = dict(plan=plan, body=description,
+                    files=[dict(path=p, mode=m, sha=s) for p, m, _, s in files])
     if len(canonical(identity)) > MAX_JSON_BYTES:
         raise ContractError('publication plan exceeds limit')
     digest = hashlib.sha256(canonical(identity)).hexdigest()
     branch = f'research/codex-{issue}-{digest[:16]}'
     title = title if title.startswith('[Codex] ') else '[Codex] ' + title
-    body = (f'Issue: https://github.com/{REPOSITORY}/issues/{issue}\n\n'
+    body = (f'{description}\n\n'
+            f'Issue: https://github.com/{REPOSITORY}/issues/{issue}\n\n'
             f'<!-- c3-worker-pr-v1:{digest} -->\n')
     return Publication(issue, 'main', policy['base_sha'], title, digest, branch, body, tuple(files))
 
@@ -317,7 +340,7 @@ def _reconcile(client, publication, config):
         raise ContractError('invalid PR metadata')
     number = pr.get('number')
     if (type(number) is not int or number <= 0 or not _actor_matches(pr.get('user'), config) or
-            pr.get('title') != p.title or pr.get('body') != p.body or pr.get('draft') is not True or
+            pr.get('title') != p.title or pr.get('body') != p.body or pr.get('draft') is not False or
             pr.get('head', {}).get('ref') != p.branch or pr['head'].get('sha') != head or
             pr['head'].get('repo', {}).get('full_name') != REPOSITORY or
             pr.get('base', {}).get('ref') != p.base_branch or
@@ -391,7 +414,7 @@ def publish(config, approved_plan, manifest, work_root, intent_path, *, client=N
         head = _sha(commit.get('sha'))
         client.request('POST', _endpoint('git/refs'), dict(ref='refs/heads/' + p.branch, sha=head))
         client.request('POST', _endpoint('pulls'),
-            dict(title=p.title, body=p.body, head=p.branch, base=p.base_branch, draft=True))
+            dict(title=p.title, body=p.body, head=p.branch, base=p.base_branch, draft=False))
         result = _reconcile(client, p, config)
         if result is None or result['status'] != 'PUBLISHED':
             raise GitHubFailure('publication response needs read-only reconciliation')

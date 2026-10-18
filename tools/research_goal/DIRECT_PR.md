@@ -1,9 +1,9 @@
-# Codex が実装から下書き PR まで担当する CPU 経路
+# Codex が実装から通常 PR まで担当する CPU 経路
 
 新しく準備する goal 実行では、この **opt-in の direct PR 経路**を推奨します。
 既定は OFF です。既存 deployment を切り替えたり、既存の認証を自動流用したりする変更ではありません。
 
-Codex が承認された目的の範囲で、実装・CPU 実験・テスト・結果の記録・branch の push・下書き PR 作成を担当します。
+Codex が承認された目的の範囲で、実装・CPU 実験・テスト・結果の記録・branch の push・通常 PR 作成を担当します。
 manager は本人承認の確認、永続的な単回 claim、資源上限の監督、所有を確認した自分のジョブの停止に集中します。
 コマンドを一つずつ固定 allowlist に登録する方式や、manager が候補の内容を別途承認して公開する方式ではありません。
 公開してよい入力と成果物の範囲を、実行前に本人が明示して承認する必要があります。
@@ -18,7 +18,7 @@ webhook の疎通は実施していません。GPU はこの経路の対象外�
 1. 本人が公開してよい目的・完了条件・入力・書込範囲・予算・PR の対象を承認する。
 2. manager が GitHub 上の owner receipt と最新の依頼を確認し、installation の許可範囲と照合する。
 3. manager が永続的に一度だけ claim してから、worker に実行を渡す。
-4. Codex が許可範囲内で方法を選び、実装・実験・テスト・報告を進め、専用 branch と下書き PR を作る。
+4. Codex が許可範囲内で方法を選び、実装・実験・テスト・報告を進め、専用 branch と通常 PR を作る。
 5. manager は実行中の承認再確認、資源制限、停止を担当する。結果は実際の GitHub PR と照合して確認する。
 6. 本人が PR をレビューする。実行承認も PR 作成承認も、merge 承認にはならない。
 
@@ -102,7 +102,7 @@ GitHub に同じ identity として見える操作を、本人と worker に暗�
 | `issue_number` | この実行依頼の正の Issue 番号 |
 | `base_branch` | `main` |
 | `base_sha` | 承認時に確認した 40 桁の base commit。`source_sha` と同じ値 |
-| `title` | `[Codex]` から始まる下書き PR のタイトル |
+| `title` | `[Codex]` から始まる通常 PR のタイトル |
 | `public_results_approved` | 公開する成果物の範囲を本人が承認した場合のみ `true` |
 
 研究入力と PR の起点は同じ revision に固定し、`base_sha == source_sha` を必須にします。
@@ -201,7 +201,7 @@ goal は、[Issue 受付の形式](../../docs/research_issue_intake.md)の `c3-e
 タイトル接頭辞、Issue の作者、本文の自己申告だけでは実行しません。
 
 まず公開入力だけを使う小さな CPU task で、受付、承認、単回 claim、UID／資源境界、
-実モデル接続、テスト、下書き PR、停止、通知を個別に確認してください。
+実モデル接続、テスト、通常 PR、停止、通知を個別に確認してください。
 この変更のモデルなしテストが通っても、その実機確認を済ませたことにはなりません。
 
 ### 任意の worker-side PR helper
@@ -210,8 +210,13 @@ Codex は固定の helper `/opt/service/worker_pr.py` を使うこともでき�
 これは worker が実行する公開用の補助ツールで、manager の publication gate ではありません。
 承認の真正性を独自に証明せず、worker が token を別の方法で使うことを制限する security boundary でもありません。
 
-manifest は `{"files": ["承認済みscope内の相対path", "同じscope内の報告書path"]}` です。
-実装・テスト・結果報告を含め、公開する exact files を worker が選びます。
+manifest は `{"files": ["承認済みscope内の相対path", "同じscope内の報告書path"], "body": "日本語のPR説明"}` です。
+実装・テスト・結果報告を含め、公開する exact files と本文を worker が選びます。
+`body` は空でない UTF-8 テキスト（最大 16 KiB）で、目的、変更・結果、実際のテスト、未検証事項、
+公開する報告書・テスト成果物へのリンクを日本語でまとめます。見出しや文言の固定 schema はありません。
+承認された公開情報だけを使い、秘密や非公開ログを転記しません。型・サイズ等の検証は、秘密がないことや
+内容の正しさを証明するものではありません。Issue URL と helper の識別 marker は末尾に別途付加されます。
+古い `files` だけの manifest は拒否します。
 承認済み worker 内での形式は次のとおりです。
 
 ```sh
@@ -223,8 +228,12 @@ python3 -B /opt/service/worker_pr.py publish \
 
 helper は manifest 内の regular file の追加・更新だけを扱い、削除は扱いません。
 最大 32 files、1 file 256 KiB、合計 1 MiB で、symlink・scope 外 path を拒否します。
-固定 base から専用 branch と draft PR を作ります。公開前に main が承認した base から動いていれば停止します。
+固定 base から専用 branch と通常 PR（`draft: false`）を作ります。公開前に main が承認した base から動いていれば停止します。
 intent を保存してから remote mutation に進み、その後の再呼出しは読取による reconciliation だけです。
+本文も publication digest に含まれ、保存済み intent と異なる本文で再送しません。
+remote の本文が人に編集されていれば不一致として止まり、上書き・復元や別 PR の作成はしません。
+通常 PR として直接作成するため、途中で人が ready 化する手順は不要です。
+既存の draft PR や説明のない PR を、この更新が自動で変更することはありません。
 成否不明や途中失敗で intent を消して再送せず、branch／PR の実態を確認してください。
 これらは helper の性質であり、worker 全体の arbitrary command や token の権限を制限するものではありません。
 
@@ -240,6 +249,25 @@ author が `ken2129`、タイトルが `^\[Codex\]`、event が opened です。
 別 actor を選ぶ場合だけ、その actor に合わせて author filter を変更します。
 PR が作成できたこと、通知の設定が保存されたこと、実イベントが dot へ届いたことは、それぞれ別に確認します。
 この変更では通知設定の更新も実 webhook の疎通試験も行っていません。
+
+### 実環境 E2E の確認範囲（別途承認して1回だけ）
+
+次の意味のある研究作業を1件選び、dot が実行 Issue と本人承認を用意してから、
+通常 manager が読み取って実行する経路を使います。診断の合成 Issue/承認は代用しません。
+同じ計算の再実行や既存成果 PR の再公開を検証目的だけで行いません。
+
+合格条件は、途中で人が本文を追加・ready 化・台帳修復・再実行をせず、以下が揃うことです。
+
+1. 本人承認した Issue が1回だけ claim される。
+2. Codex が承認範囲の成果物とテスト結果を作り、説明のある通常 PR を最大1件作る。
+3. 管理台帳の `WORKER_FINISHED`、`outcome: completed`、PR URL を実 GitHub と照合する。
+4. 実際の PR opened event が dot に届き、dot が結果と未検証事項を報告する。
+5. 元の worker allocation が終了し、通常の `unless-stopped` による再起動後も同じ Issue を再実行しない。
+   manager が次の依頼を待って稼働している状態は正常で、service 全体の停止や exit 0 だけを合格条件にしない。
+
+`WORKER_FINISHED` は worker の申告保存であり、研究結果の独立検証ではありません。
+終了コード137はそれだけで成功・失敗の原因を特定せず、時刻・OOM・既存の停止イベントと照合します。
+この文書自体は配置、認証の移送、モデル利用、公開の承認ではありません。
 
 ## 6. 今すぐできるモデルなし検証
 
@@ -271,7 +299,7 @@ python3 -B -O -m unittest discover -s tests -p 'test_harness_*.py' -v
 確認対象 HEAD: <この PR の 40 桁 HEAD SHA>
 
 この PR の Codex direct PR 経路を、私の環境で導入できるか事前調査してください。
-実装・CPU 実験・テスト・結果報告・下書き PR は Codex が担当し、manager は本人承認、
+実装・CPU 実験・テスト・結果報告・通常 PR は Codex が担当し、manager は本人承認、
 永続的な単回 claim、資源上限、所有が確認できた自ジョブの停止を担当する方式です。
 
 今回は導入前調査までです。既存の PR #71 系の環境と診断版 370f732、container、volume、
