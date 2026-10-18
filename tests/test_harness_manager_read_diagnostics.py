@@ -77,6 +77,40 @@ class ReadDiagnosticTests(unittest.TestCase):
         self.assertNotIn(SECRET, str(caught.exception) + output.getvalue())
         self.assertNotIn('GRAPHQL_JSON_INVALID', output.getvalue())
 
+    def test_initial_manager_graphql_uses_hardened_process_without_refresh_budget(self):
+        payload = {'data': {'repository': {'issue': {'number': 100, 'comments': {
+            'nodes': [], 'pageInfo': {'hasNextPage': False, 'endCursor': None}}}}}}
+        with patch('research_harness.owner_approval.os.getresuid', return_value=(10001,) * 3), \
+             patch.object(github.ManagerGitHub, '_executable', return_value='/usr/bin/gh'), \
+             patch.object(github.ManagerGitHub, '_run', return_value=(0, json.dumps(payload).encode())) as run, \
+             patch('research_harness.owner_approval.subprocess.run') as fallback:
+            self.assertEqual(GitHubOwnerComments().comments(100), [])
+        self.assertEqual(run.call_args.args[0][:5], ['/usr/bin/gh', 'api', '--hostname', 'github.com', 'graphql'])
+        fallback.assert_not_called()
+
+    def test_initial_manager_graphql_keeps_thread_failure_and_fixed_environment(self):
+        code = ('import os; '
+            'os.write(2, b"runtime/cgo: pthread_create failed: Resource temporarily unavailable\\n"); '
+            'os.write(2, ' + repr((SECRET + '\n').encode()) + '); '
+            'raise SystemExit(2)')
+        actual_run = github.ManagerGitHub._run
+        output = io.StringIO()
+        with redirect_stderr(output), \
+             patch('research_harness.owner_approval.os.getresuid', return_value=(10001,) * 3), \
+             patch.object(github.ManagerGitHub, '_executable', return_value='/usr/bin/gh'), \
+             patch.object(github.ManagerGitHub, '_run', side_effect=lambda _: actual_run([sys.executable, '-B', '-c', code])), \
+             patch('research_harness.manager_github.subprocess.Popen', wraps=subprocess.Popen) as spawn, \
+             patch('research_harness.owner_approval.subprocess.run') as fallback, \
+             patch('builtins.open', side_effect=OSError('offline diagnostic counters')):
+            with self.assertRaises(github.ManagerGitHubCommandFailed) as caught:
+                GitHubOwnerComments().comments(100)
+        fallback.assert_not_called()
+        self.assertEqual(spawn.call_args.kwargs['env']['GOMAXPROCS'], '1')
+        self.assertEqual(safe_recheck_failure(caught.exception)['reason'], 'source_command_failed')
+        self.assertEqual(json.loads(output.getvalue()), dict(phase='MANAGER_GITHUB_READ_FAILED',
+            reason='CLI_EXIT_FAILED', command_exit_code=2, stderr_category='GO_THREAD_CREATE_FAILED'))
+        self.assertNotIn(SECRET, output.getvalue() + str(caught.exception))
+
     def test_real_subprocess_go_thread_failure_keeps_only_fixed_evidence(self):
         code = ('import os; '
             'os.write(2, b"runtime: failed to create new OS thread (errno=11)\\n"); '
