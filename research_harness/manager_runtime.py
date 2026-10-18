@@ -3,7 +3,8 @@ import subprocess
 from urllib.error import HTTPError, URLError
 from weakref import WeakKeyDictionary
 
-from .manager_github import ManagerGitHubHTTPError, ManagerGitHubRateLimited
+from .manager_github import (ManagerGitHubCommandFailed, ManagerGitHubHTTPError,
+                             ManagerGitHubRateLimited)
 from .owner_approval import MissingApproval, RevokedApproval
 from .restart_boundary import RestartEpoch
 from .result_publisher import ValidatedCanaryResult, SCHEMA
@@ -52,6 +53,8 @@ def safe_recheck_failure(exc,*,origin='manager'):
         pass
     elif kind is ManagerGitHubRateLimited:
         reason='source_rate_limited'
+    elif kind is ManagerGitHubCommandFailed:
+        reason='source_command_failed'
     elif kind in (HTTPError,ManagerGitHubHTTPError):
         # Status is numeric metadata. Never inspect headers, URLs or bodies.
         attributes=object.__getattribute__(exc,'__dict__')

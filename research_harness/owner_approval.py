@@ -13,6 +13,7 @@ import math
 from datetime import datetime, timezone
 import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
 import time
@@ -97,15 +98,16 @@ class GitHubOwnerComments:
             if cursor is not None:
                 command += ['-f', 'cursor=' + cursor]
             # Timeout applies to the gh process; no remote errors are echoed.
-            if _READ_DEADLINE.get() is not None:
-                # Live periodic refresh uses the same bounded, manager-only
-                # process/output/cleanup path as REST, not communicate().
+            from .manager_github import MANAGER_UID, ManagerGitHub, ManagerGitHubCommandFailed
+            if (_READ_DEADLINE.get() is not None
+                    or getattr(os, 'getresuid', lambda: ())() == (MANAGER_UID,) * 3):
+                # Initial manager reads and periodic refreshes share REST's
+                # fixed environment, bounded streams, diagnostics and cleanup.
                 approval_read_timeout(20)
-                from .manager_github import ManagerGitHub
                 command[0] = ManagerGitHub._executable()
                 code, output = ManagerGitHub._run(command)
                 if code != 0:
-                    raise subprocess.CalledProcessError(code, 'fixed GitHub comment read')
+                    raise ManagerGitHubCommandFailed('GitHub manager comment command failed')
             else:
                 response = subprocess.run(command, capture_output=True, timeout=20, check=True)
                 output = response.stdout

@@ -28,7 +28,7 @@ import subprocess
 import sys
 
 from .schema import ContractError, canonical, fields, loads
-from .goal_plan import validate_goal_plan
+from .goal_plan import validate_goal_plan, DIRECT_PR_KIND, require_installed_goal
 from .goal_runner import (GoalRequest, GoalAppServerRunner, GoalCandidate, GoalBlocked,
                           safe_goal_diagnostic, safe_goal_protocol_diagnostic)
 from .app_server_adapter import (BoundedStdioTransport, fixed_app_server_request,
@@ -482,7 +482,7 @@ class GoalLinuxUIDBackend(LinuxUIDBackend):
                                              owner=(0,CONTROLLER_UID)))
         finally:
             os.seteuid(0)
-        fields(config,('schema','enabled','deployment_id','installed_plan_digest','input_source_sha','runtime_source_sha','model','resource_limits','risk_acknowledgements'))
+        fields(config,('schema','enabled','deployment_id','installed_plan_digest','input_source_sha','runtime_source_sha','model','resource_limits','risk_acknowledgements'), ('direct_pr_scope',))
         if (config['schema']!='c3-goal-runtime-v1' or config['input_source_sha']!=request.source_sha
                 or config['enabled'] is not True
                 or config['model']!=request.plan['model']
@@ -500,8 +500,10 @@ class GoalLinuxUIDBackend(LinuxUIDBackend):
             raise GoalRuntimeBlocked('GOAL_OPERATOR_RISK_CONSENT_REQUIRED')
         plan=validate_goal_plan(request.plan,request.source_sha,resource_limits=config['resource_limits'],
                                 deployment_id=config['deployment_id'])
-        if config['installed_plan_digest']!=request.digest:
-            raise GoalRuntimeBlocked('GOAL_INSTALLED_PLAN_MISMATCH')
+        try:
+            require_installed_goal(config, plan)
+        except ContractError:
+            raise GoalRuntimeBlocked('GOAL_INSTALLED_PLAN_MISMATCH') from None
         # Host inspect is collected/protected by the approved operator setup.
         # Internal procfs cannot independently prove Docker image/private IPC or
         # exclusive volume ownership. No consent boolean substitutes for this.
@@ -526,12 +528,17 @@ class GoalLinuxUIDBackend(LinuxUIDBackend):
         fields(manifest,('source_sha','files'))
         if manifest['source_sha']!=request.source_sha or type(manifest['files']) is not dict:
             raise GoalRuntimeBlocked('GOAL_INPUT_MANIFEST_INVALID')
-        scopes=_scope_paths(plan)
+        if plan['kind'] == DIRECT_PR_KIND:
+            from .direct_pr_runtime import validate_direct_workspace
+            validate_direct_workspace(plan, manifest)
+            scopes = None
+        else:
+            scopes=_scope_paths(plan)
         expected_dirs={''}
-        for path in (*plan['inputs'],*scopes):
+        for path in (*plan['inputs'],*(scopes or ())):
             parts=path.split('/')
             expected_dirs.update('/'.join(parts[:i]) for i in range(1,len(parts)))
-        for scope in scopes: expected_dirs.add(scope)
+        for scope in (scopes or ()): expected_dirs.add(scope)
         expected=set(expected_dirs)|set(plan['inputs']);found={''};total=0
         def walk(path,prefix):
             nonlocal total
@@ -561,8 +568,9 @@ class GoalLinuxUIDBackend(LinuxUIDBackend):
                         raise GoalRuntimeBlocked('GOAL_INPUT_HASH_MISMATCH')
                     if not child.lstat().st_mode & 0o004:raise GoalRuntimeBlocked('GOAL_INPUT_NOT_READABLE')
                 else:walk(child,relative+'/')
-        walk(Path(WORKSPACE),'')
-        if found!=expected:raise GoalRuntimeBlocked('GOAL_WORKSPACE_ENTRY_MISSING')
+        if scopes is not None:
+            walk(Path(WORKSPACE),'')
+            if found!=expected:raise GoalRuntimeBlocked('GOAL_WORKSPACE_ENTRY_MISSING')
         if set(os.listdir('/work'))!={'goal','worker-home','codex-home'}:
             raise GoalRuntimeBlocked('GOAL_WORK_LAYOUT_INVALID')
         try:
@@ -571,7 +579,12 @@ class GoalLinuxUIDBackend(LinuxUIDBackend):
                 info=Path('/work',name).lstat()
                 if not stat.S_ISDIR(info.st_mode) or info.st_uid!=WORKER_UID or stat.S_IMODE(info.st_mode)!=0o700:
                     raise GoalRuntimeBlocked('GOAL_RUNTIME_HOME_INVALID')
-            if os.listdir('/work/worker-home') or set(os.listdir('/work/codex-home'))!={'auth.json'}:
+            if plan['kind'] == DIRECT_PR_KIND:
+                from .direct_pr_runtime import validate_worker_home
+                validate_worker_home(plan)
+            elif os.listdir('/work/worker-home'):
+                raise GoalRuntimeBlocked('GOAL_RUNTIME_HOME_NOT_FRESH')
+            if set(os.listdir('/work/codex-home'))!={'auth.json'}:
                 raise GoalRuntimeBlocked('GOAL_RUNTIME_HOME_NOT_FRESH')
             info=Path('/work/codex-home/auth.json').lstat()
             if (not stat.S_ISREG(info.st_mode) or info.st_uid!=WORKER_UID or info.st_nlink!=1
@@ -694,6 +707,11 @@ class GoalUIDSupervisor(OwnedUIDSupervisor):
             _stage('turn');candidate=GoalAppServerRunner(enabled=True).run(request,transport,admit=admitted,recheck=check)
             if self.os.now()>=model_deadline:raise GoalRuntimeBlocked('GOAL_MODEL_DEADLINE')
             _stage('cleanup');cleanup_started=True;self.stop_owned(reservation)
+            if plan['kind'] == DIRECT_PR_KIND:
+                # Codex has already attempted its own PR. The manager never
+                # copies, approves, executes or publishes candidate files.
+                check()
+                return PendingGoalResult(candidate, self.os.now()-started, '')
             _stage('quarantine');check();snapshot=self.os.collect_goal(request,binding,check)
             if type(snapshot) is not UntrustedGoalSnapshot or snapshot.binding!=binding:
                 raise GoalRuntimeBlocked('GOAL_QUARANTINE_CONTRACT')

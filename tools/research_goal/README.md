@@ -1,4 +1,10 @@
-# 新しい goal-only CPU 実行経路
+# goal-only CPU 実行経路（旧・内容承認方式）
+
+新しく準備する goal 実行では、[Codex direct PR 経路](DIRECT_PR.md)を推奨します。
+既定 OFF の別 opt-in で、Codex が実装・CPU 実験・テスト・報告・通常 PR 作成を担当します。
+専用の GitHub actor／認証と GitHub 側の保護設定を別途承認・準備する必要があり、実機実行は未検証です。
+以下は PR #71 系の private 候補・再起動・内容承認・manager 公開を残す旧経路の手順です。
+既存 deployment を自動変更しません。
 
 この経路は canary の固定 Python コマンドを使用しません。Codex が承認済みの目的・完了条件・入力・書込範囲・予算を受け取り、複数のコマンド、実装、検証、修正を選びます。GPU、依存追加、外部サービスへの操作は目的範囲に含めません。公開は別の内容承認後に下書き PR で行います。
 
@@ -82,6 +88,10 @@ installer が表示する container ID を使って `docker logs --tail 30 CONTA
 - 通信切断、期限、形式不一致は `app_server.reason` で区別します。
   `GOAL_SERVER_ERROR` は goal protocol のサーバーエラー応答の拒否です。
   いずれも例外本文、リモートの任意メッセージ、stderr、モデル出力は記録しません。
+- [Codex 0.160 の `warning`](https://github.com/openai/codex/blob/rust-v0.160.0/codex-rs/app-server-protocol/schema/json/v2/WarningNotification.json)
+  は `message` と任意の nullable `threadId` を持つ通知で、`turnId` は必須ではありません。
+  goal runner はこの通知だけを情報として扱い、明示された別 thread/turn は拒否します。
+  警告本文は記録せず、通知を権限付与や最終結果の代わりには扱いません。
 - `observed_child_returncode` は停止処理より前に `poll()` で実測できた場合だけ存在します。
   欠落を exit 0 や、強制停止による終了コードに置き換えてはいけません。
 - root の `GOAL_RUNTIME_BLOCKED` / `GOAL_RUNTIME_FAILED` と管理側の
@@ -92,6 +102,13 @@ installer が表示する container ID を使って `docker logs --tail 30 CONTA
   取得できた CLI 終了コード・HTTP status・OS errno を残します。
   `cgroup_pids_current/max/denied_total` は専用 allocation 全体の実測値です。
   denied の累積値だけで当該照会や Codex が PID 上限に達したとは断定しません。
+  CLI が非ゼロ終了した場合、`stderr_category` は `NONE` / `OTHER` /
+  `GO_THREAD_CREATE_FAILED` / `GO_RUNTIME_FATAL` のいずれかだけを残します。
+  Go の固定行シグネチャを分類する観測であり、PID 枯渇の確定診断ではありません。
+  管理側が起動する gh だけ `GOMAXPROCS=1` とし、Go の並列実行数を抑えます。
+  これは OS スレッド数の上限ではなく、Codex の環境やコンテナの PID 上限は変えません。
+  HTTP 応答がなく CLI が失敗した場合は、承認再確認へ `source_command_failed` を伝えます。
+  有効な HTTP エラーの rate-limit / unavailable 分類は維持します。
   取得できなかった数値は省略し、応答本文・stderr・コマンド引数は出しません。
   分類や診断出力の失敗で再確認を成功扱いしたり、自動 retry したりしません。
 

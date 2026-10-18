@@ -29,6 +29,7 @@ RUN test "${#SOURCE_SHA}" = 40 \
 LABEL c3.deployment-id="$DEPLOYMENT_ID" c3.purpose="dedicated-goal-controller" c3.source-sha="$SOURCE_SHA" c3.input-source-sha="$INPUT_SOURCE_SHA"
 COPY research_harness/ /opt/service/research_harness/
 COPY tools/research_goal/launcher.py /opt/service/goal_launcher.py
+COPY tools/research_goal/worker_pr.py /opt/service/worker_pr.py
 COPY goal-inputs/ /opt/goal-inputs/
 COPY goal-inputs.json /opt/c3-runtime/goal-inputs.json
 ENTRYPOINT ["python","-I","-B","/opt/service/goal_launcher.py"]

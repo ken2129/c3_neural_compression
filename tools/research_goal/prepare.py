@@ -22,7 +22,8 @@ import tempfile
 sys.dont_write_bytecode = True
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-from research_harness.goal_plan import validate_goal_plan, GOAL_RESOURCE_BUDGET, RESOURCE_BOUNDS
+from research_harness.goal_plan import (validate_goal_plan, GOAL_RESOURCE_BUDGET, RESOURCE_BOUNDS,
+                                      DIRECT_PR_KIND, direct_pr_scope)
 from research_harness.goal_deployment import validate_goal_deployment
 from research_harness.schema import ContractError, canonical, fields, loads
 
@@ -96,6 +97,20 @@ def profile_template():
                 risk_acknowledgements={name: False for name in CONSENTS})
 
 
+def direct_plan_template():
+    """Non-executable planning skeleton; never an execution approval."""
+    from research_harness.schema import REPOSITORY
+    return dict(kind=DIRECT_PR_KIND, deployment_id='COPY_FRESH_PROFILE_ID',
+        source_sha='REVIEWED_INPUT_COMMIT', publish_result_pr=False,
+        model='EXPLICIT_PINNED_MODEL', sandbox_mode='externalSandbox',
+        external_network='enabled', max_seconds=900, model_usage_approved=False,
+        goal='REVIEW_AND_APPROVE_GOAL', completion_criteria=['REVIEW_AND_APPROVE_CRITERIA'],
+        inputs=[], write_scope=['output'], resource_budget=dict(GOAL_RESOURCE_BUDGET),
+        direct_pr=dict(repository=REPOSITORY, issue_number=0, base_branch='main',
+            base_sha='REVIEWED_INPUT_COMMIT', title='[Codex] REVIEWED_RESEARCH_TITLE',
+            public_results_approved=False))
+
+
 def validate_profile(profile, plan):
     fields(profile, ('schema', 'enabled', 'deployment_id', 'input_source_sha', 'runtime_source_sha',
                      'model', 'resource_limits', 'risk_acknowledgements'))
@@ -126,7 +141,10 @@ def validate_profile(profile, plan):
 def installed_profile(profile, plan):
     """Bind the validated prepared task; proposal files cannot supply this digest."""
     checked = validate_profile(profile, plan)
-    return {**profile, 'installed_plan_digest': hashlib.sha256(canonical(checked)).hexdigest()}
+    result = {**profile, 'installed_plan_digest': hashlib.sha256(canonical(checked)).hexdigest()}
+    if checked['kind'] == DIRECT_PR_KIND:
+        result['direct_pr_scope'] = direct_pr_scope(checked)
+    return result
 
 
 def run(argv, *, data=None, env=None):
@@ -234,12 +252,21 @@ def read_credential(path, maximum):
 def main(argv=None):
     parser = SafeArgumentParser(description=__doc__)
     parser.add_argument('--template', action='store_true')
+    parser.add_argument('--worker-pr-template', action='store_true')
+    parser.add_argument('--direct-plan-template', action='store_true')
     parser.add_argument('--approve-new-goal-deployment', action='store_true')
     parser.add_argument('--project'); parser.add_argument('--profile'); parser.add_argument('--plan')
     parser.add_argument('--codex-auth-file'); parser.add_argument('--github-hosts-file')
+    parser.add_argument('--approve-worker-github-access', action='store_true')
+    parser.add_argument('--worker-pr-config'); parser.add_argument('--worker-github-token-file')
     args = parser.parse_args(argv)
     if args.template:
         print(json.dumps(profile_template(), indent=2)); return
+    if args.worker_pr_template:
+        from research_harness.worker_pr import default_worker_pr_config
+        print(json.dumps(default_worker_pr_config(), indent=2)); return
+    if args.direct_plan_template:
+        print(json.dumps(direct_plan_template(), indent=2)); return
     if not args.approve_new_goal_deployment or not all((args.project, args.profile, args.plan,
                                                       args.codex_auth_file, args.github_hosts_file)):
         parser.error('explicit new-deployment approval, project, profile, plan and both credential files required')
@@ -248,6 +275,11 @@ def main(argv=None):
     with install_stage('profile'):
         profile = loads(Path(args.profile).read_bytes())
         plan = validate_profile(profile, loads(Path(args.plan).read_bytes()))
+    direct = plan['kind'] == DIRECT_PR_KIND
+    if direct != bool(args.approve_worker_github_access and args.worker_pr_config and args.worker_github_token_file):
+        raise ContractError('direct PR requires separate explicit worker credential-access approval and dedicated files')
+    if not direct and any((args.approve_worker_github_access, args.worker_pr_config, args.worker_github_token_file)):
+        raise ContractError('worker GitHub credential is only accepted by direct PR mode')
     at_stage('freshness', require_fresh_deployment_id, profile['deployment_id'])
     # This installer is run by the user; never infer approval from file presence.
     with install_stage('credentials'):
@@ -255,6 +287,21 @@ def main(argv=None):
         from research_harness.model_deployment import validate_chatgpt_auth
         validate_chatgpt_auth(auth)
         github = read_credential(args.github_hosts_file, 65536)
+        worker_records = {}
+        if direct:
+            from research_harness.worker_pr import validate_worker_pr_config, WorkerGitHub
+            worker_config = validate_worker_pr_config(loads(Path(args.worker_pr_config).read_bytes()))
+            if worker_config['enabled'] is not True:
+                raise ContractError('worker GitHub access remains disabled')
+            worker_token = read_credential(args.worker_github_token_file, 8192)
+            # Read-only identity check, using only the explicitly provided token.
+            actor = WorkerGitHub(worker_token.decode('ascii').strip()).request('GET', '/user')
+            if (type(actor) is not dict or type(actor.get('id')) is not int
+                    or actor.get('id') != worker_config['actor_id']
+                    or type(actor.get('login')) is not str
+                    or actor['login'].lower() != worker_config['actor_login'].lower()):
+                raise ContractError('dedicated worker identity does not match configuration')
+            worker_records = {'worker-pr.json': canonical(worker_config), 'worker-github-token': worker_token}
     with install_stage('freshness'):
         for kind, command in (('containers', ['docker', 'ps', '-aq']),
                               ('volumes', ['docker', 'volume', 'ls', '-q'])):
@@ -286,10 +333,14 @@ def main(argv=None):
                           volume_inspect=volume_info, initialize_new_state=True)
         copy_records(ident, {'goal-deployment.json': canonical(deployment),
                             'goal-runtime.json': canonical(installed_profile(profile, plan)), 'codex-auth.json': auth,
-                            'gh/hosts.yml': github})
+                            'gh/hosts.yml': github, **worker_records})
         at_stage('start', run, ['docker', 'start', ident])
         print('New goal-only controller started: ' + ident)
-        print('Execution still requires a fresh owner-approved goal Issue. Publication requires separate exact-content approval.')
+        if direct:
+            print('Direct PR controller started. Each execution requires a fresh owner-approved Issue including public PR scope.')
+            print('Codex creates its own normal PR with a public description. GitHub PR notification is external and must be configured for the dedicated actor.')
+        else:
+            print('Execution still requires a fresh owner-approved goal Issue. Publication requires separate exact-content approval.')
         print('Inspect status: docker logs --tail 30 ' + ident)
 
 

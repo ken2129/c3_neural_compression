@@ -16,7 +16,7 @@ TABLES.update({
  'service_meta':'CREATE TABLE service_meta (nonce TEXT PRIMARY KEY NOT NULL)',
  'service_runs':'CREATE TABLE service_runs (issue INTEGER PRIMARY KEY, binding TEXT NOT NULL, phase TEXT NOT NULL, result TEXT, publication TEXT, notification TEXT NOT NULL)',
 })
-PHASES={'CLAIMED','BLOCKED','INTERRUPTED','RESULT_AWAITING_RESTART','RESULT_READY','PUBLISHED'}
+PHASES={'CLAIMED','BLOCKED','INTERRUPTED','RESULT_AWAITING_RESTART','RESULT_READY','PUBLISHED','WORKER_FINISHED'}
 
 
 def validate_binding(value):
@@ -115,6 +115,11 @@ class ServiceState:
                 from .result_publisher import parse_publication_request
                 request=parse_publication_request(loads(result))
                 validate_request(request,value)
+            elif phase == 'WORKER_FINISHED':
+                from .direct_pr_service import DirectPRResult
+                direct = DirectPRResult.from_dict(loads(result))
+                if direct.binding != value or publication is not None:
+                    raise ContractError('worker completion binding mismatch')
             elif result is not None or publication is not None:
                 raise ContractError('unfinished run has publication data')
             if phase=='RESULT_AWAITING_RESTART' and publication is not None:raise ContractError('publication precedes restart boundary')
@@ -180,6 +185,17 @@ class ServiceState:
 
     def block(self,issue):
         self.db.execute("UPDATE service_runs SET phase='BLOCKED' WHERE issue=? AND phase='CLAIMED'",(issue,));self.db.commit()
+
+    def save_direct_result(self, issue, result):
+        from .direct_pr_service import DirectPRResult
+        old = self.get(issue)
+        if type(result) is not DirectPRResult or old is None or result.binding != old['binding']:
+            raise ContractError('worker completion requires bound claim')
+        cur = self.db.execute("UPDATE service_runs SET phase='WORKER_FINISHED',result=? WHERE issue=? AND phase='CLAIMED'",
+                             (canonical(result.to_dict()).decode(), issue))
+        if cur.rowcount != 1:
+            raise ContractError('worker completion requires unfinished claim')
+        self.db.commit()
 
     def interrupt_after_restart(self,issue,epoch,*,deployment_contract_verified=False):
         """Record a prior claimed generation ending without a validated result.
