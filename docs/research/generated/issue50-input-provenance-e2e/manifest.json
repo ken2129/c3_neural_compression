@@ -1,0 +1,20 @@
+{
+  "files": [
+    {
+      "bytes": 13631,
+      "path": "docs/research/assets/issue50_four_method.json",
+      "sha256": "90bc064100ddda3c39a5eff8b03912bfc47435ae3e183c6bcafcbd4caabacc8b"
+    },
+    {
+      "bytes": 4716,
+      "path": "docs/research/assets/issue50_four_method.csv",
+      "sha256": "96cbd38c693642149d8a7acec694e533e5e800015943db31129d33d3bf3078bf"
+    },
+    {
+      "bytes": 15153,
+      "path": "docs/research/2026-10-16_four_method_comparison.md",
+      "sha256": "5e8bfb54753743d3fcc634377377c80dd247541db64c6dba16cdadbceac916f0"
+    }
+  ],
+  "source_sha": "a3c285fb191f95bdf3ecea54408c53adb177b5c1"
+}
