@@ -176,7 +176,11 @@ def build_context(destination, profile, plan):
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(raw); target.chmod(0o444)
         manifest['files'][path] = dict(size_bytes=len(raw), sha256=hashlib.sha256(raw).hexdigest())
-    (destination / 'goal-inputs.json').write_bytes(canonical(manifest))
+    manifest_path = destination / 'goal-inputs.json'
+    manifest_path.write_bytes(canonical(manifest))
+    # Docker COPY preserves the context mode. A host umask of 0002 otherwise
+    # produces 0664, which the runtime correctly rejects as group-writable.
+    manifest_path.chmod(0o444)
 
 
 def copy_records(container, records):

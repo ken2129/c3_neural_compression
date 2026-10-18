@@ -80,6 +80,30 @@ def report_startup_failure(role, exc):
         'stage': value.stage, 'reason': value.reason}), file=sys.stderr, flush=True)
 
 
+@contextmanager
+def preclaim_stage(stage):
+    """Keep closed diagnostics before a claim, without trusting exception text.
+
+    These failures still propagate to mandatory PID1 exit. They neither create
+    a claim nor acknowledge a model attempt or permit reuse of this allocation.
+    """
+    stage = stage if stage in ('plan', 'staging', 'admission', 'resources', 'reserve') else 'preflight'
+    try:
+        yield
+    except BaseException as exc:
+        detail = safe_goal_runtime_diagnostic(exc)
+        reason = (detail['reason'] if detail is not None else
+                  'GOAL_TIMEOUT' if isinstance(exc, TimeoutError) else
+                  'GOAL_OS_FAILURE' if isinstance(exc, OSError) else
+                  'GOAL_CONTRACT_FAILURE' if isinstance(exc, ContractError) else 'GOAL_RUNTIME_FAILURE')
+        try:
+            print(json.dumps(dict(phase='GOAL_PRECLAIM_BLOCKED', stage=stage, reason=reason)),
+                  file=sys.stderr, flush=True)
+        except Exception:
+            pass  # Diagnostics must not replace the original rejection/exit.
+        raise
+
+
 def protected_control_directory(path):
     """Validate manager-owned directories during a temporary PID1 EUID drop.
 
@@ -431,18 +455,23 @@ def supervise():
             frame = read_frame(control.stdout)
             if set(frame) == {'op', 'plan'} and frame['op'] == 'prepare_goal':
                 if plan is not None or attempted: return  # fresh generation only
-                plan = validate_goal_plan(frame['plan'], profile['input_source_sha'], resource_limits=profile['resource_limits'], deployment_id=profile['deployment_id'])
-                require_installed_plan(profile, plan)
-                baseline = stage_workspace(plan)
+                with preclaim_stage('plan'):
+                    plan = validate_goal_plan(frame['plan'], profile['input_source_sha'], resource_limits=profile['resource_limits'], deployment_id=profile['deployment_id'])
+                    require_installed_plan(profile, plan)
+                with preclaim_stage('staging'):
+                    baseline = stage_workspace(plan)
                 write_frame(control.stdin, {'prepared': True})
             elif frame == {'op':'preflight'}:
                 if plan is None or attempted: raise ContractError('goal plan missing or reused')
-                backend = GoalLinuxUIDBackend(); backend.admit_goal(GoalRequest(plan, profile['input_source_sha']))
-                limits = backend.resources(); budget = plan['resource_budget']
-                if (limits['memory'] > budget['memory_bytes'] or limits['pids'] > budget['max_processes']
-                        or limits['work_bytes'] > budget['max_work_bytes'] or plan['max_seconds'] <= 20):
-                    raise ContractError('goal actual allocation exceeds approved request')
-                GoalUIDSupervisor(backend, controller_pid=control.pid).reserve()
+                with preclaim_stage('admission'):
+                    backend = GoalLinuxUIDBackend(); backend.admit_goal(GoalRequest(plan, profile['input_source_sha']))
+                with preclaim_stage('resources'):
+                    limits = backend.resources(); budget = plan['resource_budget']
+                    if (limits['memory'] > budget['memory_bytes'] or limits['pids'] > budget['max_processes']
+                            or limits['work_bytes'] > budget['max_work_bytes'] or plan['max_seconds'] <= 20):
+                        raise ContractError('goal actual allocation exceeds approved request')
+                with preclaim_stage('reserve'):
+                    GoalUIDSupervisor(backend, controller_pid=control.pid).reserve()
                 # Make Docker's restart policy active before any durable claim
                 # or untrusted process can start; no post-failure grace sleep.
                 time.sleep(max(0, 11-(time.monotonic()-started)))
