@@ -98,6 +98,13 @@ installer が表示する container ID を使って `docker logs --tail 30 CONTA
   取得できた CLI 終了コード・HTTP status・OS errno を残します。
   `cgroup_pids_current/max/denied_total` は専用 allocation 全体の実測値です。
   denied の累積値だけで当該照会や Codex が PID 上限に達したとは断定しません。
+  CLI が非ゼロ終了した場合、`stderr_category` は `NONE` / `OTHER` /
+  `GO_THREAD_CREATE_FAILED` / `GO_RUNTIME_FATAL` のいずれかだけを残します。
+  Go の固定行シグネチャを分類する観測であり、PID 枯渇の確定診断ではありません。
+  管理側が起動する gh だけ `GOMAXPROCS=1` とし、Go の並列実行数を抑えます。
+  これは OS スレッド数の上限ではなく、Codex の環境やコンテナの PID 上限は変えません。
+  HTTP 応答がなく CLI が失敗した場合は、承認再確認へ `source_command_failed` を伝えます。
+  有効な HTTP エラーの rate-limit / unavailable 分類は維持します。
   取得できなかった数値は省略し、応答本文・stderr・コマンド引数は出しません。
   分類や診断出力の失敗で再確認を成功扱いしたり、自動 retry したりしません。
 

@@ -101,11 +101,11 @@ class GitHubOwnerComments:
                 # Live periodic refresh uses the same bounded, manager-only
                 # process/output/cleanup path as REST, not communicate().
                 approval_read_timeout(20)
-                from .manager_github import ManagerGitHub
+                from .manager_github import ManagerGitHub, ManagerGitHubCommandFailed
                 command[0] = ManagerGitHub._executable()
                 code, output = ManagerGitHub._run(command)
                 if code != 0:
-                    raise subprocess.CalledProcessError(code, 'fixed GitHub comment read')
+                    raise ManagerGitHubCommandFailed('GitHub manager comment command failed')
             else:
                 response = subprocess.run(command, capture_output=True, timeout=20, check=True)
                 output = response.stdout

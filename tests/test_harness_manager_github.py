@@ -1,5 +1,5 @@
 """Mocked manager reads only: no GitHub, credentials, models or real subprocesses."""
-from contextlib import ExitStack
+from contextlib import ExitStack, redirect_stderr
 import io
 import json
 import os
@@ -94,12 +94,13 @@ class ManagerGitHubTests(unittest.TestCase):
         with patch.dict(os.environ, {'HOME': '/attacker', 'GH_CONFIG_DIR': '/worker',
                 'GH_TOKEN': 'SENSITIVE_SENTINEL', 'GITHUB_TOKEN': 'SENSITIVE_SENTINEL',
                 'GH_DEBUG': 'api', 'HTTPS_PROXY': 'https://example.test',
-                'GH_HOST': 'example.test', 'PATH': '/attacker'}, clear=True):
+                'GH_HOST': 'example.test', 'PATH': '/attacker', 'GOMAXPROCS': '99'}, clear=True):
             env = self.client._environment()
         self.assertEqual(env['HOME'], '/control/home')
         self.assertEqual(env['GH_CONFIG_DIR'], '/control/gh')
         self.assertEqual(env['GH_HOST'], 'github.com')
         self.assertEqual(env['GH_PROMPT_DISABLED'], '1')
+        self.assertEqual(env['GOMAXPROCS'], '1')
         self.assertNotIn('SENSITIVE_SENTINEL', repr(env))
         self.assertFalse({'GH_TOKEN', 'GITHUB_TOKEN', 'GH_DEBUG', 'HTTPS_PROXY'} & env.keys())
 
@@ -210,12 +211,14 @@ class FakeSelector:
 
 
 class ManagerSubprocessTests(unittest.TestCase):
-    def run_fake(self, stdout, stderr=b'', *, cap=None, times=None, wait_error=None):
+    def run_fake(self, stdout, stderr=b'', *, cap=None, times=None, wait_error=None,
+                 code=0, stderr_chunks=None):
         process = SimpleNamespace(pid=4321, stdout=FakeStream(17), stderr=FakeStream(18),
-                                  wait=Mock(return_value=0))
+                                  wait=Mock(return_value=code))
         if wait_error is not None:
             process.wait.side_effect = [wait_error, 0]
-        chunks = {17: [stdout, b''], 18: [stderr, b'']}
+        chunks = {17: [stdout, b''],
+                  18: ([stderr] if stderr_chunks is None else list(stderr_chunks)) + [b'']}
         stack = ExitStack()
         self.addCleanup(stack.close)
         stack.enter_context(patch('research_harness.manager_github.os.getresuid', return_value=(10001,) * 3))
@@ -239,8 +242,78 @@ class ManagerSubprocessTests(unittest.TestCase):
         self.assertIs(popen.call_args.kwargs['start_new_session'], True)
         self.assertEqual(popen.call_args.kwargs['stdin'], subprocess.DEVNULL)
         self.assertEqual(popen.call_args.kwargs['env']['GH_CONFIG_DIR'], '/control/gh')
+        self.assertEqual(popen.call_args.kwargs['env']['GOMAXPROCS'], '1')
         self.assertTrue(process.stdout.closed and process.stderr.closed)
         kill.assert_not_called()
+
+    def test_nonzero_stderr_categories_survive_split_reads_without_returning_stderr(self):
+        secret = b'SENSITIVE_SENTINEL /private/path\n'
+        signatures = (
+            ('GO_THREAD_CREATE_FAILED', [b'runtime: failed to create new OS ',
+                b'thread (have 62 already; errno=11)\n', b'fatal error: new', b'osproc\n', secret]),
+            ('GO_THREAD_CREATE_FAILED', [b'runtime/cgo: pthread_',
+                b'create failed: Resource temporarily unavailable\n', secret]),
+            ('GO_RUNTIME_FATAL', [b'fatal error: unexpected signal during runtime execution\n',
+                b'runtime sta', b'ck:\n', secret]),
+            ('GO_THREAD_CREATE_FAILED', [b'runtime: failed to create new OS thread\r\n',
+                b'fatal error: newosproc']),  # EOF completes the final line.
+            ('OTHER', [secret]),
+            ('NONE', []),
+        )
+        for category, chunks in signatures:
+            with self.subTest(category=category):
+                process, _, kill = self.run_fake(b'', code=2, stderr_chunks=chunks)
+                output = io.StringIO()
+                with redirect_stderr(output), patch('builtins.open', side_effect=OSError('offline')):
+                    self.assertEqual(ManagerGitHub._run(['/usr/bin/gh', 'api']), (2, b''))
+                self.assertEqual(json.loads(output.getvalue()), dict(
+                    phase='MANAGER_GITHUB_READ_FAILED', reason='CLI_EXIT_FAILED',
+                    command_exit_code=2, stderr_category=category))
+                self.assertNotIn('SENSITIVE_SENTINEL', output.getvalue())
+                self.assertTrue(process.stdout.closed and process.stderr.closed)
+                kill.assert_not_called()
+
+    def test_incomplete_or_unanchored_go_signatures_remain_other(self):
+        inputs = (
+            b'runtime: failed to create new OS thread (errno=11)\n',
+            b'fatal error: newosproc\n',
+            b'runtime stack:\n',
+            b'prefix runtime: failed to create new OS thread\nprefix fatal error: newosproc\n',
+            b'prefix fatal error: bad\nruntime stack:\n',
+            b'prefix runtime/cgo: pthread_create failed: Resource temporarily unavailable\n',
+            b'runtime/cgo: pthread_create failure: malformed marker\n',
+            b'fatal error: bad\nprefix runtime stack:\n',
+        )
+        for value in inputs:
+            with self.subTest(value=value):
+                self.run_fake(b'', value, code=2)
+                output = io.StringIO()
+                with redirect_stderr(output), patch('builtins.open', side_effect=OSError('offline')):
+                    self.assertEqual(ManagerGitHub._run(['/usr/bin/gh', 'api']), (2, b''))
+                self.assertEqual(json.loads(output.getvalue())['stderr_category'], 'OTHER')
+
+    def test_go_signatures_split_into_single_bytes_and_long_stderr_are_bounded(self):
+        signature = (b'runtime: failed to create new OS thread (errno=11)\n'
+                     b'fatal error: newosproc\n')
+        chunks = [bytes([byte]) for byte in signature]
+        chunks += [b'PRIVATE_BODY' * 1000, b'\n']
+        self.run_fake(b'', code=2, stderr_chunks=chunks)
+        output = io.StringIO()
+        with redirect_stderr(output), patch('builtins.open', side_effect=OSError('offline')):
+            self.assertEqual(ManagerGitHub._run(['/usr/bin/gh', 'api']), (2, b''))
+        self.assertEqual(json.loads(output.getvalue())['stderr_category'], 'GO_THREAD_CREATE_FAILED')
+        self.assertNotIn('PRIVATE_BODY', output.getvalue())
+        self.assertLess(len(output.getvalue()), 256)
+
+    def test_classifier_retains_bounded_prefix_without_false_chunk_line_anchor(self):
+        from research_harness.manager_github import _StderrClassifier
+        classifier = _StderrClassifier()
+        classifier.feed(b'x' * 10000)
+        self.assertLessEqual(len(classifier.prefix), 256)
+        classifier.feed(b'runtime: failed to create new OS thread\n')
+        classifier.feed(b'fatal error: newosproc')
+        self.assertLessEqual(len(classifier.prefix), 256)
+        self.assertEqual(classifier.category(), 'OTHER')
 
     def test_output_cap_terminates_only_owned_new_session(self):
         process, _, kill = self.run_fake(b'ok', b'SENSITIVE_SENTINEL', cap=10)

@@ -38,9 +38,11 @@ MAX_RETRY_SECONDS = 86400
 MIN_RATE_DELAY = 300
 _PREFIX = f'repos/{REPOSITORY}'
 _LIST = '/issues?state=open&sort=created&direction=asc&per_page=100&page='
+_STDERR_CATEGORIES = frozenset(('NONE', 'OTHER', 'GO_THREAD_CREATE_FAILED', 'GO_RUNTIME_FATAL'))
 
 
-def report_read_failure(reason, *, command_exit_code=None, http_status=None, os_errno=None):
+def report_read_failure(reason, *, command_exit_code=None, http_status=None, os_errno=None,
+                        stderr_category=None):
     """Closed failure evidence, before recheck normalization discards context.
 
     No response body, stderr, argv, route, credentials or exception text. Cgroup
@@ -55,6 +57,8 @@ def report_read_failure(reason, *, command_exit_code=None, http_status=None, os_
         return
     try:
         record = dict(phase='MANAGER_GITHUB_READ_FAILED', reason=reason)
+        if type(stderr_category) is str and stderr_category in _STDERR_CATEGORIES:
+            record['stderr_category'] = stderr_category
         for key, value, lower, upper in (
                 ('command_exit_code', command_exit_code, -255, 255),
                 ('http_status', http_status, 100, 599), ('os_errno', os_errno, 1, 4095)):
@@ -83,6 +87,46 @@ class ManagerGitHubError(ContractError):
 
 class ManagerGitHubTimeout(ManagerGitHubError, TimeoutError):
     """Fixed timeout classification without remote text."""
+
+
+class ManagerGitHubCommandFailed(ManagerGitHubError):
+    """The local CLI exited unsuccessfully without a more specific HTTP error."""
+
+
+class _StderrClassifier:
+    """Keep only a bounded line prefix and fixed flags, never a stderr log.
+
+    These signatures are diagnostic hints, not proof of cgroup exhaustion or
+    trusted claims from the process. Chunk boundaries must not affect matching.
+    """
+    def __init__(self):
+        self.prefix = bytearray()
+        self.seen = self.thread = self.newosproc = self.pthread = self.fatal = self.stack = False
+
+    def _line(self):
+        prefix = bytes(self.prefix)
+        self.thread |= prefix.startswith(b'runtime: failed to create new OS thread')
+        self.newosproc |= prefix.rstrip(b'\r') == b'fatal error: newosproc'
+        self.pthread |= prefix.startswith(b'runtime/cgo: pthread_create failed:')
+        self.fatal |= prefix.startswith(b'fatal error: ')
+        self.stack |= prefix.rstrip(b'\r') == b'runtime stack:'
+
+    def feed(self, chunk):
+        self.seen |= bool(chunk)
+        pieces = chunk.split(b'\n')
+        for index, piece in enumerate(pieces):
+            self.prefix.extend(piece[:max(0, 256 - len(self.prefix))])
+            if index < len(pieces) - 1:
+                self._line()
+                self.prefix.clear()
+
+    def category(self):
+        self._line()
+        if self.pthread or (self.thread and self.newosproc):
+            return 'GO_THREAD_CREATE_FAILED'
+        if self.fatal and self.stack:
+            return 'GO_RUNTIME_FATAL'
+        return 'OTHER' if self.seen else 'NONE'
 
 
 class ManagerGitHubHTTPError(HTTPError):
@@ -160,7 +204,7 @@ class ManagerGitHub(PublicGitHub):
         return dict(HOME='/control/home', GH_CONFIG_DIR='/control/gh',
                     PATH='/usr/local/bin:/usr/bin:/bin', GH_HOST='github.com',
                     GH_PROMPT_DISABLED='1', GH_NO_UPDATE_NOTIFIER='1',
-                    GH_PAGER='cat', LC_ALL='C.UTF-8')
+                    GH_PAGER='cat', LC_ALL='C.UTF-8', GOMAXPROCS='1')
 
     @staticmethod
     def _executable():
@@ -180,6 +224,7 @@ class ManagerGitHub(PublicGitHub):
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False,
                 cwd='/', env=environment, close_fds=True, start_new_session=True)
             output, total = bytearray(), 0
+            stderr = _StderrClassifier()
             deadline = time.monotonic() + min(timeout, approval_read_timeout(MAX_SECONDS))
             with selectors.DefaultSelector() as selector:
                 for stream in (process.stdout, process.stderr):
@@ -203,12 +248,16 @@ class ManagerGitHub(PublicGitHub):
                             raise ManagerGitHubError('GitHub manager response exceeded bound')
                         if key.fileobj is process.stdout:
                             output.extend(chunk)
+                        else:
+                            stderr.feed(chunk)
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 raise ManagerGitHubTimeout('GitHub manager read deadline exceeded')
             code = process.wait(timeout=remaining)
             completed = True
-            if code != 0: report_read_failure('CLI_EXIT_FAILED', command_exit_code=code)
+            if code != 0:
+                report_read_failure('CLI_EXIT_FAILED', command_exit_code=code,
+                                    stderr_category=stderr.category())
             return code, bytes(output)
         except (TimeoutError, subprocess.TimeoutExpired):
             report_read_failure('CLI_TIMEOUT')
@@ -282,6 +331,8 @@ class ManagerGitHub(PublicGitHub):
             status, headers, body = _response(raw)
         except ManagerGitHubError:
             report_read_failure('HTTP_ENVELOPE_INVALID', command_exit_code=code)
+            if type(code) is int and code != 0:
+                raise ManagerGitHubCommandFailed('GitHub manager command failed') from None
             raise
         remaining = headers.get(b'x-ratelimit-remaining')
         reset = headers.get(b'x-ratelimit-reset')
@@ -303,6 +354,8 @@ class ManagerGitHub(PublicGitHub):
             raise error_type(status, remaining=remaining, reset=reset, retry_at=self.retry_at)
         if type(code) is not int or code != 0 or status != 200:
             report_read_failure('HTTP_CLI_MISMATCH', command_exit_code=code, http_status=status)
+            if type(code) is int and code != 0:
+                raise ManagerGitHubCommandFailed('GitHub manager command failed')
             raise ManagerGitHubError('GitHub manager read did not complete successfully')
         try:
             return loads(body.decode('utf-8'))

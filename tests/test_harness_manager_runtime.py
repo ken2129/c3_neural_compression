@@ -7,7 +7,7 @@ from urllib.error import HTTPError, URLError
 import weakref
 
 from research_harness import manager_runtime
-from research_harness.manager_github import ManagerGitHubRateLimited
+from research_harness.manager_github import ManagerGitHubRateLimited, ManagerGitHubCommandFailed
 from research_harness.manager_runtime import (LIMIT, PipeRuntime, RECHECK_REASONS,
     RECHECK_ORIGINS, RecheckRejected, read_frame, write_frame,
     safe_recheck_failure, require_recheck_reply)
@@ -86,6 +86,7 @@ class RecheckDiagnosticTests(unittest.TestCase):
         failures=[
             (HTTPError(SECRET,429,SECRET,{'secret':SECRET},None),'source_rate_limited'),
             (ManagerGitHubRateLimited(403),'source_rate_limited'),
+            (ManagerGitHubCommandFailed(SECRET),'source_command_failed'),
             (HTTPError(SECRET,403,SECRET,{'X-RateLimit-Remaining':'0'},None),'source_unavailable'),
             (HTTPError(SECRET,500,SECRET,{},None),'source_unavailable'),
             (HTTPError(SECRET,'429',SECRET,{},None),'source_unavailable'),
@@ -107,6 +108,20 @@ class RecheckDiagnosticTests(unittest.TestCase):
                 self.assertNotIn(SECRET,json.dumps(actual))
                 self.assertEqual(safe_recheck_failure(exc,origin=SECRET),
                     {'reason':'unknown','origin':'manager'})
+
+    def test_manager_command_failure_mapping_requires_exact_type_and_ignores_fields(self):
+        failure = ManagerGitHubCommandFailed(SECRET)
+        failure.reason = failure.stderr_category = failure.command = SECRET
+        self.assertEqual(safe_recheck_failure(failure),
+            {'reason': 'source_command_failed', 'origin': 'manager'})
+        class Derived(ManagerGitHubCommandFailed):
+            pass
+        self.assertEqual(safe_recheck_failure(Derived(SECRET)),
+            {'reason': 'contract', 'origin': 'manager'})
+        forged = ContractError(SECRET)
+        forged.reason = 'source_command_failed'
+        self.assertEqual(safe_recheck_failure(forged),
+            {'reason': 'contract', 'origin': 'manager'})
 
     def test_exception_chains_do_not_supply_a_reason(self):
         exc=RuntimeError(SECRET)
@@ -276,6 +291,7 @@ class PipeRuntimeTests(unittest.TestCase):
     def test_recheck_denial_preserves_reason_and_original_exception_without_payload(self):
         failures=[RecheckRejected('expired'),RecheckRejected('refresh_stale'),
             HTTPError(SECRET,429,SECRET,{},None),TimeoutError(SECRET),
+            ManagerGitHubCommandFailed(SECRET),
             ContractError(SECRET),RuntimeError(SECRET),KeyboardInterrupt(SECRET)]
         for failure in failures:
             with self.subTest(kind=type(failure).__name__):
