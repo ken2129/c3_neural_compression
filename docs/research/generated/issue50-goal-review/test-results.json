@@ -4,6 +4,22 @@
   "outcomes": [
     {
       "outcome": "pass",
+      "test": "__main__.AuditTests.test_approved_snapshot_cli_and_determinism"
+    },
+    {
+      "outcome": "pass",
+      "test": "__main__.AuditTests.test_cli_rejects_coherently_modified_json_csv"
+    },
+    {
+      "outcome": "pass",
+      "test": "__main__.AuditTests.test_cli_rejects_missing_input"
+    },
+    {
+      "outcome": "pass",
+      "test": "__main__.AuditTests.test_cli_rejects_modified_markdown"
+    },
+    {
+      "outcome": "pass",
       "test": "__main__.AuditTests.test_disjoint_overlap"
     },
     {
@@ -13,6 +29,10 @@
     {
       "outcome": "pass",
       "test": "__main__.AuditTests.test_duplicate_json"
+    },
+    {
+      "outcome": "pass",
+      "test": "__main__.AuditTests.test_each_input_digest_is_checked"
     },
     {
       "outcome": "pass",
@@ -92,5 +112,5 @@
     }
   ],
   "skipped": 0,
-  "tests_run": 22
+  "tests_run": 27
 }

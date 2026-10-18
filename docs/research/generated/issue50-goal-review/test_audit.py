@@ -4,6 +4,9 @@ import csv
 import io
 import json
 from pathlib import Path
+import subprocess
+import sys
+import tempfile
 import unittest
 import audit
 
@@ -128,6 +131,92 @@ class AuditTests(unittest.TestCase):
 
     def test_disjoint_overlap(self):
         self.assertIsNone(audit.overlap([[0, 1], [2, 3]]))
+
+    def cli_fixture(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        root = Path(temporary.name)
+        for name in audit.INPUTS + [str(audit.SCOPE / 'test-results.json')]:
+            target = root / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes((ROOT / name).read_bytes())
+        return root
+
+    def run_cli(self, root):
+        return subprocess.run(
+            [sys.executable, '-B', str(HERE / 'audit.py'), '--root', str(root),
+             '--output', str(audit.SCOPE / 'cli-test')],
+            capture_output=True, text=True, timeout=10)
+
+    def assert_cli_rejected(self, root, message):
+        out = root / audit.SCOPE / 'cli-test'
+        result = self.run_cli(root)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(message, result.stderr)
+        self.assertNotIn('PASS:', result.stdout)
+        self.assertFalse(out.exists())
+        # A failed rerun must also leave previous report files untouched.
+        out.mkdir()
+        for name in ['summary.json', 'report.md']:
+            (out / name).write_bytes(b'existing output\n')
+        result = self.run_cli(root)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(message, result.stderr)
+        self.assertNotIn('PASS:', result.stdout)
+        for name in ['summary.json', 'report.md']:
+            self.assertEqual((out / name).read_bytes(), b'existing output\n')
+
+    def test_approved_snapshot_cli_and_determinism(self):
+        root = self.cli_fixture()
+        result = self.run_cli(root)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('PASS:', result.stdout)
+        out = root / audit.SCOPE / 'cli-test'
+        before = {name: (out / name).read_bytes() for name in ['summary.json', 'report.md']}
+        summary = json.loads(before['summary.json'])
+        self.assertEqual(summary['inputs'], [
+            {'path': path, 'sha256': audit.EXPECTED_INPUT_SHA256[path],
+             'source_sha': audit.SOURCE_SHA} for path in audit.INPUTS])
+        self.assertIn(b'all three public inputs match the SHA256 digests', before['report.md'])
+        result = self.run_cli(root)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(before, {name: (out / name).read_bytes() for name in before})
+
+    def test_each_input_digest_is_checked(self):
+        for path in audit.INPUTS:
+            with self.subTest(path=path):
+                root = self.cli_fixture()
+                target = root / path
+                target.write_bytes(target.read_bytes() + b'\n')
+                with self.assertRaisesRegex(ValueError, 'input snapshot mismatch') as error:
+                    audit.load_inputs(root)
+                self.assertIn(path, str(error.exception))
+
+    def test_cli_rejects_coherently_modified_json_csv(self):
+        root = self.cli_fixture()
+        point = self.data['points'][0]
+        point['box_ap'] += 0.125
+        row = next(row for row in self.rows if audit.key(row) == audit.key(point))
+        row['box_ap'] = str(point['box_ap'])
+        # The regression fixture still passes the old aggregate-only checks.
+        self.assertEqual(self.result()['audit']['status'], 'pass')
+        (root / audit.INPUTS[0]).write_text(json.dumps(self.data), encoding='utf-8')
+        with (root / audit.INPUTS[1]).open('w', newline='', encoding='utf-8') as stream:
+            writer = csv.DictWriter(stream, fieldnames=list(self.rows[0]))
+            writer.writeheader()
+            writer.writerows(self.rows)
+        self.assert_cli_rejected(root, 'input snapshot mismatch: ' + audit.INPUTS[0])
+
+    def test_cli_rejects_modified_markdown(self):
+        root = self.cli_fixture()
+        target = root / audit.INPUTS[2]
+        target.write_bytes(target.read_bytes() + b'\nAltered historical context.\n')
+        self.assert_cli_rejected(root, 'input snapshot mismatch: ' + audit.INPUTS[2])
+
+    def test_cli_rejects_missing_input(self):
+        root = self.cli_fixture()
+        (root / audit.INPUTS[2]).unlink()
+        self.assert_cli_rejected(root, audit.INPUTS[2])
 
 
 class RecordedResult(unittest.TextTestResult):

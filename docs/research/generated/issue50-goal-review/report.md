@@ -4,7 +4,7 @@ CPU-only reaggregation of the three approved public inputs. No new images, split
 
 ## Results
 
-PASS: 24 compressed points, 25 CSV rows including JPEG, six method/precision groups of four points. No missing keys, duplicate keys or numeric mismatches found. Primary comparison: 16 points; external uint8 supplement: 8 points. The all-uint8 view reuses the eight C3/C3′ points; it adds no measurements.
+PASS: all three public inputs match the SHA256 digests pinned to the approved source snapshot. 24 compressed points, 25 CSV rows including JPEG, six method/precision groups of four points. No missing keys, duplicate keys or numeric mismatches found. Primary comparison: 16 points; external uint8 supplement: 8 points. The all-uint8 view reuses the eight C3/C3′ points; it adds no measurements.
 
 | Group | Points | bpp endpoints | AP range (%) |
 |---|---:|---|---|
@@ -49,7 +49,7 @@ AP is official COCO bbox .50:.95 dataset AP (%) on the fixed 20 images, not a me
 
 Small sample size and 26–30 supported categories limit interpretation. Four discrete rates per group do not establish same-rate superiority. No AP interpolation, extrapolation, BD-rate, generalization or independent confirmation claim is made. TransTIC uses official 256-multiple bilinear resize before/after codec (align_corners=False); Adapt-ICMH pads right/bottom then crops; C3 uses native detector-sized inputs. Alignment and primary external float32 versus C3 uint8 precision remain confounded.
 
-The historical report records fixed evaluation images and nonoverlap with a calibration set of 20 images. No new split or image selection was performed here; aggregate data cannot independently verify nonoverlap, input hashes, model behavior or pretraining overlap. The historical 188.23444253765047 GPU seconds are not a cost of this run. This run used no GPU and installed no dependencies.
+The historical report records fixed evaluation images and nonoverlap with a calibration set of 20 images. No new split or image selection was performed here; aggregate data cannot independently verify nonoverlap, historical image hashes, model behavior or pretraining overlap. The three public aggregate/context files are verified byte-for-byte against the approved source snapshot. The historical 188.23444253765047 GPU seconds are not a cost of this run. This run used no GPU and installed no dependencies.
 
 ## Reproduction and provenance
 
@@ -60,7 +60,7 @@ python -B docs/research/generated/issue50-goal-review/test_audit.py
 python -B docs/research/generated/issue50-goal-review/audit.py
 ```
 
-The CLI accepts --root and --output (output must stay inside the approved scope). JSON is sorted, timestamp-free, rejects NaN and is deterministic for identical inputs and test evidence. Source SHA below is the approved input snapshot, not the historical codec runtime SHA. The markdown input supplies historical context; rounded prose tables are not treated as full-precision independent measurements.
+The CLI accepts --root and --output (output must stay inside the approved scope). JSON is sorted, timestamp-free, rejects NaN and is deterministic for identical inputs and test evidence. Before parsing or writing outputs, the CLI compares all three input SHA256 digests against constants derived from the exact Git blob bytes at the approved source SHA below, then parses those same verified bytes. Any change, including coherent JSON/CSV edits or Markdown-only edits, aborts without writing output. Source SHA below is the approved input snapshot, not the historical codec runtime SHA. The markdown input supplies historical context; rounded prose tables are not treated as full-precision independent measurements.
 
 Approved input source SHA: `a3c285fb191f95bdf3ecea54408c53adb177b5c1`.
 
@@ -72,6 +72,6 @@ Approved input source SHA: `a3c285fb191f95bdf3ecea54408c53adb177b5c1`.
 
 ## Validation, failures and negative results
 
-unittest: 22 tests; 0 failures; 0 errors; 0 skipped. See test-results.json for exact names and outcomes. Negative fixtures deliberately exercise missing points/fields, duplicate keys, mismatched metrics, invalid rates/precision keys, nonfinite numbers, altered overlaps and invalid JPEG data. Expected rejections are successful tests, not research failures.
+unittest: 27 tests; 0 failures; 0 errors; 0 skipped. See test-results.json for exact names and outcomes. Negative fixtures deliberately exercise missing points/fields, duplicate keys, mismatched metrics, invalid rates/precision keys, nonfinite numbers, altered overlaps, invalid JPEG data, coordinated JSON/CSV drift, and Markdown-only drift. CLI snapshot tests also check rejection without creating or overwriting outputs. Expected rejections are successful tests, not research failures.
 
-git and rg were unavailable in the execution environment; initial read-only discovery commands returned command-not-found. Python filesystem inspection replaced them. No dependencies were installed. No scientific evaluation failed because none was attempted. No publication retry or extra research run is part of this workflow.
+During original report generation, git and rg were unavailable; initial read-only discovery commands returned command-not-found. Python filesystem inspection replaced them. Snapshot-verification regression tests use only copies of these public inputs and Python standard-library code. No dependencies were installed. No scientific evaluation failed because none was attempted. No publication retry or extra research run is part of this workflow.

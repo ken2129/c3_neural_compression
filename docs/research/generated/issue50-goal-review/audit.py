@@ -3,6 +3,7 @@
 import argparse
 import csv
 import hashlib
+import io
 import itertools
 import json
 import math
@@ -13,6 +14,12 @@ SCOPE = Path('docs/research/generated/issue50-goal-review')
 INPUTS = ['docs/research/assets/issue50_four_method.json',
           'docs/research/assets/issue50_four_method.csv',
           'docs/research/2026-10-16_four_method_comparison.md']
+# SHA256 of the exact Git blob bytes at SOURCE_SHA, not the current checkout.
+EXPECTED_INPUT_SHA256 = {
+    INPUTS[0]: '90bc064100ddda3c39a5eff8b03912bfc47435ae3e183c6bcafcbd4caabacc8b',
+    INPUTS[1]: '96cbd38c693642149d8a7acec694e533e5e800015943db31129d33d3bf3078bf',
+    INPUTS[2]: '5e8bfb54753743d3fcc634377377c80dd247541db64c6dba16cdadbceac916f0',
+}
 AP = ['box_ap', 'box_ap50', 'box_ap75', 'box_ap_small', 'box_ap_medium', 'box_ap_large']
 SENS = ['delete_one_AP_min', 'delete_one_AP_max']
 METHODS = ['c3', 'c3_prime', 'transtic', 'adapt_icmh']
@@ -24,6 +31,23 @@ EXPECTED = {(m, q, p) for m in METHODS
 def require(ok, message):
     if not ok:
         raise ValueError(message)
+
+
+def load_inputs(root):
+    """Verify the approved snapshot and parse those same bytes, without rereading."""
+    contents, provenance = {}, []
+    for path in INPUTS:
+        raw = (root / path).read_bytes()
+        digest = hashlib.sha256(raw).hexdigest()
+        expected = EXPECTED_INPUT_SHA256[path]
+        require(digest == expected,
+                f'input snapshot mismatch: {path}; expected SHA256 {expected} '
+                f'at {SOURCE_SHA}, got {digest}')
+        contents[path] = raw
+        provenance.append({'path': path, 'sha256': digest, 'source_sha': SOURCE_SHA})
+    data = json.loads(contents[INPUTS[0]].decode('utf-8'))
+    rows = list(csv.DictReader(io.StringIO(contents[INPUTS[1]].decode('utf-8'), newline='')))
+    return data, rows, provenance
 
 
 def number(value, label):
@@ -118,7 +142,7 @@ def report(s):
     lines = ['# Issue50 public aggregate audit (Issue #87)', '',
              'CPU-only reaggregation of the three approved public inputs. No new images, splits, calibration, training, codec inference or detector evaluation. This is an internal consistency audit, not independent scientific validation.', '',
              '## Results', '',
-             'PASS: 24 compressed points, 25 CSV rows including JPEG, six method/precision groups of four points. No missing keys, duplicate keys or numeric mismatches found. Primary comparison: 16 points; external uint8 supplement: 8 points. The all-uint8 view reuses the eight C3/C3′ points; it adds no measurements.', '',
+             'PASS: all three public inputs match the SHA256 digests pinned to the approved source snapshot. 24 compressed points, 25 CSV rows including JPEG, six method/precision groups of four points. No missing keys, duplicate keys or numeric mismatches found. Primary comparison: 16 points; external uint8 supplement: 8 points. The all-uint8 view reuses the eight C3/C3′ points; it adds no measurements.', '',
              '| Group | Points | bpp endpoints | AP range (%) |', '|---|---:|---|---|']
     for k, v in s['groups'].items():
         lines.append(f"| {k} | {v['count']} | {v['bpp_range']} | {v['AP_range_percent']} |")
@@ -134,18 +158,18 @@ def report(s):
               'bpp is the arithmetic mean of each image’s estimated bits divided by D2-resized, pre-alignment nonpadding pixels. External codecs include y+z likelihood bits; C3 includes latent plus per-image network bits. Shared pretrained external weights are not charged per image. These are estimates, not actual bitstreams or container sizes. Do not combine them with old Issue20 original-pixel/aggregate definitions.', '',
               'AP is official COCO bbox .50:.95 dataset AP (%) on the fixed 20 images, not a mean of per-image AP. Aggregate inputs cannot reconstruct bits, evaluate AP again, or recompute delete-one/jackknife values. Shared JSON/CSV delete-one extrema were checked for consistency only. Paired difference ranges are retained as source metadata; subtracting marginal extrema cannot recover paired differences. Delete-one sensitivity is descriptive, not a confidence interval or significance test.', '',
               'Small sample size and 26–30 supported categories limit interpretation. Four discrete rates per group do not establish same-rate superiority. No AP interpolation, extrapolation, BD-rate, generalization or independent confirmation claim is made. TransTIC uses official 256-multiple bilinear resize before/after codec (align_corners=False); Adapt-ICMH pads right/bottom then crops; C3 uses native detector-sized inputs. Alignment and primary external float32 versus C3 uint8 precision remain confounded.', '',
-              'The historical report records fixed evaluation images and nonoverlap with a calibration set of 20 images. No new split or image selection was performed here; aggregate data cannot independently verify nonoverlap, input hashes, model behavior or pretraining overlap. The historical 188.23444253765047 GPU seconds are not a cost of this run. This run used no GPU and installed no dependencies.', '',
+              'The historical report records fixed evaluation images and nonoverlap with a calibration set of 20 images. No new split or image selection was performed here; aggregate data cannot independently verify nonoverlap, historical image hashes, model behavior or pretraining overlap. The three public aggregate/context files are verified byte-for-byte against the approved source snapshot. The historical 188.23444253765047 GPU seconds are not a cost of this run. This run used no GPU and installed no dependencies.', '',
               '## Reproduction and provenance', '',
               'Run from the repository root with Python 3 and only the standard library:', '',
               '```sh', 'python -B docs/research/generated/issue50-goal-review/test_audit.py',
               'python -B docs/research/generated/issue50-goal-review/audit.py', '```', '',
-              'The CLI accepts --root and --output (output must stay inside the approved scope). JSON is sorted, timestamp-free, rejects NaN and is deterministic for identical inputs and test evidence. Source SHA below is the approved input snapshot, not the historical codec runtime SHA. The markdown input supplies historical context; rounded prose tables are not treated as full-precision independent measurements.', '',
+              'The CLI accepts --root and --output (output must stay inside the approved scope). JSON is sorted, timestamp-free, rejects NaN and is deterministic for identical inputs and test evidence. Before parsing or writing outputs, the CLI compares all three input SHA256 digests against constants derived from the exact Git blob bytes at the approved source SHA below, then parses those same verified bytes. Any change, including coherent JSON/CSV edits or Markdown-only edits, aborts without writing output. Source SHA below is the approved input snapshot, not the historical codec runtime SHA. The markdown input supplies historical context; rounded prose tables are not treated as full-precision independent measurements.', '',
               f"Approved input source SHA: `{SOURCE_SHA}`.", '', '| Input | SHA256 |', '|---|---|']
     lines += [f"| {x['path']} | `{x['sha256']}` |" for x in s['inputs']]
     t = s['tests']
     lines += ['', '## Validation, failures and negative results', '',
-              f"unittest: {t['tests_run']} tests; {t['failures']} failures; {t['errors']} errors; {t['skipped']} skipped. See test-results.json for exact names and outcomes. Negative fixtures deliberately exercise missing points/fields, duplicate keys, mismatched metrics, invalid rates/precision keys, nonfinite numbers, altered overlaps and invalid JPEG data. Expected rejections are successful tests, not research failures.", '',
-              'git and rg were unavailable in the execution environment; initial read-only discovery commands returned command-not-found. Python filesystem inspection replaced them. No dependencies were installed. No scientific evaluation failed because none was attempted. No publication retry or extra research run is part of this workflow.', '']
+              f"unittest: {t['tests_run']} tests; {t['failures']} failures; {t['errors']} errors; {t['skipped']} skipped. See test-results.json for exact names and outcomes. Negative fixtures deliberately exercise missing points/fields, duplicate keys, mismatched metrics, invalid rates/precision keys, nonfinite numbers, altered overlaps, invalid JPEG data, coordinated JSON/CSV drift, and Markdown-only drift. CLI snapshot tests also check rejection without creating or overwriting outputs. Expected rejections are successful tests, not research failures.", '',
+              'During original report generation, git and rg were unavailable; initial read-only discovery commands returned command-not-found. Python filesystem inspection replaced them. Snapshot-verification regression tests use only copies of these public inputs and Python standard-library code. No dependencies were installed. No scientific evaluation failed because none was attempted. No publication retry or extra research run is part of this workflow.', '']
     return '\n'.join(lines)
 
 
@@ -157,11 +181,9 @@ def main():
     root = args.root.resolve()
     out = (root / args.output).resolve()
     require(out.is_relative_to((root / SCOPE).resolve()), 'output outside approved scope')
-    data = json.loads((root / INPUTS[0]).read_text())
-    with (root / INPUTS[1]).open(newline='') as f:
-        rows = list(csv.DictReader(f))
+    data, rows, inputs = load_inputs(root)
     s = audit(data, rows)
-    s['inputs'] = [{'path': p, 'sha256': hashlib.sha256((root / p).read_bytes()).hexdigest(), 'source_sha': SOURCE_SHA} for p in INPUTS]
+    s['inputs'] = inputs
     s['tests'] = json.loads((root / SCOPE / 'test-results.json').read_text())
     require(s['tests']['failures'] == s['tests']['errors'] == 0, 'tests did not pass')
     out.mkdir(parents=True, exist_ok=True)
