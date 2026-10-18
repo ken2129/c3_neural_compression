@@ -1,7 +1,7 @@
 # goal-only CPU 実行経路（旧・内容承認方式）
 
 新しく準備する goal 実行では、[Codex direct PR 経路](DIRECT_PR.md)を推奨します。
-既定 OFF の別 opt-in で、Codex が実装・CPU 実験・テスト・報告・下書き PR 作成を担当します。
+既定 OFF の別 opt-in で、Codex が実装・CPU 実験・テスト・報告・通常 PR 作成を担当します。
 専用の GitHub actor／認証と GitHub 側の保護設定を別途承認・準備する必要があり、実機実行は未検証です。
 以下は PR #71 系の private 候補・再起動・内容承認・manager 公開を残す旧経路の手順です。
 既存 deployment を自動変更しません。

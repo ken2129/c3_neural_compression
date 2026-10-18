@@ -1,6 +1,6 @@
 # C3 (neural compression)
 
-新しい承認済み研究 task には、[Codex が実装・CPU 実験から下書き PR まで担当する opt-in 経路](tools/research_goal/DIRECT_PR.md)を推奨します。
+新しい承認済み研究 task には、[Codex が実装・CPU 実験から通常 PR まで担当する opt-in 経路](tools/research_goal/DIRECT_PR.md)を推奨します。
 既定 OFF で、専用 actor／認証と GitHub 側の保護設定の準備が必要です。実機実行・通知は未検証で、既存の実行経路は変更しません。
 
 This repository contains code for reproducing results in the paper
