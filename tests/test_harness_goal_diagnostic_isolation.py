@@ -12,7 +12,10 @@ import io
 import json
 import os
 from pathlib import Path
+import select
+import signal
 import stat
+import subprocess
 import sys
 import tempfile
 import time
@@ -277,3 +280,80 @@ class DiagnosticIsolationTests(unittest.TestCase):
                           ('SecurityOpt',[]),('RestartPolicy',{'Name':'unless-stopped'})]:
             changed=loads(before);changed['HostConfig'][key]=value
             with self.assertRaises(ContractError):boundary.validate_goal_deployment(changed,[dc.CONTAINER_ID],**args)
+
+
+class DiagnosticStopTests(unittest.TestCase):
+    def test_non_pid1_or_manager_cannot_install_namespace_stop_handlers(self):
+        for pid,uids in ((2,(0,0,0)),(1,(10001,)*3),(1,(0,10001,0))):
+            with self.subTest(pid=pid,uids=uids), patch.object(driver.os,'getpid',return_value=pid), \
+                    patch.object(driver.os,'getresuid',return_value=uids), \
+                    patch.object(driver.signal,'signal') as install:
+                with self.assertRaises(ContractError):driver.install_pid1_stop_handlers()
+                install.assert_not_called()
+
+    def test_handlers_precede_supervision_and_survive_runtime_watchdog_rearm(self):
+        handlers={};old_stop=[]
+        def install(signum,callback):
+            previous=handlers.get(signum,signal.SIG_DFL);handlers[signum]=callback
+            return previous
+        def supervise():
+            old_stop.extend((handlers[signal.SIGTERM],handlers[signal.SIGINT]))
+            # The actual backend re-arms ALRM/CHLD, without replacing TERM/INT.
+            driver.runtime_module.GoalLinuxUIDBackend.arm_watchdog(184)
+            self.assertIs(handlers[signal.SIGTERM],old_stop[0])
+            self.assertIs(handlers[signal.SIGINT],old_stop[1])
+        with patch.object(driver.os,'getpid',return_value=1), \
+                patch.object(driver.os,'getresuid',return_value=(0,0,0)), \
+                patch.object(driver.signal,'signal',side_effect=install), \
+                patch.object(driver.signal,'alarm') as alarm, \
+                patch.object(driver,'Path') as path, patch.object(driver,'report'), \
+                patch.object(driver.launcher,'blocked_startup'), \
+                patch.object(driver.launcher,'supervise',side_effect=supervise), \
+                patch.object(sys,'argv',['diagnostic_driver.py']):
+            path.return_value.read_text.return_value='a'*40
+            driver.main()
+            self.assertEqual([call.args[0] for call in alarm.call_args_list],[230,184])
+            # Termination must also work while PID1 temporarily has manager EUID.
+            with patch.object(driver.os,'getresuid',return_value=(0,10001,0)), \
+                    patch.object(driver.os,'_exit') as exit_namespace:
+                for signum,code in ((signal.SIGTERM,143),(signal.SIGINT,130),(signal.SIGALRM,124)):
+                    handlers[signum](signum,None)
+                    exit_namespace.assert_called_with(code)
+
+    def test_manager_branch_does_not_install_pid1_handlers(self):
+        with patch.object(sys,'argv',['diagnostic_driver.py','manager']), \
+                patch.object(driver,'manager') as manager, \
+                patch.object(driver,'install_pid1_stop_handlers') as install:
+            driver.main()
+        manager.assert_called_once();install.assert_not_called()
+
+    @unittest.skipUnless(sys.platform.startswith('linux'),'Linux signal subprocess test')
+    def test_real_sigterm_and_sigint_exit_without_watchdog_or_sigkill(self):
+        # Only the installer identity check is a fixture: this is an ordinary
+        # unprivileged subprocess, not a PID namespace/container. Signal delivery,
+        # handlers, os._exit and observed exit codes are real. No model/credentials.
+        code = '''
+import sys,signal
+sys.path[:0]=[ROOT,ROOT+'/tests']
+from unittest.mock import patch
+from tests.test_harness_goal_diagnostic_isolation import driver
+with patch.object(driver.os,'getpid',return_value=1), patch.object(driver.os,'getresuid',return_value=(0,0,0)):
+    driver.install_pid1_stop_handlers()
+print('READY',flush=True)
+while True:signal.pause()
+'''.replace('ROOT',repr(str(ROOT)))
+        for signum,expected in ((signal.SIGTERM,143),(signal.SIGINT,130)):
+            with self.subTest(signal=signum):
+                process=subprocess.Popen([sys.executable,'-I','-B','-c',code],
+                    stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,
+                    cwd=ROOT,close_fds=True)
+                try:
+                    self.assertTrue(select.select([process.stdout],[],[],10)[0],'signal child startup timed out')
+                    self.assertEqual(process.stdout.readline(),b'READY\n')
+                    process.send_signal(signum)
+                    stdout,stderr=process.communicate(timeout=2)
+                    self.assertEqual(process.returncode,expected)
+                    self.assertEqual(stdout,b'');self.assertEqual(stderr,b'')
+                finally:
+                    if process.poll() is None:process.kill()
+                    process.communicate(timeout=2)

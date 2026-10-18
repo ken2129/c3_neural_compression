@@ -24,6 +24,11 @@ Issue83 の本番障害を再現できたとは扱いません。
 期限超過にするため不十分です。観測はモデル実行中に周期実行しません。
 観測が報告する過去 Issue83 の expiry は実行承認ではありません。
 プロセス制御シグナル、PID1 hard watchdog、UID/reserve 検査、cleanup 不明時の拒否は維持します。
+診断PID1は supervision 前に SIGTERM / SIGINT の明示ハンドラを設定し、
+それぞれ143 / 130で自分のnamespaceを即時終了します。SIGALRMの124終了と時間上限は維持します。
+停止ハンドラは台帳更新や成功ACKを行わず、途中のclaimを保存成功へ変更しません。
+モデルなしのLinux subprocessで実シグナルと終了コードを検証していますが、
+そのテストのPID1/UID判定はfixtureであり、Docker内のnamespace終了確認は未実施です。
 
 ## 診断固有の差分
 
@@ -93,6 +98,8 @@ model通信160秒 / runtime180秒 / runtime hard184秒、buildから全体10分�
 - 3f8a1cd: `GOAL_FINALIZATION_FAILED/persist` の ACK を許容し、cleanup 開始後の child exit code を原因として記録しない。
   API の CLI/status/errno/PID counter も固定分類で記録する。
 - 今回: ShadowRead の診断固有 veto と共有承認予算への干渉を除き、診断コードとその差分をレビュー対象へ収録した。
+- 83c4251への停止ハンドラ指摘: 診断PID1のSIGTERM/SIGINTを明示処理し、
+  実シグナル停止・supervision前の登録・watchdog再設定後の保持をモデルなしで検証した。追加実機試験は未実施。
 
 追加の「copy_records へ -a を足す」指摘については変更していない。
 当該ホストの Docker Client/Server は28.3.2で、通常サービスと旧診断の `Config.User=0:0`、

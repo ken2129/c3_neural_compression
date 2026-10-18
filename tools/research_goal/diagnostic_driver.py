@@ -129,11 +129,24 @@ def manager():
     finally:state.close()
 
 
+def install_pid1_stop_handlers():
+    if os.getpid()!=1 or os.getresuid()!=(0,0,0):
+        raise ContractError('diagnostic stop handlers require root PID1')
+    def stop(signum, frame):
+        # Exit this dedicated namespace immediately, including during a
+        # transient EUID drop. Do not write/repair a claim, ACK uncertain
+        # cleanup, or signal a caller-selected PID/process group.
+        os._exit(128+signum)
+    signal.signal(signal.SIGTERM,stop)
+    signal.signal(signal.SIGINT,stop)
+
+
 def main():
     if sys.argv[1:]==['manager']:
         manager();return
     if sys.argv[1:]:raise ContractError('diagnostic argv rejected')
     if os.getpid()!=1 or os.getresuid()!=(0,0,0):raise ContractError('diagnostic PID1')
+    install_pid1_stop_handlers()
     # Startup/admission is bounded too; runtime later sets its own wall+4 watchdog.
     signal.signal(signal.SIGALRM,lambda *_:os._exit(124));signal.alarm(230)
     launcher.blocked_startup=lambda:(_ for _ in ()).throw(ContractError('diagnostic startup blocked'))
