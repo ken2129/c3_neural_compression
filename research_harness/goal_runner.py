@@ -12,7 +12,11 @@ import hashlib
 
 from .schema import ContractError, canonical, fields, loads
 from .goal_plan import validate_goal_plan
-from .app_server_adapter import VERSION
+from .app_server_adapter import (VERSION, app_server_diagnostic_scope,
+    app_server_protocol_context, validated_app_server_protocol,
+    _diagnostic_phase, _diagnostic_milestone, _diagnostic_clear_frame,
+    _diagnostic_frame, _diagnostic_rpc)
+from .manager_runtime import RecheckRejected
 
 GOAL_RESPONSE_SCHEMA = {
     'type': 'object',
@@ -26,6 +30,7 @@ GOAL_RESPONSE_SCHEMA = {
 
 _GOAL_REASONS = frozenset(('GOAL_ADDITIONAL_PERMISSION_REQUEST', 'GOAL_ADMISSION_CONTRACT', 'GOAL_ADMISSION_REQUIRED', 'GOAL_DUPLICATE_ITEM_START', 'GOAL_EVENT_LIMIT', 'GOAL_EVENT_OUTSIDE_TURN', 'GOAL_FINAL_RESPONSE_INVALID', 'GOAL_FINAL_RESPONSE_LIMIT', 'GOAL_FINAL_RESPONSE_MISSING', 'GOAL_FINAL_SNAPSHOT_INVALID', 'GOAL_FINAL_SNAPSHOT_MISMATCH', 'GOAL_INITIALIZATION_MISMATCH', 'GOAL_ITEM_COMPLETION_MISMATCH', 'GOAL_ITEM_TYPE', 'GOAL_MULTIPLE_FINAL_RESPONSES', 'GOAL_NOTIFICATION_ENVELOPE', 'GOAL_PENDING_EVENT_LIMIT', 'GOAL_PLAN_CHANGED', 'GOAL_PREINITIALIZATION_ACTIVITY', 'GOAL_PRETURN_ACTIVITY', 'GOAL_PROTOCOL_IDENTIFIER', 'GOAL_PROTOCOL_OBJECT', 'GOAL_PROTOCOL_VERSION', 'GOAL_REMOTE_CONTROL_NOT_DISABLED', 'GOAL_RPC_RESPONSE_MISMATCH', 'GOAL_RUNNER_ALREADY_USED', 'GOAL_RUNTIME_DISABLED', 'GOAL_RUNTIME_PATH_MISMATCH', 'GOAL_SERVER_ERROR', 'GOAL_THREAD_CONFIGURATION_MISMATCH', 'GOAL_THREAD_FAILED', 'GOAL_THREAD_MISMATCH', 'GOAL_TURN_FAILED', 'GOAL_TURN_MISMATCH', 'GOAL_TURN_NOT_STARTED', 'GOAL_TURN_START_MISMATCH', 'GOAL_UNEXPECTED_RPC_RESPONSE', 'GOAL_UNFINISHED_ITEMS'))
 _GOAL_FAILURES = WeakKeyDictionary()
+_GOAL_PROTOCOL = WeakKeyDictionary()
 
 
 class GoalBlocked(ContractError):
@@ -38,7 +43,18 @@ class GoalBlocked(ContractError):
 
 def safe_goal_diagnostic(exc):
     """Never serialize arbitrary exception args, server text, output or paths."""
-    return {"reason": _GOAL_FAILURES.get(exc, "GOAL_PROTOCOL_FAILURE") if type(exc) is GoalBlocked else "GOAL_PROTOCOL_FAILURE"}
+    result = {"reason": _GOAL_FAILURES.get(exc, "GOAL_PROTOCOL_FAILURE") if type(exc) is GoalBlocked else "GOAL_PROTOCOL_FAILURE"}
+    protocol = safe_goal_protocol_diagnostic(exc)
+    if protocol is not None: result['protocol'] = protocol
+    return result
+
+
+def safe_goal_protocol_diagnostic(exc):
+    raw = _GOAL_PROTOCOL.get(exc) if type(exc) in (GoalBlocked, RecheckRejected) else None
+    if type(raw) is bytes:
+        try: protocol = validated_app_server_protocol(loads(raw))
+        except (ValueError, ContractError): protocol = None
+        return protocol
 
 
 @dataclass(frozen=True)
@@ -130,6 +146,16 @@ class GoalAppServerRunner:
         self.used = False
 
     def run(self, request, transport, *, admit, recheck):
+        with app_server_diagnostic_scope():
+            try:
+                return self._run(request, transport, admit=admit, recheck=recheck)
+            except (GoalBlocked, RecheckRejected) as exc:
+                if type(exc) in (GoalBlocked, RecheckRejected):
+                    protocol = app_server_protocol_context()
+                    if protocol is not None: _GOAL_PROTOCOL[exc] = canonical(protocol)
+                raise
+
+    def _run(self, request, transport, *, admit, recheck):
         if self.enabled is not True:
             raise GoalBlocked('GOAL_RUNTIME_DISABLED')
         if type(request) is not GoalRequest or not callable(admit) or not callable(recheck):
@@ -149,11 +175,13 @@ class GoalAppServerRunner:
         self.used = True
         pending = []
 
-        def receive():
+        def receive(method='none'):
             recheck()
             if request.digest != digest:
                 raise GoalBlocked('GOAL_PLAN_CHANGED')
+            _diagnostic_clear_frame(); _diagnostic_rpc(method)
             value = _object(transport.receive())
+            _diagnostic_frame(value)
             if value.get('jsonrpc', '2.0') != '2.0':
                 raise GoalBlocked('GOAL_PROTOCOL_VERSION')
             if 'method' in value and 'id' in value:
@@ -169,13 +197,17 @@ class GoalAppServerRunner:
 
         def rpc(number, method, params):
             recheck()
+            phase = {'initialize':'initialize', 'thread/start':'thread_start', 'turn/start':'turn_start'}[method]
+            _diagnostic_phase(phase+'_send'); _diagnostic_clear_frame(); _diagnostic_rpc(method)
             transport.send({'id': number, 'method': method, 'params': params})
+            _diagnostic_phase(phase+'_wait')
             while True:
-                value = receive()
+                value = receive(method)
                 if 'id' in value:
                     if (type(value['id']) is not int or value['id'] != number
                             or set(value) - {'jsonrpc', 'id', 'result'}):
                         raise GoalBlocked('GOAL_RPC_RESPONSE_MISMATCH')
+                    _diagnostic_phase(phase+'_validate')
                     return _object(value.get('result'))
                 if _connection_metadata(value['method'], value['params']):
                     continue
@@ -192,6 +224,8 @@ class GoalAppServerRunner:
             raise GoalBlocked('GOAL_INITIALIZATION_MISMATCH')
         if pending:
             raise GoalBlocked('GOAL_PREINITIALIZATION_ACTIVITY')
+        _diagnostic_milestone('initialized')
+        _diagnostic_rpc('initialized')
         transport.send({'method': 'initialized'})
         prompt = goal_prompt(plan)
         result = rpc(2, 'thread/start', {
@@ -207,6 +241,7 @@ class GoalAppServerRunner:
                 or result.get('instructionSources') != []
                 or _object(result.get('sandbox')).get('type') != 'readOnly'):
             raise GoalBlocked('GOAL_THREAD_CONFIGURATION_MISMATCH')
+        _diagnostic_milestone('thread_started')
         # No tool work is expected before the explicitly admitted goal turn.
         for value in pending:
             params = value['params']
@@ -226,6 +261,7 @@ class GoalAppServerRunner:
         turn_id = _identifier(turn.get('id'))
         if turn.get('status') != 'inProgress' or turn.get('error') is not None:
             raise GoalBlocked('GOAL_TURN_NOT_STARTED')
+        _diagnostic_milestone('turn_accepted'); _diagnostic_phase('stream')
         final = None
         final_item = None
         item_starts = {}
@@ -284,6 +320,7 @@ class GoalAppServerRunner:
                 if seen != expected:
                     raise GoalBlocked('GOAL_FINAL_SNAPSHOT_MISMATCH')
                 recheck()
+                _diagnostic_phase('final_validate'); _diagnostic_milestone('final_validated')
                 return GoalCandidate(final['outcome'], final['summary'], thread_id, turn_id)
             if not started or params.get('turnId') != turn_id:
                 raise GoalBlocked('GOAL_EVENT_OUTSIDE_TURN')

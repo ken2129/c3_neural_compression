@@ -70,4 +70,29 @@ installer が表示する container ID を使って `docker logs --tail 30 CONTA
 
 通知接続は未設定で、実イベントの dot 宛て疎通も未確認です。ログや PR 作成の成功を通知成功とは扱いません。
 
+### 実行失敗の診断
+
+`stage: turn` は goal runner 呼出し全体を指し、`initialize` より前にも設定されます。
+`turn/start` 到達は、この stage から判断せず、固定診断の
+`app_server.phase` / `protocol.phase`、`method`、`initialized`、
+`thread_started`、`turn_accepted` を確認してください。
+
+- `GOAL_APPROVAL_RECHECK_FAILED` は管理側の承認再確認拒否です。
+  `app_server.recheck_reason/recheck_origin` または `approval_failure` に固定分類を残します。
+- 通信切断、期限、形式不一致は `app_server.reason` で区別します。
+  `GOAL_SERVER_ERROR` は goal protocol のサーバーエラー応答の拒否です。
+  いずれも例外本文、リモートの任意メッセージ、stderr、モデル出力は記録しません。
+- `observed_child_returncode` は停止処理より前に `poll()` で実測できた場合だけ存在します。
+  欠落を exit 0 や、強制停止による終了コードに置き換えてはいけません。
+- root の `GOAL_RUNTIME_BLOCKED` / `GOAL_RUNTIME_FAILED` と管理側の
+  `GOAL_MANAGER_BLOCKED` に閉じた診断を伝えます。管理側が先に再確認を拒否して終了する場合は
+  `GOAL_MANAGER_RECHECK_REJECTED` に固定 reason/origin を記録します。
+  診断の有無は BLOCKED 保存や namespace 終了の代わりにはなりません。
+
+Issue83 の 13ab 実機ログは `GOAL_TRANSPORT_FAILURE / turn` だけで、元の分類は保存されていません。
+13ab のモデルなし実 pipe 再現では、管理側 `source_timeout` と不正 JSON の両方が同じ外側診断になりました。
+したがって、過去の原因をネットワーク障害や承認期限切れと確定しません。
+fixture による正常応答・結果保存と、実物 Codex/実モデルの接続・成果物保存は区別します。
+後者の専用診断は本人の追加承認後に実施し、その成功前に本番更新の根拠としません。
+
 旧経路の PR #78 の手動復旧と PR #80 の自動失敗結果は、新 goal 経路の成功実績ではありません。

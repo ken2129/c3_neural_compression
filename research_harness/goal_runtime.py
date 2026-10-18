@@ -29,8 +29,11 @@ import sys
 
 from .schema import ContractError, canonical, fields, loads
 from .goal_plan import validate_goal_plan
-from .goal_runner import GoalRequest, GoalAppServerRunner, GoalCandidate, GoalBlocked, safe_goal_diagnostic
-from .app_server_adapter import BoundedStdioTransport, fixed_app_server_request, safe_app_server_diagnostic
+from .goal_runner import (GoalRequest, GoalAppServerRunner, GoalCandidate, GoalBlocked,
+                          safe_goal_diagnostic, safe_goal_protocol_diagnostic)
+from .app_server_adapter import (BoundedStdioTransport, fixed_app_server_request,
+    safe_app_server_diagnostic, validated_app_server_diagnostic, validated_app_server_protocol)
+from .manager_runtime import RecheckRejected, safe_recheck_failure, RECHECK_REASONS, RECHECK_ORIGINS
 from .uid_supervisor import (OwnedUIDSupervisor, LinuxUIDBackend, ChildHandle,
                             WORKER_UID, CONTROLLER_UID)
 
@@ -114,7 +117,8 @@ _ACKNOWLEDGEABLE = WeakSet()
 _CONTEXT = ContextVar('goal_runtime_diagnostic',default=None)
 _NORMALIZED_REASONS = frozenset(('GOAL_RUNTIME_FAILURE','GOAL_TIMEOUT','GOAL_OS_FAILURE',
     'GOAL_CONTRACT_FAILURE','GOAL_TRANSPORT_FAILURE','GOAL_TRANSPORT_OUTPUT_LIMIT',
-    'GOAL_TRANSPORT_FRAME_LIMIT','GOAL_TRANSPORT_DEADLINE','GOAL_TRANSPORT_EARLY_EOF'))
+    'GOAL_TRANSPORT_FRAME_LIMIT','GOAL_TRANSPORT_DEADLINE','GOAL_TRANSPORT_EARLY_EOF',
+    'GOAL_APPROVAL_RECHECK_FAILED'))
 
 
 class GoalRuntimeBlocked(ContractError):
@@ -124,15 +128,46 @@ class GoalRuntimeBlocked(ContractError):
         super().__init__(code)
         if type(self) is GoalRuntimeBlocked:
             context=_CONTEXT.get()
-            _FAILURES[self]=(code,context['stage'] if context is not None else 'admission')
+            _FAILURES[self]=canonical(dict(reason=code,stage=context['stage'] if context is not None else 'admission'))
 
 
 def safe_goal_runtime_diagnostic(exc):
     """Fresh closed fields only; exception args and mutable attributes are ignored."""
     if type(exc) not in (GoalRuntimeBlocked,GoalBlocked):return None
     value=_FAILURES.get(exc)
-    if value is None:return None
-    return {'reason':value[0],'stage':value[1]}
+    if type(value) is not bytes:return None
+    try:return validated_goal_failure(loads(value))
+    except (ValueError,ContractError):return None
+
+
+def validated_goal_failure(value):
+    """Closed wire/log schema; never use exception attributes or remote text."""
+    required={'reason','stage'}
+    optional={'app_server','protocol','approval_failure','observed_child_returncode'}
+    if (type(value) is not dict or any(type(k) is not str for k in value)
+            or not required<=set(value) or set(value)-required-optional):return None
+    reason,stage=value['reason'],value['stage']
+    # Goal parser codes have their own closed constructor vocabulary.
+    from .goal_runner import _GOAL_REASONS
+    if type(reason) is not str or reason not in (_RUNTIME_REASONS|_NORMALIZED_REASONS|_GOAL_REASONS|{'GOAL_PROTOCOL_FAILURE'}):return None
+    if type(stage) is not str or stage not in _STAGES:return None
+    result={'reason':reason,'stage':stage}
+    for key,validator in [('app_server',validated_app_server_diagnostic),('protocol',validated_app_server_protocol)]:
+        if key in value:
+            detail=validator(value[key])
+            if detail is None:return None
+            result[key]=detail
+    if 'approval_failure' in value:
+        detail=value['approval_failure']
+        if (type(detail) is not dict or set(detail)!={'reason','origin'}
+                or type(detail['reason']) is not str or detail['reason'] not in RECHECK_REASONS
+                or type(detail['origin']) is not str or detail['origin'] not in RECHECK_ORIGINS):return None
+        result['approval_failure']=dict(detail)
+    if 'observed_child_returncode' in value:
+        code=value['observed_child_returncode']
+        if type(code) is not int or not -128<=code<=255:return None
+        result['observed_child_returncode']=code
+    return result
 
 
 def goal_failure_can_acknowledge(exc):
@@ -154,7 +189,6 @@ def _failure_detail(exc):
     detail=safe_goal_runtime_diagnostic(exc)
     if type(exc) is GoalBlocked:
         detail=dict(safe_goal_diagnostic(exc),stage=context['stage'])
-        _FAILURES[exc]=(detail['reason'],detail['stage'])
     if detail is None:
         transport=safe_app_server_diagnostic(exc)
         if transport is not None:
@@ -163,11 +197,20 @@ def _failure_detail(exc):
                     'APP_SERVER_DEADLINE_EXCEEDED':'GOAL_TRANSPORT_DEADLINE',
                     'APP_SERVER_EARLY_EOF':'GOAL_TRANSPORT_EARLY_EOF'}.get(
                         transport['reason'],'GOAL_TRANSPORT_FAILURE')
+            if transport['reason']=='APP_SERVER_RECHECK_FAILED':reason='GOAL_APPROVAL_RECHECK_FAILED'
         else:
             reason=('GOAL_TIMEOUT' if isinstance(exc,TimeoutError) else
                     'GOAL_OS_FAILURE' if isinstance(exc,OSError) else
                     'GOAL_CONTRACT_FAILURE' if isinstance(exc,ContractError) else 'GOAL_RUNTIME_FAILURE')
         detail={'reason':reason,'stage':context['stage']}
+        if transport is not None:detail['app_server']=transport
+    if type(exc) is RecheckRejected:
+        detail.update(reason='GOAL_APPROVAL_RECHECK_FAILED',approval_failure=safe_recheck_failure(exc))
+        protocol=safe_goal_protocol_diagnostic(exc)
+        if protocol is not None:detail['protocol']=protocol
+    if 'observed_child_returncode' in context:
+        detail['observed_child_returncode']=context['observed_child_returncode']
+    if type(exc) in (GoalBlocked,GoalRuntimeBlocked):_FAILURES[exc]=canonical(detail)
     return detail
 
 
@@ -659,6 +702,11 @@ class GoalUIDSupervisor(OwnedUIDSupervisor):
             _stage('postcheck');check()
             return PendingGoalResult(candidate,self.os.now()-started,snapshot.digest)
         except BaseException as exc:
+            if handle is not None:
+                try:code=handle.process.poll()
+                except Exception:code=None
+                if type(code) is int and -128<=code<=255:
+                    _CONTEXT.get()['observed_child_returncode']=code
             detail=_failure_detail(exc)
             _report_failure(exc)
             self.stop_owned(reservation)
@@ -667,7 +715,7 @@ class GoalUIDSupervisor(OwnedUIDSupervisor):
             # namespace immediately. No allocation-empty claim is made here.
             if isinstance(exc,Exception):
                 handled=exc if safe_goal_runtime_diagnostic(exc) is not None else GoalRuntimeBlocked(detail['reason'])
-                _FAILURES[handled]=(detail['reason'],detail['stage'])
+                _FAILURES[handled]=canonical(detail)
                 _ACKNOWLEDGEABLE.add(handled)
                 if handled is not exc:raise handled from None
             raise

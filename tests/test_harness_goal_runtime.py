@@ -157,13 +157,16 @@ class GoalLifecycleTests(unittest.TestCase):
                 with self.assertRaises(runtime.GoalRuntimeBlocked) as caught:self.run_goal()
                 handled=caught.exception
                 self.assertTrue(runtime.goal_failure_can_acknowledge(handled))
-                self.assertEqual(runtime.safe_goal_runtime_diagnostic(handled),dict(reason=reason,stage='turn'))
+                expected=dict(reason=reason,stage='turn')
+                inner=runtime.safe_app_server_diagnostic(exc)
+                if inner is not None:expected['app_server']=inner
+                self.assertEqual(runtime.safe_goal_runtime_diagnostic(handled),expected)
                 self.assertNotIn('private',str(handled))
                 self.assertNotIn(10,self.os.members)
                 self.assertFalse(runtime.goal_failure_can_acknowledge(exc))
                 handled.args=('private mutated body',)
                 handled.cleanup_verified=True
-                self.assertEqual(runtime.safe_goal_runtime_diagnostic(handled),dict(reason=reason,stage='turn'))
+                self.assertEqual(runtime.safe_goal_runtime_diagnostic(handled),expected)
 
     def test_uncertain_cleanup_process_control_and_close_failure_cannot_acknowledge(self):
         for case in ('cleanup','interrupt','close'):

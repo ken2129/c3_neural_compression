@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from contextvars import ContextVar
+from contextlib import contextmanager
 from functools import wraps
 from types import MappingProxyType
 from weakref import WeakKeyDictionary
@@ -204,33 +205,43 @@ class _DiagnosticState:
                 self.command_completed, self.command_exit_code)
 
 
+@contextmanager
+def app_server_diagnostic_scope(phase='admission'):
+    """Protocol context only; does not admit a request or alter exceptions' text.
+
+    Goal callers use the same bounded transport without the canary parser.
+    Other ContractError types pass through unchanged to their own classifier.
+    """
+    if _DIAGNOSTIC_CONTEXT.get() is not None:
+        yield
+        return
+    token = _DIAGNOSTIC_CONTEXT.set(_DiagnosticState(phase))
+    try:
+        yield
+    except AppServerBlocked as exc:
+        record = _DIAGNOSTIC_RECORDS.get(exc) if type(exc) is AppServerBlocked else None
+        if (type(record) is tuple and len(record) == len(_DIAGNOSTIC_FIELDS)
+                and type(record[0]) is str and record[0] in _REASON_CODES):
+            _DIAGNOSTIC_RECORDS[exc] = _DIAGNOSTIC_CONTEXT.get().record(record[0])
+            raise
+        raise AppServerBlocked('app-server boundary contract failed') from None
+    finally:
+        _DIAGNOSTIC_CONTEXT.reset(token)
+
+
 def _diagnosed(phase):
     def decorate(function):
         @wraps(function)
         def call(*args, **kwargs):
             if _DIAGNOSTIC_CONTEXT.get() is not None:
                 return function(*args, **kwargs)
-            token = _DIAGNOSTIC_CONTEXT.set(_DiagnosticState(phase))
-            try:
-                return function(*args, **kwargs)
-            except AppServerBlocked as exc:
-                # Also capture the current phase when a trusted callback raises
-                # an exception that was constructed before this run began.
-                if type(exc) is AppServerBlocked:
-                    record = _DIAGNOSTIC_RECORDS.get(exc)
-                    if (type(record) is tuple and len(record) == len(_DIAGNOSTIC_FIELDS)
-                            and type(record[0]) is str and record[0] in _REASON_CODES):
-                        _DIAGNOSTIC_RECORDS[exc] = _DIAGNOSTIC_CONTEXT.get().record(record[0])
-                        raise
-                # Do not trust subclass attributes or constructor-bypass data.
-                # The trusted call boundary can still record a fixed failure.
-                raise AppServerBlocked('app-server boundary contract failed') from None
-            except ContractError:
-                # Schema/canonical helpers and trusted integrations may raise
-                # the base class. Preserve phase without exposing their text.
-                raise AppServerBlocked('app-server boundary contract failed') from None
-            finally:
-                _DIAGNOSTIC_CONTEXT.reset(token)
+            with app_server_diagnostic_scope(phase):
+                try:
+                    return function(*args, **kwargs)
+                except AppServerBlocked:
+                    raise
+                except ContractError:
+                    raise AppServerBlocked('app-server boundary contract failed') from None
         return call
     return decorate
 
@@ -239,6 +250,13 @@ def _diagnostic_phase(phase):
     state = _DIAGNOSTIC_CONTEXT.get()
     if state is not None:
         state.phase = phase
+
+
+def _diagnostic_rpc(method):
+    state = _DIAGNOSTIC_CONTEXT.get()
+    if state is not None:
+        state.rpc_method = method if type(method) is str and method in _METHODS else 'unknown'
+        state.method = state.rpc_method
 
 
 def _diagnostic_milestone(name):
@@ -300,6 +318,39 @@ def safe_app_server_diagnostic(exc):
     if type(exc) is not AppServerBlocked:
         return None
     record = _DIAGNOSTIC_RECORDS.get(exc)
+    return _validated_diagnostic_record(record)
+
+
+def validated_app_server_diagnostic(value):
+    """Validate closed diagnostic frames crossing a trusted manager pipe."""
+    if (type(value) is not dict or any(type(k) is not str for k in value)
+            or set(value) != set(_DIAGNOSTIC_FIELDS)):
+        return None
+    return _validated_diagnostic_record(tuple(value[k] for k in _DIAGNOSTIC_FIELDS))
+
+
+def app_server_protocol_context():
+    """Fixed progress metadata, without claiming an app-server exception exists."""
+    state = _DIAGNOSTIC_CONTEXT.get()
+    if state is None:
+        return None
+    value = _validated_diagnostic_record(state.record(_OTHER_REASON))
+    if value is not None:
+        return {k:value[k] for k in ('phase','frame_kind','method','initialized',
+                                    'thread_started','turn_accepted','final_validated')}
+
+
+def validated_app_server_protocol(value):
+    names = ('phase','frame_kind','method','initialized','thread_started','turn_accepted','final_validated')
+    if type(value) is not dict or any(type(k) is not str for k in value) or set(value) != set(names):
+        return None
+    record = dict(zip(_DIAGNOSTIC_FIELDS, _DiagnosticState('unscoped').record(_OTHER_REASON)))
+    record.update(value)
+    checked = validated_app_server_diagnostic(record)
+    return {k:checked[k] for k in names} if checked is not None else None
+
+
+def _validated_diagnostic_record(record):
     if type(record) is not tuple or len(record) != len(_DIAGNOSTIC_FIELDS):
         return None
     for value, allowed in zip(record[:4], (_REASON_CODES, _PHASES, _FRAME_KINDS, _METHODS)):

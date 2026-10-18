@@ -25,7 +25,8 @@ from research_harness.schema import ContractError, canonical, loads, fields, ide
 from research_harness.goal_deployment import validate_goal_deployment
 from research_harness.goal_plan import validate_goal_plan
 from research_harness.goal_runtime import (GoalUIDSupervisor, GoalLinuxUIDBackend,
-    GoalRunBinding, UntrustedGoalSnapshot, CONSENTS, safe_goal_runtime_diagnostic, goal_failure_can_acknowledge)
+    GoalRunBinding, UntrustedGoalSnapshot, CONSENTS, safe_goal_runtime_diagnostic,
+    goal_failure_can_acknowledge, validated_goal_failure)
 from research_harness.goal_runner import GoalRequest
 from research_harness.goal_result import GoalResult
 from research_harness.goal_artifacts import (GoalEntry, GoalChange, GoalChangeCandidate,
@@ -340,16 +341,23 @@ class GoalPipeRuntime:
                 try: recheck()
                 except BaseException as exc:
                     self.failed_issue = binding['issue_number']
-                    write_frame(self.outgoing, dict(approved=False, **safe_recheck_failure(exc))); raise
+                    failure = safe_recheck_failure(exc)
+                    try:
+                        print(json.dumps(dict(phase='GOAL_MANAGER_RECHECK_REJECTED',
+                            issue=binding['issue_number'], stage='approval', approval_failure=failure)),
+                            file=sys.stderr, flush=True)
+                    except Exception: pass
+                    write_frame(self.outgoing, dict(approved=False, **failure)); raise
                 write_frame(self.outgoing, {'approved': True}); continue
             if set(frame) == {'goal_failure'}:
-                detail = frame['goal_failure']
-                fields(detail, ('reason', 'stage'))
-                if any(type(detail[key]) is not str for key in detail):
+                detail = validated_goal_failure(frame['goal_failure'])
+                if detail is None:
                     raise ContractError('invalid goal failure diagnostic')
-                # Root already logged the allowlisted reason. Never incorporate
-                # arbitrary pipe strings in an exception or user-visible report.
                 self.failed_issue = binding['issue_number']
+                try:
+                    print(json.dumps(dict(phase='GOAL_MANAGER_BLOCKED',
+                        issue=binding['issue_number'], **detail)), file=sys.stderr, flush=True)
+                except Exception: pass
                 raise ContractError('goal runtime rejected the claimed attempt')
             if frame != {'goal_result': binding['run_id']}:
                 raise ContractError('goal private result identity mismatch')
