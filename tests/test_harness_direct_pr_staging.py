@@ -77,22 +77,44 @@ class DirectFilesystemStagingTests(unittest.TestCase):
         owner = self
         original_listdir = os.listdir
         original_write = direct_runtime._write_new
-        class VirtualPath(type(Path())):
-            def __new__(cls, *args):
-                return super().__new__(cls, owner.local(Path(*args)))
-
+        class VirtualPath:
+            # Composition avoids pathlib's version-dependent subclass
+            # construction while all bytes and modes still use real Paths.
             def __init__(self, *args):
-                super().__init__(owner.local(Path(*args)))
+                self.path = owner.local(Path(*args))
+
+            def __fspath__(self):
+                return os.fspath(self.path)
+
+            def __str__(self):
+                return str(self.path)
+
+            def __truediv__(self, part):
+                return VirtualPath(self.path / part)
+
+            @property
+            def parent(self):
+                return VirtualPath(self.path.parent)
+
+            def stat(self):
+                return self.path.stat()
+
+            def chmod(self, mode):
+                return self.path.chmod(mode)
 
             def mkdir(self, *args, **kwargs):
-                existed = self.exists()
-                result = super().mkdir(*args, **kwargs)
-                if not existed:
-                    owner.owner[str(self)] = owner.uid
+                missing = []
+                current = self.path
+                while not current.exists():
+                    missing.append(current)
+                    current = current.parent
+                result = self.path.mkdir(*args, **kwargs)
+                for created in missing:
+                    owner.owner[str(created)] = owner.uid
                 return result
 
             def lstat(self):
-                actual = super().lstat()
+                actual = self.path.lstat()
                 return SimpleNamespace(st_uid=owner.owner.get(str(self), 0),
                     st_mode=actual.st_mode, st_nlink=actual.st_nlink,
                     st_size=actual.st_size, st_dev=actual.st_dev, st_ino=actual.st_ino)
@@ -101,7 +123,7 @@ class DirectFilesystemStagingTests(unittest.TestCase):
                 info = self.lstat()
                 if owner.uid not in (0, info.st_uid) and not info.st_mode & stat.S_IROTH:
                     raise PermissionError('virtual file owner mismatch')
-                return super().read_bytes()
+                return self.path.read_bytes()
 
         def listdir(path):
             local = owner.local(path)

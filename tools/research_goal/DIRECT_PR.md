@@ -234,6 +234,13 @@ PR が作成できたこと、通知の設定が保存されたこと、実イ�
 
 repository root で、通常 Python と最適化 Python の両方を確認します。
 これらは test fixture を使うローカル試験です。GitHub token、モデル認証、Docker 起動を必要としません。
+`python3 --version` も記録してください。container は安定版 Python 3.11 を使います。
+host の precheck も安定版を使い、`3.11.0rc1` のようなリリース候補版を導入判定には使いません。
+
+staging fixture は `pathlib` の内部的な subclass 初期化に依存しない構成です。
+互換修正後は Python 3.10.22 / 3.11.17 / 3.12.14 で全 988 件を通常・`-O` の両方で確認しました。
+3.10.12 と 3.11.0rc1 の実行確認は含みません。rc1 で報告された別の HTTPError 失敗は、
+traceback 未確認のため、この staging 修正で解消したとは扱いません。
 
 ```sh
 python3 -B -m unittest discover -s tests -p 'test_harness_*.py' -v
