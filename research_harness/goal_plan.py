@@ -13,6 +13,7 @@ import re
 from .schema import ContractError, canonical, fields, relative_path
 
 GOAL_KIND = 'codex-goal-v1'
+DIRECT_PR_KIND = 'codex-direct-pr-v1'
 MAX_PLAN_BYTES = 16384
 # Example requested budget only; this is neither deployment configuration nor
 # proof of enforcement. CPU is a per-process limit.
@@ -83,9 +84,22 @@ def validate_goal_plan(plan, allowed_source_sha, *, resource_limits=None, deploy
     deployment nonce is always required; executable admission must additionally
     match it to the protected operator profile before making a durable claim.
     """
-    fields(plan, _PLAN_FIELDS)
-    if plan['kind'] != GOAL_KIND:
+    direct = type(plan) is dict and plan.get('kind') == DIRECT_PR_KIND
+    fields(plan, (*_PLAN_FIELDS, 'direct_pr') if direct else _PLAN_FIELDS)
+    if plan['kind'] not in (GOAL_KIND, DIRECT_PR_KIND):
         raise ContractError('unsupported goal kind')
+    if direct:
+        from .schema import REPOSITORY
+        target = plan['direct_pr']
+        fields(target, ('repository', 'issue_number', 'base_branch', 'base_sha', 'title', 'public_results_approved'))
+        if (target['repository'] != REPOSITORY or type(target['issue_number']) is not int
+                or target['issue_number'] <= 0 or target['issue_number'] == 56
+                or target['base_branch'] != 'main' or target['base_sha'] != allowed_source_sha
+                or target['public_results_approved'] is not True):
+            raise ContractError('explicit direct PR target/publication scope required')
+        _text(target['title'], maximum=200)
+        if not target['title'].startswith('[Codex] ') or '\n' in target['title']:
+            raise ContractError('direct PR title must start with [Codex]')
     if type(plan['deployment_id']) is not str or re.fullmatch('[0-9a-f]{32}', plan['deployment_id']) is None:
         raise ContractError('public goal deployment identity required')
     if deployment_id is not None:
@@ -132,3 +146,21 @@ def validate_goal_plan(plan, allowed_source_sha, *, resource_limits=None, deploy
     if len(canonical(plan)) > MAX_PLAN_BYTES:
         raise ContractError('goal plan exceeds size bound')
     return deepcopy(plan)
+
+
+def direct_pr_scope(plan):
+    """Installed input/write envelope; each new goal still needs owner approval."""
+    if plan.get('kind') != DIRECT_PR_KIND:
+        raise ContractError('direct PR plan required')
+    return {key: deepcopy(plan[key]) for key in ('inputs', 'write_scope')}
+
+
+def require_installed_goal(profile, plan):
+    """Legacy installs pin one task; direct installs admit new approved goals."""
+    import hashlib
+    if plan.get('kind') == DIRECT_PR_KIND:
+        if profile.get('direct_pr_scope') != direct_pr_scope(plan):
+            raise ContractError('direct PR goal exceeds installed input/write envelope')
+    elif ('direct_pr_scope' in profile
+          or profile.get('installed_plan_digest') != hashlib.sha256(canonical(plan)).hexdigest()):
+        raise ContractError('goal differs from prepared operator task')

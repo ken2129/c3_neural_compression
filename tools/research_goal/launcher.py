@@ -23,7 +23,7 @@ sys.path.insert(0, '/opt/service')
 
 from research_harness.schema import ContractError, canonical, loads, fields, identifier
 from research_harness.goal_deployment import validate_goal_deployment
-from research_harness.goal_plan import validate_goal_plan
+from research_harness.goal_plan import validate_goal_plan, DIRECT_PR_KIND, require_installed_goal
 from research_harness.goal_runtime import (GoalUIDSupervisor, GoalLinuxUIDBackend,
     GoalRunBinding, UntrustedGoalSnapshot, CONSENTS, safe_goal_runtime_diagnostic,
     goal_failure_can_acknowledge, validated_goal_failure)
@@ -182,7 +182,7 @@ def deployment():
         with startup_stage('profile'):
             profile = protected_json('/control/goal-runtime.json')
             fields(profile, ('schema', 'enabled', 'deployment_id', 'input_source_sha', 'runtime_source_sha',
-                             'model', 'resource_limits', 'risk_acknowledgements', 'installed_plan_digest'))
+                             'model', 'resource_limits', 'risk_acknowledgements', 'installed_plan_digest'), ('direct_pr_scope',))
             if type(profile['installed_plan_digest']) is not str or re.fullmatch('[0-9a-f]{64}', profile['installed_plan_digest']) is None:
                 raise ContractError('installed goal plan digest required')
             fields(profile['risk_acknowledgements'], CONSENTS)
@@ -209,6 +209,9 @@ def deployment():
 
 def stage_workspace(plan):
     """Fresh known files before any worker exists; no CHOWN capability needed."""
+    if plan['kind'] == DIRECT_PR_KIND:
+        from research_harness.direct_pr_runtime import stage_direct_workspace
+        return stage_direct_workspace(plan, as_uid=as_uid)
     scopes = plan['write_scope']
     if (any(a != b and (a.startswith(b + '/') or b.startswith(a + '/')) for a in scopes for b in scopes)
             or any(p == s or p.startswith(s + '/') or s.startswith(p + '/') for p in plan['inputs'] for s in scopes)):
@@ -305,10 +308,7 @@ def freeze_snapshot(snapshot, binding, baseline, plan):
 
 
 def require_installed_plan(profile, plan):
-    expected = profile.get('installed_plan_digest')
-    if (type(expected) is not str or re.fullmatch('[0-9a-f]{64}', expected) is None
-            or hashlib.sha256(canonical(plan)).hexdigest() != expected):
-        raise ContractError('goal differs from prepared operator task')
+    require_installed_goal(profile, plan)
 
 
 class GoalPipeRuntime:
@@ -359,6 +359,12 @@ class GoalPipeRuntime:
                         issue=binding['issue_number'], **detail)), file=sys.stderr, flush=True)
                 except Exception: pass
                 raise ContractError('goal runtime rejected the claimed attempt')
+            if set(frame) == {'direct_pr_result'} and self.plan['kind'] == DIRECT_PR_KIND:
+                from research_harness.direct_pr_service import DirectPRResult
+                result = DirectPRResult.from_dict(frame['direct_pr_result'])
+                if result.binding != binding or result.model != self.plan['model']:
+                    raise ContractError('direct completion binding mismatch')
+                return result
             if frame != {'goal_result': binding['run_id']}:
                 raise ContractError('goal private result identity mismatch')
             raw = protected_json('/control/quarantine/' + identifier(binding['run_id']) + '.result.json', MAX_RECORD)
@@ -406,7 +412,6 @@ def manager():
     with startup_stage('manager_state'):
         state = ServiceState(root, require_epochs=True)
     try:
-        transport = GhGoalTransport(enabled=True, manager_credentials_isolated=True, runtime_verified=True)
         comments = GitHubOwnerComments()
         def content_authorizer(request):
             try:
@@ -414,12 +419,19 @@ def manager():
             except (MissingApproval, RevokedApproval):
                 return False
             return True
-        controller = GoalController(state, ManagerGitHub(), comments, runtime,
-            lambda persist: GitHubGoalPublisher(transport, persist_state=persist),
-            source_sha=profile['input_source_sha'], publication_base_getter=transport.base_sha,
-            enabled=profile['enabled'], resource_limits=profile['resource_limits'], deployment_id=profile['deployment_id'],
-            installed_plan_digest=profile['installed_plan_digest'],
-            content_authorizer=content_authorizer)
+        common = dict(source_sha=profile['input_source_sha'], enabled=profile['enabled'],
+            resource_limits=profile['resource_limits'], deployment_id=profile['deployment_id'],
+            installed_plan_digest=profile['installed_plan_digest'])
+        if 'direct_pr_scope' in profile:
+            from research_harness.direct_pr_service import DirectPRController
+            from research_harness.worker_pr import CONTROL_CONFIG_PATH
+            controller = DirectPRController(state, ManagerGitHub(), comments, runtime, None,
+                profile=profile, worker_pr_config=protected_json(CONTROL_CONFIG_PATH), **common)
+        else:
+            transport = GhGoalTransport(enabled=True, manager_credentials_isolated=True, runtime_verified=True)
+            controller = GoalController(state, ManagerGitHub(), comments, runtime,
+                lambda persist: GitHubGoalPublisher(transport, persist_state=persist),
+                publication_base_getter=transport.base_sha, content_authorizer=content_authorizer, **common)
         while True:
             try: reports = controller.once()
             except Exception as exc: reports = [source_failure_report(exc)]
@@ -440,6 +452,14 @@ def blocked_startup():
     signal.signal(signal.SIGTERM, lambda *_: os._exit(125))
     signal.signal(signal.SIGINT, lambda *_: os._exit(125))
     while True: signal.pause()
+
+
+def install_pid1_shutdown_handlers():
+    """Docker stop ends this dedicated namespace; never signal foreign jobs."""
+    if os.getpid() != 1 or os.getresuid() != (0, 0, 0):
+        raise ContractError('shutdown handlers require dedicated root PID1')
+    signal.signal(signal.SIGTERM, lambda *_: os._exit(143))
+    signal.signal(signal.SIGINT, lambda *_: os._exit(130))
 
 
 def supervise():
@@ -504,6 +524,12 @@ def supervise():
                         request, recheck, binding=GoalRunBinding(request.source_sha, request.digest,
                             binding['request_id'], binding['run_id']), quarantine=quarantine, enabled=profile['enabled'])
                     completed_run = True
+                    if plan['kind'] == DIRECT_PR_KIND:
+                        from research_harness.direct_pr_service import DirectPRResult
+                        result = DirectPRResult(binding, plan['model'], pending.candidate.outcome,
+                            pending.candidate.summary, pending.candidate.pr_url, pending.elapsed_seconds)
+                        write_frame(control.stdin, {'direct_pr_result': result.to_dict()})
+                        continue
                     if len(frozen) != 1: raise ContractError('goal frozen candidate missing')
                     result = GoalResult(**{key:binding[key] for key in ('request_id','run_id','issue_number','plan_digest','source_sha')},
                         model=plan['model'], candidate_outcome=pending.candidate.outcome,
@@ -550,7 +576,9 @@ def supervise():
 if __name__ == '__main__':
     try:
         if sys.argv[1:] == ['manager']: manager()
-        elif not sys.argv[1:]: supervise()
+        elif not sys.argv[1:]:
+            install_pid1_shutdown_handlers()
+            supervise()
         else: raise ContractError('unsupported goal launcher mode')
     except BaseException as exc:
         if type(exc) is GoalStartupFailure:
