@@ -65,6 +65,33 @@ doing work. Production validation and all resource/ownership checks stay as
 before. Offline lifecycle regressions do not establish Docker success.
 The original attempt is over; this correction does not authorize a retry.
 
+## Second approved attempt: runner startup blocked
+
+At `6ee756a7ccde7fcf88810fc4ffd8eab3eae02051`, the separately approved
+attempt passed deployment validation and started once. The container exited
+125 with `DIAGNOSTIC_CONTRACT_REJECTED`, error_class `permission`, and
+RestartCount=0. Docker reported the applied `docker-default` profile and the
+explicit profile/NNP options. The run monitor took 1.191 seconds; the whole
+attempt took 3.760 seconds. No A/B job or saved result was reached.
+
+The stopped volume has the runner's private `home`, `_temp`, `_diag` and empty
+output log, but no manager state/inbox/claim/result. This places the failure
+after private runner preparation. The native launch used `Popen(cwd='/runner',
+user=10003)` after restoring root, without a DAC override capability. CPython
+performs chdir before setgid/setuid, so root cannot enter UID10003's 0700
+directory. This is a concrete startup defect consistent with the saved state;
+the original error did not record its filename/syscall, so that exact syscall
+has not been directly observed in the failed container.
+
+The correction starts a fixed trusted Python bootstrap with cwd `/`, drops
+UID/GID/groups through Popen, then checks permanent UID10003, zero capabilities
+and NNP before entering the still-private runner directory and execing the
+runner in the same PID. No capability or permission is added. Model-free tests
+exercise real chdir denial, private-file rejection, actual exec/cwd/PID, plus
+simulated Linux identity facts. Actual root-to-10003 startup and the subsequent
+A/B lifecycle remain unverified until another separately approved Docker test.
+No automatic retry or change to this stopped environment is made.
+
 The fixed implementation is now `run_diagnostic.py`, `diagnostic.py`,
 `diagnostic_process.py`, `Dockerfile.diagnostic`, and `compose.diagnostic.yaml`.
 The separately named diagnostic validator requires the actual diagnostic

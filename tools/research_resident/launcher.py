@@ -246,8 +246,12 @@ def _start_runner():
     # Open the log as its owner, then restore root before Popen performs its
     # permanent setgroups/setgid/setuid. UID10003 has no SETGID capability.
     with os.fdopen(fd, 'ab', buffering=0) as output:
-        child = subprocess.Popen([str(binary), 'run', '--startuptype', 'service'],
-            user=RUNNER_UID, group=RUNNER_UID, extra_groups=[], cwd='/runner',
+        # CPython chdir(cwd) precedes setgid/setuid. Root has no DAC override
+        # here, so cwd=/runner (UID10003,0700) would fail before the UID drop.
+        # Start a fixed trusted bootstrap in /, then chdir/exec as UID10003.
+        child = subprocess.Popen([sys.executable, '-I', '-B', '-c',
+            "import sys;sys.path.insert(0,'/opt/service');from research_harness.resident_runner import main;main()"],
+            user=RUNNER_UID, group=RUNNER_UID, extra_groups=[], cwd='/',
             env=dict(PATH='/usr/local/bin:/usr/bin:/usr/sbin:/sbin:/bin', LANG='C.UTF-8', HOME='/runner/home',
                      TMPDIR='/runner/_temp', DOTNET_PROCESSOR_COUNT='1'),
             stdin=subprocess.DEVNULL, stdout=output, stderr=output, close_fds=True)
