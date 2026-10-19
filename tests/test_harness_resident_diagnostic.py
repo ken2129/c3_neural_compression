@@ -19,6 +19,14 @@ class DiagnosticContractTests(unittest.TestCase):
         except PermissionError as exc:value=failure_location(exc,['job'])
         self.assertEqual(value,dict(role='job',stage='unknown',errno=13))
 
+    def test_failure_location_preserves_only_known_inner_kernel_code_site(self):
+        namespace={}
+        exec(compile('def context():\n raise PermissionError(13,"SECRET","/SECRET")\n',
+                     '/opt/service/research_harness/uid_supervisor.py','exec'),namespace)
+        try:namespace['context']()
+        except PermissionError as exc:value=failure_location(exc,['job'])
+        self.assertEqual(value,dict(role='job',stage='kernel_context',code_line=2,errno=13))
+
     def diagnostic_facts(self):
         data,args=facts()
         data['Config']['Labels']['c3.purpose']='dedicated-resident-diagnostic'

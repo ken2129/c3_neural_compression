@@ -36,6 +36,13 @@ def failure_location(exc,argv):
         ('goal_launcher.py','prepare_goal'):'prepare_goal',
         ('goal_launcher.py','stage_workspace'):'stage_workspace',
         ('goal_launcher.py','preflight'):'preflight',
+        ('uid_supervisor.py','context'):'kernel_context',
+        ('uid_supervisor.py','process'):'process_identity',
+        ('goal_runtime.py','context'):'goal_kernel_context',
+        ('goal_runtime.py','resources'):'kernel_resources',
+        ('resident_runtime.py','context'):'resident_kernel_context',
+        ('resident_runtime.py','_context'):'resident_context_validation',
+        ('resident_runtime.py','reserve'):'resident_reserve',
     }
     site='unknown';line=None;tb=exc.__traceback__
     while tb is not None:
