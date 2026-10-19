@@ -12,6 +12,22 @@ from .schema import ContractError
 
 def validate_resident_deployment(inspect, consumers, *, runtime_source_sha, input_source_sha,
                              volume_name, volume_inspect, resource_limits, deployment_id):
+    return _validate(inspect,consumers,runtime_source_sha=runtime_source_sha,
+        input_source_sha=input_source_sha,volume_name=volume_name,volume_inspect=volume_inspect,
+        resource_limits=resource_limits,deployment_id=deployment_id,
+        purpose='dedicated-resident-controller',script='/opt/service/resident_launcher.py',restart='unless-stopped')
+
+
+def validate_diagnostic_deployment(inspect,consumers,**kwargs):
+    """Only the separately installed fixed model-free diagnostic entrypoint."""
+    if type(inspect) is not dict or inspect.get('AppArmorProfile')!='docker-default':
+        raise ContractError('diagnostic requires docker-default AppArmor')
+    return _validate(inspect,consumers,**kwargs,purpose='dedicated-resident-diagnostic',
+        script='/opt/service/resident_diagnostic.py',restart='no')
+
+
+def _validate(inspect,consumers,*,runtime_source_sha,input_source_sha,volume_name,
+              volume_inspect,resource_limits,deployment_id,purpose,script,restart):
     """Validate a new goal-only installation; never normalize canary evidence."""
     source_sha = runtime_source_sha
     if (type(input_source_sha) is not str or re.fullmatch("[0-9a-f]{40}", input_source_sha) is None
@@ -25,7 +41,7 @@ def validate_resident_deployment(inspect, consumers, *, runtime_source_sha, inpu
         if type(ident) is not str or not re.fullmatch('[0-9a-f]{64}',ident):raise ValueError()
         if type(source_sha) is not str or not re.fullmatch('[0-9a-f]{40}',source_sha):raise ValueError()
         if type(volume_name) is not str or not re.fullmatch('[A-Za-z0-9][A-Za-z0-9_.-]{0,127}',volume_name):raise ValueError()
-        if config['Labels'].get('c3.purpose')!='dedicated-resident-controller':raise ValueError()
+        if config['Labels'].get('c3.purpose')!=purpose:raise ValueError()
         if config['Labels'].get('c3.source-sha')!=source_sha:raise ValueError()
         if config['Labels'].get('c3.input-source-sha')!=input_source_sha:raise ValueError()
         if config['Labels'].get('c3.deployment-id')!=deployment_id:raise ValueError()
@@ -41,9 +57,9 @@ def validate_resident_deployment(inspect, consumers, *, runtime_source_sha, inpu
         if capabilities('CapAdd')!={'SETUID','SETGID'} or capabilities('CapDrop')!={'ALL'}:raise ValueError()
         if host['SecurityOpt']!=['no-new-privileges:true']:raise ValueError()
         if host['NetworkMode']!='bridge':raise ValueError()
-        if config['Entrypoint']!=['python','-I','-B','/opt/service/resident_launcher.py'] or config['Cmd'] not in (None,[]):raise ValueError()
+        if config['Entrypoint']!=['python','-I','-B',script] or config['Cmd'] not in (None,[]):raise ValueError()
         if host['Init'] is not False:raise ValueError()
-        if host['RestartPolicy']['Name']!='unless-stopped':raise ValueError()
+        if host['RestartPolicy']['Name']!=restart:raise ValueError()
         if host['Runtime']!='runc' or host.get('DeviceCgroupRules') not in (None,[]):raise ValueError()
         work_bytes=resource_limits['max_work_bytes']
         if type(work_bytes) is not int or not 1024**2<=work_bytes<=256*1024**2:raise ValueError()
@@ -83,4 +99,4 @@ def validate_resident_deployment(inspect, consumers, *, runtime_source_sha, inpu
     return dict(schema_version=1,container_id=ident,source_sha=input_source_sha,
                 runtime_source_sha=runtime_source_sha,input_source_sha=input_source_sha,
                 image_id=image_id,volume_name=volume_name,deployment_id=deployment_id,
-                pid_mode='private',restart_policy='unless-stopped',exclusive_volume=True)
+                pid_mode='private',restart_policy=restart,exclusive_volume=True)

@@ -47,6 +47,25 @@ diagnostic identity and `restart=no`. Production validation remains strict
 (`unless-stopped`); do not fabricate/normalize inspect to pass it. The exact
 diagnostic changes and fixed commit will be supplied before the start approval.
 
+The fixed implementation is now `run_diagnostic.py`, `diagnostic.py`,
+`diagnostic_process.py`, `Dockerfile.diagnostic`, and `compose.diagnostic.yaml`.
+The separately named diagnostic validator requires the actual diagnostic
+entrypoint/purpose, restart=no and docker-default. It shares all other resource
+and mount checks with production; inspect objects are never rewritten.
+
+```sh
+python3 -B tools/research_resident/run_diagnostic.py --approve-model-free-diagnostic
+```
+
+This builds a minimal Python fixture image, **not the official Codex/Actions
+runner distribution**. Only their wire responses/delivery are simulated. It
+has no credential-file arguments: dummy noncredential literals are created
+locally. The normal root broker/manager/job-supervisor, staging ownership,
+native admission, UID drop/barrier, bounded transport, formal approval parser,
+claims, pidfd/ECHILD and workspace/IPC deletion actually run. No production
+registration, network read, model call or publication is exercised. The user
+must explicitly authorize this one attempt; the CLI flag is not a new approval.
+
 ## Completion and remaining gaps
 
 Stop and retain only the new diagnostic container/volumes and small fixed

@@ -1,0 +1,43 @@
+services:
+  controller:
+    build:
+      context: ${C3_GOAL_CONTEXT:?fixed context required}
+      dockerfile: tools/research_resident/Dockerfile.diagnostic
+      args:
+        SOURCE_SHA: ${C3_RUNTIME_SHA:?fixed source required}
+        INPUT_SOURCE_SHA: ${C3_INPUT_SHA:?fixed input required}
+        DEPLOYMENT_ID: ${C3_DEPLOYMENT_ID:?fresh ID required}
+    labels:
+      c3.purpose: dedicated-resident-diagnostic
+      c3.source-sha: ${C3_RUNTIME_SHA}
+      c3.input-source-sha: ${C3_INPUT_SHA}
+      c3.deployment-id: ${C3_DEPLOYMENT_ID}
+    user: '0:0'
+    init: false
+    read_only: true
+    network_mode: bridge
+    ipc: private
+    cgroup: private
+    runtime: runc
+    cap_drop: [ALL]
+    cap_add: [SETUID, SETGID]
+    security_opt: ['no-new-privileges:true']
+    pids_limit: 64
+    mem_limit: 1073741824
+    memswap_limit: 1073741824
+    cpus: 1
+    shm_size: 64m
+    restart: 'no'
+    volumes:
+      - goal-control:/control
+      - runner-state:/runner
+    tmpfs:
+      - /work:rw,noexec,nosuid,nodev,size=268435456,mode=0755,uid=0,gid=0
+      - /control-ipc:rw,noexec,nosuid,nodev,size=1048576,mode=0711,uid=10001,gid=10001
+volumes:
+  goal-control:
+    labels:
+      c3.deployment-id: ${C3_DEPLOYMENT_ID}
+  runner-state:
+    labels:
+      c3.deployment-id: ${C3_DEPLOYMENT_ID}
