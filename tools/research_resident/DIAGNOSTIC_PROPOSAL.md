@@ -1,4 +1,74 @@
-# Model-free Docker diagnostic — attempt blocked before start
+# Model-free Docker diagnostic — PASSED on fixed runtime
+
+The later explicit instruction to continue within the same limits authorized
+the subsequent bounded attempts below. No production cutover, credentials,
+real runner registration, model call or GitHub operation was included.
+
+## Successful Docker observation
+
+Fixed runtime: `abee7bf5debde263cc83b041f62addb496948d79`.
+
+- Project: `uchishiba-resident-diag-f27ba71e`.
+- Container: `9a005e9270e728871a31c8819f77fa7f176527bfeeb4537594736fdc55210a17`.
+- Image: `sha256:d9967ebe5a360e74d617c7ef43951c72025cfbee1ed4218f7d29e843788f4f24`.
+- Result: `RESIDENT_DIAGNOSTIC_PASSED`, all **18** saved checks true.
+- Run monitor: **9.412 seconds**; build/create/run/stop: **11.992 seconds**.
+- At completion: running, RestartCount=0, same PID1/manager/runner identities,
+  worker0 and empty work area. PID1 start ticks: 556020944.
+- IPC trace: `approved_false → goal_failure → failure_ack → job_finished → cleaned`.
+- Synthetic A (920001): BLOCKED, no result; synthetic B (920002):
+  WORKER_FINISHED, completed result saved, pr_url=null. Both re-notifications
+  returned duplicate=true/dispatched=false. Two claims were preserved.
+- Actual UID/capability/resource/mount/admission checks, permanent worker UID
+  drop, pidfd/subreaper/ECHILD recovery of the setsid/double-fork descendant,
+  temporary dummy-auth/workspace/IPC removal and SQLite persistence ran in Docker.
+- Only after those live assertions, the host stopped this exact container.
+  Final status exited, exit143 (the requested SIGTERM shutdown), RestartCount=0,
+  PID0, OOM=false, AppArmor docker-default. The planned stop is separate from
+  the successful running-state diagnostic result.
+- The saved result is UID/GID10001:10001, mode0600. Its SHA256 is
+  `e8887c272b18a0c96bd9e513435933cd1ac09f2a998dfb07d2a80b2e54aa4f0c`.
+  A separate stopped-container readback verified every check and the checksum;
+  mode=ro/query_only SQLite independently confirmed both phases/result presence
+  and two claims. Both volumes have only this container as consumer. Installed
+  launcher, resident runtime and runner-bootstrap bytes match the fixed commit.
+
+### Kernel-context defect found and fixed during the continued diagnosis
+
+After the runner startup fix, the manager reached RESIDENT_MANAGER_READY but
+the job failed at reserve. Allowlisted code-site/role/errno diagnostics pinned
+the error to `uid_supervisor.py:193`, reading `/proc/1/ns/pid`, errno13 in the
+job role. PID1's temporary UID switches make cross-process namespace links
+unreadable to the restricted job root; neither SYS_PTRACE nor a dumpability
+relaxation was added.
+
+PID1 now sends its own live epoch and IPC namespace over its private job
+bootstrap pipe. The resident backend compares the job's actual self namespace,
+boot ID, root PID1 identity and PID1 start ticks against that anchor. IPC
+admission keeps comparing the actual self IPC namespace. These anchors never
+come from an Issue, event, worker or mutable configuration. The ordinary
+disposable backend retains its direct PID1 observation; no checks are skipped.
+
+The regression uses real Linux self/boot/PID1-stat observations while rejecting
+cross-process namespace-link reads, then rejects mismatched namespace, boot,
+ticks, malformed anchors and IPC. Only the absent image marker is simulated.
+Together with all earlier tests, Python3.10.12 normal and optimized runs each
+passed **1087 tests** before the successful Docker attempt.
+
+### What this result does and does not establish
+
+This establishes the model-free native Docker lifecycle from formal synthetic
+approval rejection through actual cleanup and the next job's persisted result,
+without restarting PID1/manager/runner. GitHub snapshots, runner delivery and
+Codex app-server replies remain fixed local fixtures. The official Actions
+runner distribution/registration, real Codex communication and inference,
+production resource fit, GitHub PR publication and dot notification are still
+unverified. No production service was deployed or switched over.
+
+The successful container/image/two volumes and earlier failed attempts remain
+stopped and retained. No host-side log archive or real authentication copy was
+created by these attempts. The sections below preserve the original scope and
+earlier failures rather than treating them as successful reproductions.
 
 The approval-rejection fix must first pass the Linux regression and be pinned
 to a reviewed full PR94 commit. This document is a proposed operation, not
