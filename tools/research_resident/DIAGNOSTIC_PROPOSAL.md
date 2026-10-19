@@ -1,4 +1,4 @@
-# Proposed model-free Docker diagnostic — not yet run
+# Model-free Docker diagnostic — attempt blocked before start
 
 The approval-rejection fix must first pass the Linux regression and be pinned
 to a reviewed full PR94 commit. This document is a proposed operation, not
@@ -46,6 +46,24 @@ The test-only entrypoint/deployment validation must explicitly require the
 diagnostic identity and `restart=no`. Production validation remains strict
 (`unless-stopped`); do not fabricate/normalize inspect to pass it. The exact
 diagnostic changes and fixed commit will be supplied before the start approval.
+
+The single approved attempt at `5dbc70431f0bb12cfea561abccc7c4e55bb8d8d4`
+built and created the diagnostic, then stopped at inspect validation. Start
+count was zero, RestartCount zero, status `created`; no A/B job ran. All shared
+identity/resource/mount predicates accepted the unmodified measured inspect.
+The diagnostic-only check wrongly required `AppArmorProfile=docker-default`
+before start; Docker 28.3.2 reported an empty applied profile at that point.
+The created container, image and two dedicated volumes remain as evidence.
+This is a diagnostic-validator failure, not a reproduction of cancellation.
+
+The correction explicitly requests `apparmor=docker-default`. Only an actual
+`created`, non-running, PID-zero inspect may have an empty applied profile;
+this means pending activation, not verified enforcement. Once started, the
+host monitor requires `AppArmorProfile=docker-default`, and every diagnostic
+role checks `/proc/self/attr/current` for `docker-default (enforce)` before
+doing work. Production validation and all resource/ownership checks stay as
+before. Offline lifecycle regressions do not establish Docker success.
+The original attempt is over; this correction does not authorize a retry.
 
 The fixed implementation is now `run_diagnostic.py`, `diagnostic.py`,
 `diagnostic_process.py`, `Dockerfile.diagnostic`, and `compose.diagnostic.yaml`.

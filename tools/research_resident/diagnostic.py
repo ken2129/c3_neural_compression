@@ -27,6 +27,8 @@ def protected(path):
 
 
 def configure():
+    if Path('/proc/self/attr/current').read_text().strip()!='docker-default (enforce)':
+        raise ContractError('diagnostic AppArmor enforcement missing')
     resident.SCRIPT='/opt/service/resident_diagnostic.py'
     resident.validate_resident_deployment=validate_diagnostic_deployment
     ResidentLinuxBackend.verify_deployment=staticmethod(validate_diagnostic_deployment)

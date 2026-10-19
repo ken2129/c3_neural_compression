@@ -79,6 +79,8 @@ def app_server():
 
 if __name__=='__main__':
     try:
+        if Path('/proc/self/attr/current').read_text().strip()!='docker-default (enforce)':
+            raise RuntimeError('fixture AppArmor enforcement missing')
         if Path(sys.argv[0]).name=='Runner.Listener':runner()
         else:app_server()
     except BaseException:

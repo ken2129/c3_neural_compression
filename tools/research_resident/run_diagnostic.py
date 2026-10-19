@@ -79,7 +79,7 @@ def main():
             consumers={key:run(['docker','ps','-aq','--no-trunc','--filter','volume='+name]).decode().splitlines() for key,name in [('control',control),('runner',runner)]}
             validate_diagnostic_deployment(inspect,consumers,runtime_source_sha=sha,input_source_sha=INPUT_SHA,
                 volume_name=control,volume_inspect=volumes,resource_limits=profile['resource_limits'],deployment_id=deployment)
-            if inspect['State']['Status']!='created' or inspect.get('AppArmorProfile')!='docker-default':raise ContractError('fresh/default profile required')
+            if inspect['State']['Status']!='created':raise ContractError('fresh container required')
             summary.update(image_id=inspect['Image'],volumes=[control,runner],inspect_verified=True)
             manifest=dict(inspect=inspect,consumers=consumers,volume_name=control,volume_inspect=volumes,initialize_new_state=True)
             dummy_auth=canonical(dict(auth_mode='chatgpt',tokens=dict(access_token='SYNTHETIC-NONCREDENTIAL',refresh_token='SYNTHETIC-NONCREDENTIAL',id_token='SYNTHETIC-NONCREDENTIAL')))
@@ -92,7 +92,9 @@ def main():
             passed=False
             while time.monotonic()-run_started<120:
                 current=json.loads(run(['docker','inspect',ident],limit=min(5,120-(time.monotonic()-run_started))))[0]
-                if current['Id']!=ident or current['RestartCount']!=0:raise ContractError('identity/restart changed')
+                if (current['Id']!=ident or current['RestartCount']!=0
+                        or current.get('AppArmorProfile')!='docker-default'):
+                    raise ContractError('identity/restart/applied profile changed')
                 raw=run(['docker','logs','--tail','120',ident],limit=min(5,120-(time.monotonic()-run_started))).decode('utf-8','replace')
                 logs=[]
                 for line in raw.splitlines():

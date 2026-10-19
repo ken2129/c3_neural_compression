@@ -20,14 +20,23 @@ def validate_resident_deployment(inspect, consumers, *, runtime_source_sha, inpu
 
 def validate_diagnostic_deployment(inspect,consumers,**kwargs):
     """Only the separately installed fixed model-free diagnostic entrypoint."""
-    if type(inspect) is not dict or inspect.get('AppArmorProfile')!='docker-default':
+    # Docker records the applied profile during start, not create. An explicit
+    # requested profile plus a never-started state is pending evidence only;
+    # the entrypoint and host monitor independently require enforcement at run.
+    state=inspect.get('State',{}) if type(inspect) is dict else {}
+    pending=(type(state) is dict and state.get('Status')=='created' and state.get('Running') is False
+             and type(state.get('Pid')) is int and state['Pid']==0)
+    if type(inspect) is not dict or not (inspect.get('AppArmorProfile')=='docker-default'
+            or (pending and inspect.get('AppArmorProfile')=='')):
         raise ContractError('diagnostic requires docker-default AppArmor')
     return _validate(inspect,consumers,**kwargs,purpose='dedicated-resident-diagnostic',
-        script='/opt/service/resident_diagnostic.py',restart='no')
+        script='/opt/service/resident_diagnostic.py',restart='no',
+        security_options=('no-new-privileges:true','apparmor=docker-default'))
 
 
 def _validate(inspect,consumers,*,runtime_source_sha,input_source_sha,volume_name,
-              volume_inspect,resource_limits,deployment_id,purpose,script,restart):
+              volume_inspect,resource_limits,deployment_id,purpose,script,restart,
+              security_options=('no-new-privileges:true',)):
     """Validate a new goal-only installation; never normalize canary evidence."""
     source_sha = runtime_source_sha
     if (type(input_source_sha) is not str or re.fullmatch("[0-9a-f]{40}", input_source_sha) is None
@@ -55,7 +64,9 @@ def _validate(inspect,consumers,*,runtime_source_sha,input_source_sha,volume_nam
         capabilities=lambda key: {cap.removeprefix('CAP_') for cap in host[key]}
         if any(len(capabilities(key))!=len(host[key]) for key in ('CapAdd','CapDrop')):raise ValueError()
         if capabilities('CapAdd')!={'SETUID','SETGID'} or capabilities('CapDrop')!={'ALL'}:raise ValueError()
-        if host['SecurityOpt']!=['no-new-privileges:true']:raise ValueError()
+        if (type(host['SecurityOpt']) is not list
+                or any(type(v) is not str for v in host['SecurityOpt'])
+                or sorted(host['SecurityOpt'])!=sorted(security_options)):raise ValueError()
         if host['NetworkMode']!='bridge':raise ValueError()
         if config['Entrypoint']!=['python','-I','-B',script] or config['Cmd'] not in (None,[]):raise ValueError()
         if host['Init'] is not False:raise ValueError()
