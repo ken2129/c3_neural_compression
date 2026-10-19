@@ -171,7 +171,7 @@ def protected_json(path, limit=65536):
     return loads(read_private(Path(path), limit=limit))
 
 
-def deployment():
+def deployment(*, validator=None):
     with startup_stage('identity'):
         if os.getresuid() != (0, 0, 0) or os.getpid() != 1:
             raise ContractError('goal requires dedicated root PID1')
@@ -195,7 +195,9 @@ def deployment():
         as_uid(0)
     with startup_stage('deployment_validation'):
         fields(data, ('inspect', 'consumers', 'volume_name', 'volume_inspect', 'initialize_new_state'))
-        verified = validate_goal_deployment(data['inspect'], data['consumers'],
+        # A different trusted entrypoint may supply its own equally strict
+        # layout validator. Operator/Issue JSON never chooses a validator.
+        verified = (validate_goal_deployment if validator is None else validator)(data['inspect'], data['consumers'],
             runtime_source_sha=profile['runtime_source_sha'], input_source_sha=profile['input_source_sha'],
             volume_name=data['volume_name'], volume_inspect=data['volume_inspect'],
             resource_limits=profile['resource_limits'], deployment_id=profile['deployment_id'])
