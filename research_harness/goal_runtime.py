@@ -422,12 +422,21 @@ class GoalLinuxUIDBackend(LinuxUIDBackend):
     def __init__(self):
         self._ipc_namespace=None
 
+    def init_namespace(self,kind):
+        if kind not in ('pid','ipc'):raise GoalRuntimeBlocked('GOAL_IPC_NAMESPACE_CHANGED')
+        return os.readlink('/proc/1/ns/'+kind)
+
+    @staticmethod
+    def verify_deployment(*args, **kwargs):
+        from .goal_deployment import validate_goal_deployment
+        return validate_goal_deployment(*args, **kwargs)
+
     def context(self):
-        result = LinuxUIDBackend.context()
+        result = LinuxUIDBackend.context(init_namespace=self.init_namespace('pid'))
         marker = _read_protected('/opt/c3-runtime/dedicated-pid1-goal', limit=64)
         result['dedicated_marker'] = marker == b'c3-dedicated-pid1-goal-v1\n'
         ipc=os.readlink('/proc/self/ns/ipc')
-        if (ipc!=os.readlink('/proc/1/ns/ipc')
+        if (ipc!=self.init_namespace('ipc')
                 or self._ipc_namespace is not None and ipc!=self._ipc_namespace):
             raise GoalRuntimeBlocked('GOAL_IPC_NAMESPACE_CHANGED')
         return result
@@ -507,18 +516,17 @@ class GoalLinuxUIDBackend(LinuxUIDBackend):
         # Host inspect is collected/protected by the approved operator setup.
         # Internal procfs cannot independently prove Docker image/private IPC or
         # exclusive volume ownership. No consent boolean substitutes for this.
-        from .goal_deployment import validate_goal_deployment
         fields(deployment,('inspect','consumers','volume_name','volume_inspect','initialize_new_state'))
         if type(deployment['initialize_new_state']) is not bool:
             raise GoalRuntimeBlocked('GOAL_DEPLOYMENT_INITIALIZATION_INTENT')
-        verified=validate_goal_deployment(deployment['inspect'],deployment['consumers'],
+        verified=self.verify_deployment(deployment['inspect'],deployment['consumers'],
             runtime_source_sha=config['runtime_source_sha'],input_source_sha=request.source_sha,
             volume_name=deployment['volume_name'],volume_inspect=deployment['volume_inspect'],
             resource_limits=config['resource_limits'],deployment_id=config['deployment_id'])
         if Path('/etc/hostname').read_text().strip()!=verified['container_id'][:12]:
             raise GoalRuntimeBlocked('GOAL_CONTAINER_IDENTITY_MISMATCH')
         ipc=os.readlink('/proc/self/ns/ipc')
-        if ipc!=os.readlink('/proc/1/ns/ipc'):raise GoalRuntimeBlocked('GOAL_IPC_NAMESPACE_CHANGED')
+        if ipc!=self.init_namespace('ipc'):raise GoalRuntimeBlocked('GOAL_IPC_NAMESPACE_CHANGED')
         self._ipc_namespace=ipc
         if _read_protected('/opt/service/source-sha',limit=41).strip()!=config['runtime_source_sha'].encode():
             raise GoalRuntimeBlocked('GOAL_IMAGE_SOURCE_MISMATCH')
@@ -617,9 +625,14 @@ class GoalLinuxUIDBackend(LinuxUIDBackend):
         finally:os.seteuid(0)
 
 
-def spawn_goal_child(request, *, gate_read, ready_write):
+def spawn_goal_child(request, *, gate_read, ready_write, resident_supervisor=False):
     plan=request.validated_plan();budget=plan['resource_budget']
-    if os.getpid()!=1 or os.getresuid()!=(0,0,0):
+    if resident_supervisor:
+        # Only the separately selected resident backend supplies this flag;
+        # prove the per-job root subreaper rather than trusting a JSON boolean.
+        from .resident_runtime import require_job_supervisor
+        require_job_supervisor()
+    elif os.getpid()!=1 or os.getresuid()!=(0,0,0):
         raise GoalRuntimeBlocked('GOAL_DEDICATED_ROOT_PID1_REQUIRED')
     for fd in (gate_read,ready_write):
         if type(fd) is not int or fd<3 or not stat.S_ISFIFO(os.fstat(fd).st_mode):

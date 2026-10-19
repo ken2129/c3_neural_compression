@@ -166,7 +166,7 @@ class LinuxUIDBackend:
         return result
 
     @staticmethod
-    def context():
+    def context(*, init_namespace=None):
         values = dict(line.split(':', 1) for line in Path('/proc/self/status').read_text().splitlines()
                       if ':' in line)
         marker = Path('/opt/c3-runtime/dedicated-pid1-canary')
@@ -190,7 +190,7 @@ class LinuxUIDBackend:
             'sigign': int(values['SigIgn'], 16),
             'boot_id': Path('/proc/sys/kernel/random/boot_id').read_text().strip(),
             'pid_namespace': os.readlink('/proc/self/ns/pid'),
-            'init_namespace': os.readlink('/proc/1/ns/pid'),
+            'init_namespace': os.readlink('/proc/1/ns/pid') if init_namespace is None else init_namespace,
             'nspid': tuple(map(int, values['NSpid'].split())),
             'container_marker': Path('/.dockerenv').is_file(),
             'dedicated_marker': marker_valid,
