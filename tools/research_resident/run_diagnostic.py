@@ -118,7 +118,7 @@ def main():
     except Exception as exc:
         summary.update(phase='BLOCKED',stage=stage,reason='TIMEOUT' if isinstance(exc,(TimeoutError,subprocess.TimeoutExpired)) else 'COMMAND_FAILED' if isinstance(exc,subprocess.CalledProcessError) else 'CONTRACT_REJECTED',
             command_exit_code=exc.returncode if isinstance(exc,subprocess.CalledProcessError) else None)
-        summary['fixed_log_tail']=[{k:v[k] for k in ('phase','reason','stage','role','error_class') if k in v} for v in logs[-8:]]
+        summary['fixed_log_tail']=[{k:v[k] for k in ('phase','reason','stage','role','error_class','code_line','errno') if k in v} for v in logs[-8:]]
     finally:
         if ident is not None:
             current=json.loads(subprocess.check_output(['docker','inspect',ident]))[0]

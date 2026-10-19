@@ -6,7 +6,7 @@ import time
 import unittest
 
 from research_harness.resident_deployment import validate_resident_deployment,validate_diagnostic_deployment
-from research_harness.resident_diagnostic_fixture import A,B,LocalSources,LocalWorkerAPI,DUMMY_TOKEN,plan
+from research_harness.resident_diagnostic_fixture import A,B,LocalSources,LocalWorkerAPI,DUMMY_TOKEN,plan,failure_location
 from research_harness.owner_approval import inspect_once,RevokedApproval
 from research_harness.service_state import ServiceState,initialize
 from research_harness.schema import ContractError
@@ -14,6 +14,11 @@ from test_harness_resident_deployment import facts
 
 
 class DiagnosticContractTests(unittest.TestCase):
+    def test_failure_location_never_returns_exception_message_or_filename(self):
+        try:raise PermissionError(13,'SECRET_MESSAGE','/SECRET_PATH')
+        except PermissionError as exc:value=failure_location(exc,['job'])
+        self.assertEqual(value,dict(role='job',stage='unknown',errno=13))
+
     def diagnostic_facts(self):
         data,args=facts()
         data['Config']['Labels']['c3.purpose']='dedicated-resident-diagnostic'

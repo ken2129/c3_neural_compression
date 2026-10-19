@@ -15,6 +15,41 @@ DUMMY_TOKEN=b'DIAGNOSTIC-NOT-A-TOKEN'
 ACTOR={'login':'resident-diag-worker','id':987654321}
 
 
+def failure_location(exc,argv):
+    """Closed code-site vocabulary only; never exception text or data paths."""
+    role='manager' if argv==['manager'] else 'job' if argv==['job'] else 'pid1'
+    sites={
+        ('resident_diagnostic.py','configure'):'diagnostic_configure',
+        ('resident_diagnostic.py','protected'):'diagnostic_protected_read',
+        ('resident_diagnostic.py','observe'):'diagnostic_observer_start',
+        ('resident_diagnostic.py','start'):'diagnostic_runner_start',
+        ('resident_diagnostic.py','write'):'diagnostic_ipc_observe',
+        ('resident_diagnostic.py','finish'):'diagnostic_final_checks',
+        ('resident_launcher.py','_start_runner'):'runner_start',
+        ('resident_launcher.py','supervise'):'pid1_supervise',
+        ('resident_launcher.py','manager'):'manager',
+        ('resident_launcher.py','job_supervise'):'job_supervise',
+        ('goal_launcher.py','as_uid'):'uid_switch',
+        ('goal_launcher.py','protected_json'):'protected_read',
+        ('goal_launcher.py','read_frame'):'ipc_read',
+        ('goal_launcher.py','deployment'):'deployment',
+        ('goal_launcher.py','prepare_goal'):'prepare_goal',
+        ('goal_launcher.py','stage_workspace'):'stage_workspace',
+        ('goal_launcher.py','preflight'):'preflight',
+    }
+    site='unknown';line=None;tb=exc.__traceback__
+    while tb is not None:
+        filename=tb.tb_frame.f_code.co_filename
+        key=(filename.rsplit('/',1)[-1],tb.tb_frame.f_code.co_name)
+        if filename.startswith('/opt/service/') and key in sites:
+            site=sites[key];line=tb.tb_lineno
+        tb=tb.tb_next
+    result=dict(role=role,stage=site)
+    if type(line) is int and 0<line<10000:result['code_line']=line
+    if type(getattr(exc,'errno',None)) is int and exc.errno in (1,2,5,13,28,30):result['errno']=exc.errno
+    return result
+
+
 def plan(deployment,number):
     return dict(kind=DIRECT_PR_KIND,deployment_id=deployment,source_sha=INPUT_SHA,
         publish_result_pr=True,model='gpt-6.1-sol',sandbox_mode='externalSandbox',external_network='enabled',

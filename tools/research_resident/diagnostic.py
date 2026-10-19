@@ -11,7 +11,7 @@ sys.path.insert(0,'/opt/service')
 import resident_launcher as resident
 import goal_launcher as common
 from research_harness.resident_deployment import validate_diagnostic_deployment
-from research_harness.resident_diagnostic_fixture import A,B,LocalSources,LocalWorkerAPI
+from research_harness.resident_diagnostic_fixture import A,B,LocalSources,LocalWorkerAPI,failure_location
 from research_harness.resident_runtime import ResidentLinuxBackend
 from research_harness.goal_runtime import GoalLinuxUIDBackend
 from research_harness.restart_boundary import read_epoch
@@ -148,5 +148,6 @@ if __name__=='__main__':
         if type(exc) is common.GoalStartupFailure:common.report_startup_failure('launcher',exc)
         reason=exc.code if type(exc) is resident.ResidentBlocked else 'DIAGNOSTIC_CONTRACT_REJECTED'
         common.write_frame(sys.stderr.buffer,dict(phase='RESIDENT_DIAGNOSTIC_BLOCKED',reason=reason,
-            error_class='permission' if isinstance(exc,PermissionError) else 'contract' if isinstance(exc,ContractError) else 'other'))
+            error_class='permission' if isinstance(exc,PermissionError) else 'contract' if isinstance(exc,ContractError) else 'other',
+            **failure_location(exc,sys.argv[1:])))
         os._exit(125)
