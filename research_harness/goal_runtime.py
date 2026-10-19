@@ -422,17 +422,21 @@ class GoalLinuxUIDBackend(LinuxUIDBackend):
     def __init__(self):
         self._ipc_namespace=None
 
+    def init_namespace(self,kind):
+        if kind not in ('pid','ipc'):raise GoalRuntimeBlocked('GOAL_IPC_NAMESPACE_CHANGED')
+        return os.readlink('/proc/1/ns/'+kind)
+
     @staticmethod
     def verify_deployment(*args, **kwargs):
         from .goal_deployment import validate_goal_deployment
         return validate_goal_deployment(*args, **kwargs)
 
     def context(self):
-        result = LinuxUIDBackend.context()
+        result = LinuxUIDBackend.context(init_namespace=self.init_namespace('pid'))
         marker = _read_protected('/opt/c3-runtime/dedicated-pid1-goal', limit=64)
         result['dedicated_marker'] = marker == b'c3-dedicated-pid1-goal-v1\n'
         ipc=os.readlink('/proc/self/ns/ipc')
-        if (ipc!=os.readlink('/proc/1/ns/ipc')
+        if (ipc!=self.init_namespace('ipc')
                 or self._ipc_namespace is not None and ipc!=self._ipc_namespace):
             raise GoalRuntimeBlocked('GOAL_IPC_NAMESPACE_CHANGED')
         return result
@@ -522,7 +526,7 @@ class GoalLinuxUIDBackend(LinuxUIDBackend):
         if Path('/etc/hostname').read_text().strip()!=verified['container_id'][:12]:
             raise GoalRuntimeBlocked('GOAL_CONTAINER_IDENTITY_MISMATCH')
         ipc=os.readlink('/proc/self/ns/ipc')
-        if ipc!=os.readlink('/proc/1/ns/ipc'):raise GoalRuntimeBlocked('GOAL_IPC_NAMESPACE_CHANGED')
+        if ipc!=self.init_namespace('ipc'):raise GoalRuntimeBlocked('GOAL_IPC_NAMESPACE_CHANGED')
         self._ipc_namespace=ipc
         if _read_protected('/opt/service/source-sha',limit=41).strip()!=config['runtime_source_sha'].encode():
             raise GoalRuntimeBlocked('GOAL_IMAGE_SOURCE_MISMATCH')

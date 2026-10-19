@@ -19,7 +19,8 @@ import unittest
 from unittest.mock import Mock, patch
 from types import SimpleNamespace
 
-from research_harness.resident_runtime import ResidentGoalSupervisor, erase_tree_contents, ResidentBlocked
+from research_harness.resident_runtime import ResidentGoalSupervisor, ResidentLinuxBackend, erase_tree_contents, ResidentBlocked
+from research_harness.restart_boundary import RestartEpoch
 from research_harness import goal_runtime
 from research_harness.goal_runner import GoalRequest
 from research_harness.manager_runtime import RecheckRejected
@@ -108,6 +109,45 @@ class ResidentSupervisorTests(unittest.TestCase):
 
 
 class ResidentRealLinuxTests(unittest.TestCase):
+    @unittest.skipUnless(sys.platform=='linux','fixed Linux procfs observations')
+    def test_real_procfs_self_observation_matches_broker_anchor_when_pid1_links_are_denied(self):
+        # No UID switch/host mutation. Real self namespace, boot and PID1 stat;
+        # only the absent image marker and the denied cross-process links are
+        # fixture seams. This does not prove the root broker Docker boundary.
+        epoch=RestartEpoch('c'*64,Path('/proc/sys/kernel/random/boot_id').read_text().strip(),
+            os.stat('/proc/self/ns/pid').st_ino,
+            int(Path('/proc/1/stat').read_text().rsplit(')',1)[1].split()[19]))
+        ipc=os.readlink('/proc/self/ns/ipc');real_link=os.readlink
+        def links(path,*args,**kwargs):
+            if str(path).startswith('/proc/1/ns/'):
+                raise PermissionError(13,'fixture cross-process ptrace denial')
+            return real_link(path,*args,**kwargs)
+        def marker(path,**kwargs):
+            self.assertEqual(str(path),'/opt/c3-runtime/dedicated-pid1-goal')
+            return b'c3-dedicated-pid1-goal-v1\n'
+        with patch.object(goal_runtime.os,'readlink',side_effect=links), \
+             patch.object(goal_runtime,'_read_protected',side_effect=marker):
+            with self.assertRaises(PermissionError):goal_runtime.GoalLinuxUIDBackend().context()
+            backend=ResidentLinuxBackend(broker_epoch=epoch,broker_ipc_namespace=ipc)
+            data=backend.context()
+            self.assertEqual(data['init_namespace'],data['pid_namespace'])
+            for changed in (replace(epoch,pid_namespace_inode=epoch.pid_namespace_inode+1),
+                            replace(epoch,pid1_start_ticks=epoch.pid1_start_ticks+1),
+                            replace(epoch,boot_id='12345678-1234-1234-1234-123456789abc')):
+                with self.subTest(epoch=changed),self.assertRaises(SupervisorBlocked):
+                    ResidentLinuxBackend(broker_epoch=changed,broker_ipc_namespace=ipc).context()
+            with self.assertRaises(ContractError):
+                ResidentLinuxBackend(broker_epoch=epoch,broker_ipc_namespace='ipc:[1]').context()
+
+    def test_broker_namespace_anchor_requires_typed_epoch_and_bounded_fixed_ipc(self):
+        epoch=RestartEpoch('c'*64,'12345678-1234-1234-1234-123456789abc',123,456)
+        for anchor in (None,{},epoch.to_dict()):
+            with self.assertRaises(SupervisorBlocked):
+                ResidentLinuxBackend(broker_epoch=anchor,broker_ipc_namespace='ipc:[123]')
+        for ipc in ('pid:[123]','ipc:[0]','ipc:[18446744073709551616]','arbitrary',None):
+            with self.subTest(ipc=ipc),self.assertRaises(SupervisorBlocked):
+                ResidentLinuxBackend(broker_epoch=epoch,broker_ipc_namespace=ipc)
+
     def test_subreaper_adopts_double_fork_setsid_and_requires_echild(self):
         script = '''
 import os, signal, time

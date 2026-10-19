@@ -264,7 +264,7 @@ def job_supervise():
     install_subreaper(); require_job_supervisor()
     incoming=sys.stdin.buffer.raw
     boot = common.read_frame(incoming)
-    if set(boot) != {'plan', 'controller_pid', 'runner_pid'}:
+    if set(boot) != {'plan', 'controller_pid', 'runner_pid','broker_epoch','broker_ipc_namespace'}:
         raise ContractError('resident job bootstrap rejected')
     try:
         common.as_uid(10001)
@@ -274,7 +274,8 @@ def job_supervise():
         resource_limits=profile['resource_limits'], deployment_id=profile['deployment_id'])
     if plan['kind'] != DIRECT_PR_KIND: raise ContractError('resident direct-PR-only')
     common.require_installed_plan(profile, plan)
-    backend = ResidentLinuxBackend()
+    backend = ResidentLinuxBackend(broker_epoch=RestartEpoch.from_dict(boot['broker_epoch']),
+        broker_ipc_namespace=boot['broker_ipc_namespace'])
     supervisor = ResidentGoalSupervisor(backend, controller_pid=boot['controller_pid'], runner_pid=boot['runner_pid'])
     supervisor.reserve()
     backend.arm_watchdog(plan['max_seconds'] + 30)
@@ -345,6 +346,7 @@ def supervise():
     if 'direct_pr_scope' not in profile:
         raise ContractError('resident mode is explicitly direct-PR-only')
     epoch = read_epoch(container_id=config['container_id'])
+    broker_ipc_namespace=os.readlink('/proc/self/ns/ipc')
     runner = _start_runner()
     control = subprocess.Popen([sys.executable, '-I', '-B', SCRIPT, 'manager'],
         user=10001, group=10001, extra_groups=[],
@@ -376,7 +378,8 @@ def supervise():
                         env=dict(LANG='C.UTF-8', PATH='/usr/local/bin:/usr/bin:/bin'),
                         stdin=subprocess.PIPE, stdout=subprocess.PIPE, close_fds=True, bufsize=0)
                     job_deadline = time.monotonic() + plan['max_seconds'] + 35
-                    common.write_frame(job.stdin, {'plan': plan, 'controller_pid': control.pid, 'runner_pid': runner.pid})
+                    common.write_frame(job.stdin, {'plan': plan, 'controller_pid': control.pid, 'runner_pid': runner.pid,
+                        'broker_epoch':epoch.to_dict(),'broker_ipc_namespace':broker_ipc_namespace})
                 elif set(frame) == {'op', 'reports'} and frame['op'] == 'report':
                     common.write_frame(sys.stdout.buffer, {'mode': 'resident-direct-pr', 'reports': frame['reports']})
                 elif job is not None and (frame in ({'op':'preflight'}, {'op':'job_finished'})

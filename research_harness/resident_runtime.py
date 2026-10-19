@@ -10,12 +10,14 @@ from __future__ import annotations
 import ctypes
 import os
 from pathlib import Path
+import re
 import signal
 import stat
 import time
 
 from .schema import ContractError
 from .goal_runtime import GoalLinuxUIDBackend, GoalUIDSupervisor
+from .restart_boundary import RestartEpoch
 from .uid_supervisor import (WORKER_UID, CONTROLLER_UID, MAX_MEMORY, MAX_PIDS,
                             MAX_WORK_BYTES, SupervisorBlocked, Identity, Reservation, SETUID_SETGID,
                             ChildHandle)
@@ -91,6 +93,22 @@ def persist_block():
 class ResidentLinuxBackend(GoalLinuxUIDBackend):
     block_service = staticmethod(persist_block)
 
+    def __init__(self,*,broker_epoch,broker_ipc_namespace):
+        super().__init__()
+        if (type(broker_epoch) is not RestartEpoch or type(broker_ipc_namespace) is not str
+                or re.fullmatch(r'ipc:\[[1-9][0-9]{0,19}\]',broker_ipc_namespace) is None
+                or int(broker_ipc_namespace[5:-1])>2**64-1):
+            raise SupervisorBlocked('trusted PID1 namespace anchor required')
+        # Only PID1's private bootstrap pipe supplies these observations. Never
+        # read them from a plan, event, worker or mutable operator JSON.
+        self.broker_epoch=broker_epoch
+        self.broker_ipc_namespace=broker_ipc_namespace
+
+    def init_namespace(self,kind):
+        if kind=='pid':return 'pid:[%d]'%self.broker_epoch.pid_namespace_inode
+        if kind=='ipc':return self.broker_ipc_namespace
+        raise SupervisorBlocked('unsupported broker namespace')
+
     @staticmethod
     def verify_deployment(*args, **kwargs):
         from .resident_deployment import validate_resident_deployment
@@ -101,6 +119,11 @@ class ResidentLinuxBackend(GoalLinuxUIDBackend):
 
     def context(self):
         value = super().context()
+        parent=self.process(1)
+        if (value['pid_namespace']!=self.init_namespace('pid')
+                or value['boot_id']!=self.broker_epoch.boot_id or parent is None
+                or parent.uids!=(0,)*4 or parent.start_ticks!=self.broker_epoch.pid1_start_ticks):
+            raise SupervisorBlocked('trusted PID1 epoch changed')
         value['subreaper'] = subreaper_enabled()
         value['parent_pid'] = os.getppid()
         return value
