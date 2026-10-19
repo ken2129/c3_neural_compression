@@ -40,6 +40,82 @@ def report(value):
     common.write_frame(sys.stderr.buffer, value)
 
 
+class ResidentHandshakeBlocked(IntakeBlocked):
+    def __init__(self):
+        super().__init__('CLEANUP_UNVERIFIED')
+
+
+def read_failure_frame(stream, *, timeout=10.0):
+    """Bound the full line, including EOF/partial writes, without prefetch.
+
+    Resident IPC readers use raw pipes throughout. This cannot skip bytes held
+    by an earlier BufferedReader or consume the subsequent cleaned response.
+    The independent job watchdog is neither disarmed nor extended here.
+    """
+    deadline=time.monotonic()+timeout
+    data=bytearray()
+    while len(data)<32768:
+        remaining=deadline-time.monotonic()
+        if remaining<=0 or not select.select([stream],[],[],remaining)[0]:
+            raise ResidentHandshakeBlocked()
+        piece=os.read(stream.fileno(),1)
+        if not piece:raise ResidentHandshakeBlocked()
+        data.extend(piece)
+        if piece==b'\n':
+            value=common.loads(bytes(data))
+            if type(value) is not dict:raise ResidentHandshakeBlocked()
+            return value
+    raise ResidentHandshakeBlocked()
+
+
+class ResidentGoalPipeRuntime(common.GoalPipeRuntime):
+    """Settle a denied recheck before the controller commits its BLOCKED ACK.
+
+    The disposable runtime can return immediately because it exits its whole
+    namespace. Reuse requires consuming the job's terminal failure frame first.
+    Approval checks and the negative reply itself still use the common runtime.
+    """
+    def run(self,binding,recheck):
+        rejected=False
+        def checked():
+            nonlocal rejected
+            try:recheck()
+            except Exception:
+                rejected=True
+                raise
+        try:
+            return super().run(binding,checked)
+        except Exception:
+            if rejected:
+                self.failed_issue=None  # No failure_ack until goal_failure arrived.
+                try:
+                    frame=read_failure_frame(self.incoming)
+                    if set(frame)!={'goal_failure'}:raise ResidentHandshakeBlocked()
+                    detail=common.validated_goal_failure(frame['goal_failure'])
+                    if detail is None:raise ResidentHandshakeBlocked()
+                except Exception:
+                    raise ResidentHandshakeBlocked() from None
+                self.failed_issue=binding['issue_number']
+                report(dict(phase='GOAL_MANAGER_BLOCKED',issue=self.failed_issue,**detail))
+            raise
+
+
+def acknowledge_goal_failure(incoming,outgoing,issue,detail,*,cleanup):
+    """Job side: prove cleanup, send failure, require durable BLOCKED ACK."""
+    if common.validated_goal_failure(detail) is None:
+        raise ContractError('resident failure diagnostic rejected')
+    cleanup()
+    common.write_frame(outgoing,{'goal_failure':detail})
+    if common.read_failure_ack(incoming)!={'op':'failure_ack','issue':issue,'phase':'BLOCKED'}:
+        raise ContractError('resident failure not durably acknowledged')
+
+
+def send_cleaned(outgoing,*,cleanup):
+    cleanup()
+    signal.alarm(0)
+    common.write_frame(outgoing,{'cleaned':True})
+
+
 def process_event(controller, receipt, *, finish_runtime):
     """Formal controller first; cleanup ACK before marking delivery finished.
 
@@ -49,11 +125,17 @@ def process_event(controller, receipt, *, finish_runtime):
     runtime = controller.runtime
     try:
         answer = controller.process(receipt['issue_number'])
+    except ResidentHandshakeBlocked:
+        # No failure_ack/job_finished after a missing or invalid goal_failure.
+        # The manager blocks the inbox and PID1 performs fail-closed shutdown.
+        raise
     except Exception as exc:
         if runtime.failed_issue is not None:
             row = controller.state.get(runtime.failed_issue)
+            if row is None or row['phase']!='BLOCKED':
+                raise ResidentHandshakeBlocked() from None
             common.write_frame(runtime.outgoing, {'op': 'failure_ack',
-                'issue': runtime.failed_issue, 'phase': row['phase'] if row else 'MISSING'})
+                'issue': runtime.failed_issue, 'phase': 'BLOCKED'})
         row = controller.state.get(receipt['issue_number'])
         answer = dict(issue=receipt['issue_number'], phase=row['phase'] if row else 'NOT_APPROVED',
                       dispatched=False, reason=safe_recheck_failure(exc)['reason'])
@@ -66,7 +148,8 @@ def manager():
     if os.getresuid() != (10001,) * 3:
         raise ContractError('resident manager UID required')
     os.umask(0o077)
-    hello = common.read_frame(sys.stdin.buffer)
+    incoming=sys.stdin.buffer.raw
+    hello = common.read_frame(incoming)
     epoch = RestartEpoch.from_dict(hello['epoch'])
     profile = common.protected_json('/control/goal-runtime.json')
     policy = validate_policy(common.protected_json('/control/resident-intake.json'))
@@ -99,7 +182,7 @@ def manager():
                     inbox.wake.wait()
                     continue
             validate_receipt(receipt, policy)
-            runtime = common.GoalPipeRuntime(sys.stdin.buffer, sys.stdout.buffer, epoch, profile)
+            runtime = ResidentGoalPipeRuntime(incoming, sys.stdout.buffer, epoch, profile)
             controller = DirectPRController(state, ManagerGitHub(), GitHubOwnerComments(), runtime, None,
                 profile=profile, worker_pr_config=common.protected_json('/control/worker-pr.json'),
                 source_sha=profile['input_source_sha'], enabled=profile['enabled'],
@@ -107,10 +190,15 @@ def manager():
                 installed_plan_digest=profile['installed_plan_digest'])
             def finish():
                 common.write_frame(sys.stdout.buffer, {'op': 'job_finished'})
-                if common.read_frame(sys.stdin.buffer) != {'cleaned': True}:
+                if common.read_frame(incoming) != {'cleaned': True}:
                     inbox.block()
                     raise IntakeBlocked('CLEANUP_UNVERIFIED')
-            answer = process_event(controller, receipt, finish_runtime=finish)
+            try:
+                answer = process_event(controller, receipt, finish_runtime=finish)
+            except ResidentHandshakeBlocked:
+                inbox.block()
+                report(dict(phase='RESIDENT_BLOCKED',reason='FAILURE_HANDSHAKE_UNVERIFIED'))
+                raise
             inbox.finish(receipt['receipt_id'], answer)
             common.write_frame(sys.stdout.buffer, {'op': 'report', 'reports': [answer]})
     finally:
@@ -170,7 +258,8 @@ def job_supervise():
     """Per-job subreaper: only Codex descendants are children of this process."""
     from research_harness.resident_runtime import install_subreaper, require_job_supervisor
     install_subreaper(); require_job_supervisor()
-    boot = common.read_frame(sys.stdin.buffer)
+    incoming=sys.stdin.buffer.raw
+    boot = common.read_frame(incoming)
     if set(boot) != {'plan', 'controller_pid', 'runner_pid'}:
         raise ContractError('resident job bootstrap rejected')
     try:
@@ -194,7 +283,7 @@ def job_supervise():
         common.write_frame(sys.stdout.buffer, {'prepared': True})
     attempted = preflight = False
     while True:
-        frame = common.read_frame(sys.stdin.buffer)
+        frame = common.read_frame(incoming)
         if frame == {'op': 'preflight'}:
             try:
                 backend.admit_goal(GoalRequest(plan, profile['input_source_sha']))
@@ -214,7 +303,7 @@ def job_supervise():
                 raise ContractError('resident binding mismatch')
             def recheck():
                 common.write_frame(sys.stdout.buffer, {'op': 'recheck'})
-                require_recheck_reply(common.read_frame(sys.stdin.buffer))
+                require_recheck_reply(common.read_frame(incoming))
             try:
                 pending = supervisor.run_goal(request, recheck,
                     binding=GoalRunBinding(request.source_sha, request.digest, binding['request_id'], binding['run_id']),
@@ -225,20 +314,16 @@ def job_supervise():
                 # Includes approval failure before run_goal reserved/spawned.
                 # The disposable path's ACK flag alone is insufficient here;
                 # this resident path must prove ECHILD and erase its workspace.
-                cleanup_job(supervisor)
                 if detail is None:
                     detail = safe_goal_runtime_diagnostic(GoalRuntimeBlocked('GOAL_RUNTIME_FAILURE'))
-                common.write_frame(sys.stdout.buffer, {'goal_failure': detail})
-                if common.read_failure_ack(sys.stdin.buffer) != {'op': 'failure_ack', 'issue': binding['issue_number'], 'phase': 'BLOCKED'}:
-                    raise ContractError('resident failure not durably acknowledged')
+                acknowledge_goal_failure(incoming,sys.stdout.buffer,binding['issue_number'],detail,
+                    cleanup=lambda:cleanup_job(supervisor))
             else:
                 value = DirectPRResult(binding, plan['model'], pending.candidate.outcome,
                     pending.candidate.summary, pending.candidate.pr_url, pending.elapsed_seconds)
                 common.write_frame(sys.stdout.buffer, {'direct_pr_result': value.to_dict()})
         elif frame == {'op': 'job_finished'}:
-            cleanup_job(supervisor)
-            signal.alarm(0)
-            common.write_frame(sys.stdout.buffer, {'cleaned': True})
+            send_cleaned(sys.stdout.buffer,cleanup=lambda:cleanup_job(supervisor))
             return
         else:
             raise ContractError('resident job frame rejected')

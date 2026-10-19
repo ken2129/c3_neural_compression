@@ -7,6 +7,7 @@ separately approved Docker diagnostic; fake resource facts do not prove them.
 from copy import deepcopy
 from dataclasses import replace
 import importlib.util
+import io
 import json
 import os
 from pathlib import Path
@@ -15,7 +16,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from types import SimpleNamespace
 
 from research_harness.resident_runtime import ResidentGoalSupervisor, erase_tree_contents, ResidentBlocked
@@ -27,7 +28,7 @@ from research_harness.actions_inbox import Inbox, IntakeBlocked
 from research_harness.schema import ContractError
 from test_harness_uid_supervisor import FakeOS, NamespaceExit, worker
 from test_harness_direct_pr import (DirectServiceTests, MultipleSources, direct_source,
-    ISSUE, DirectRuntime)
+    ISSUE, DirectRuntime, direct_profile, prepare)
 from tests.test_harness_goal_deployment import launcher as common
 from test_harness_actions_inbox import receipt
 from test_harness_goal_runner import Transport, frames
@@ -248,6 +249,120 @@ class ResidentDeliveryServiceTests(unittest.TestCase):
         source=(ROOT/'tools/research_resident/launcher.py').read_text()
         for forbidden in ('list_candidates(','.once(',"docker restart",'finish_allocation('):
             self.assertNotIn(forbidden,source)
+
+    def test_cancel_A_drains_failure_then_same_manager_accepts_B_over_real_pipes(self):
+        second=direct_source(ISSUE+1)
+        self.issues=MultipleSources(self.source,second)
+        profile=prepare.installed_profile(direct_profile(),self.source.request['plan'])
+        epoch=deepcopy(self.runtime.epoch)
+        inbox=Inbox(self.root/'events.sqlite')
+        inbox.enqueue(receipt(run=1,issue=ISSUE));inbox.enqueue(receipt(run=2,issue=ISSUE+1))
+        manager_pid=os.getpid();state_id=id(self.state);timeline=[]
+        for index,mode in enumerate(('cancel','complete'),1):
+            jobroot=self.root/f'job-{index}';jobroot.mkdir()
+            child=subprocess.Popen([sys.executable,'-B',str(ROOT/'tests/resident_pipe_job_fixture.py'),mode,str(jobroot)],
+                stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,bufsize=0)
+            real_input=child.stdout
+            def cancel_before_recheck(line):
+                frame=json.loads(line)
+                if frame=={'op':'recheck'} and mode=='cancel':
+                    self.source.revoke();self.now+=6;self.mono+=6
+                    timeline.append('A_REVOKED')
+                return line
+            class Input:
+                def readline(_,size):return cancel_before_recheck(real_input.readline(size))
+                def fileno(_):return real_input.fileno()
+            self.runtime=resident.ResidentGoalPipeRuntime(Input(),child.stdin,epoch,profile)
+            self.make()
+            item=inbox.take()
+            def finish():
+                common.write_frame(child.stdin,{'op':'job_finished'})
+                frame=common.read_frame(real_input)
+                if frame!={'cleaned':True}:raise ContractError('fixture stale frame at cleaned')
+                if child.wait(timeout=3)!=0:raise ContractError('fixture child failed')
+                timeline.append(f'{index}_CLEANED')
+            try:
+                answer=resident.process_event(self.controller,item,finish_runtime=finish)
+                inbox.finish(item['receipt_id'],answer)
+                timeline.append(answer['phase'])
+                self.assertEqual(os.getpid(),manager_pid);self.assertEqual(id(self.state),state_id)
+                self.assertEqual(self.runtime.current_epoch(),epoch)
+            finally:
+                child.stdin.close()
+                try:child.wait(timeout=5)
+                except subprocess.TimeoutExpired:child.kill();child.wait()
+                child.stdout.close();diagnostic=child.stderr.read();child.stderr.close()
+            self.assertEqual(child.returncode,0,diagnostic.decode())
+            phases=[json.loads(line)['phase'] for line in (jobroot/'trace.jsonl').read_text().splitlines()]
+            self.assertEqual(phases[-1],'CLEANED_SENT')
+            self.assertEqual(list((jobroot/'work').iterdir()),[])
+            if mode=='cancel':
+                self.assertLess(phases.index('DESCENDANTS_ECHILD'),phases.index('GOAL_FAILURE_SENT'))
+                self.assertLess(phases.index('GOAL_FAILURE_SENT'),phases.index('FAILURE_ACK'))
+                self.assertLess(phases.index('FAILURE_ACK'),phases.index('JOB_FINISHED'))
+                self.assertEqual(self.state.get(ISSUE)['phase'],'BLOCKED')
+                self.assertIsNone(self.state.get(ISSUE)['result'])
+        self.assertEqual(timeline,['A_REVOKED','1_CLEANED','BLOCKED','2_CLEANED','WORKER_FINISHED'])
+        self.assertEqual(self.state.get(ISSUE+1)['phase'],'WORKER_FINISHED')
+        self.assertIsNotNone(self.state.get(ISSUE+1)['result'])
+        self.assertIsNone(inbox.take())
+        with inbox.connect() as db:
+            self.assertEqual(list(db.execute('SELECT phase FROM events ORDER BY rowid')),
+                             [('FINISHED',),('FINISHED',)])
+        duplicate=self.controller.process(ISSUE)
+        self.assertEqual(duplicate['phase'],'BLOCKED');self.assertTrue(duplicate['duplicate'])
+        self.assertFalse(duplicate['dispatched'])
+
+    def failed_recheck_response(self,tail,*,keep_open=False,block_write=False):
+        profile=prepare.installed_profile(direct_profile(),self.source.request['plan'])
+        epoch=deepcopy(self.runtime.epoch)
+        reader,writer=os.pipe();incoming=os.fdopen(reader,'rb',buffering=0)
+        outgoing=io.BytesIO();finish=Mock()
+        data=b'{"prepared":true}\n{"ready":true}\n{"op":"recheck"}\n'+tail
+        os.write(writer,data)
+        if not keep_open:os.close(writer)
+        original=resident.read_failure_frame
+        source=self.source
+        def read_line(maximum):
+            line=incoming.readline(maximum)
+            if json.loads(line)=={'op':'recheck'}:
+                source.revoke();self.now+=6;self.mono+=6
+            return line
+        stream=SimpleNamespace(readline=read_line,fileno=incoming.fileno)
+        self.runtime=resident.ResidentGoalPipeRuntime(stream,outgoing,epoch,profile);self.make()
+        if block_write:
+            self.state.db.execute("CREATE TRIGGER refuse_block BEFORE UPDATE OF phase ON service_runs "
+                "WHEN NEW.phase='BLOCKED' BEGIN SELECT RAISE(ABORT,'fixture block failure'); END")
+        try:
+            with patch.object(resident,'read_failure_frame',side_effect=lambda stream:original(stream,timeout=.02)):
+                with self.assertRaises(resident.ResidentHandshakeBlocked):
+                    resident.process_event(self.controller,receipt(issue=ISSUE),finish_runtime=finish)
+        finally:
+            incoming.close()
+            if keep_open:os.close(writer)
+        finish.assert_not_called()
+        frames=[json.loads(line) for line in outgoing.getvalue().splitlines()]
+        self.assertFalse(frames[-1]['approved'])
+        self.assertFalse(any(f.get('op') in ('failure_ack','job_finished') for f in frames))
+        self.assertEqual(self.runtime.failed_issue,ISSUE if block_write else None)
+        self.assertEqual(self.state.get(ISSUE)['phase'],'CLAIMED' if block_write else 'BLOCKED')
+        self.assertIsNone(self.state.get(ISSUE)['result'])
+
+    def test_recheck_failure_eof_does_not_ack_or_advance(self):
+        self.failed_recheck_response(b'')
+
+    def test_recheck_failure_partial_frame_times_out_without_ack_or_advance(self):
+        self.failed_recheck_response(b'{"goal_failure":',keep_open=True)
+
+    def test_recheck_failure_unexpected_success_cannot_replace_goal_failure(self):
+        self.failed_recheck_response(b'{"cleaned":true}\n')
+
+    def test_recheck_failure_rejects_non_allowlisted_diagnostic(self):
+        self.failed_recheck_response(b'{"goal_failure":{"reason":"private remote text","stage":"turn"}}\n')
+
+    def test_recheck_failure_ack_requires_real_durable_blocked_row(self):
+        self.failed_recheck_response(b'{"goal_failure":{"reason":"GOAL_APPROVAL_RECHECK_FAILED","stage":"turn"}}\n',
+                                     block_write=True)
 
 
 del DirectServiceTests  # unittest must not rediscover the imported fixture class.

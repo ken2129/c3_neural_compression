@@ -68,6 +68,16 @@ The old disposable supervisor's PID1 requirement and namespace-exit completion
 rule remain its default. The new supervisor/validator are selected by trusted
 installed Python code, never a profile/Issue boolean.
 
+On an in-run approval rejection, the manager sends the common negative recheck
+reply, then consumes the job's validated `goal_failure` **before** returning the
+failure to the controller. The job sends that frame only after descendant and
+workspace cleanup. The controller commits BLOCKED, and only then sends
+`failure_ack`; `job_finished` and `cleaned` complete before the next delivery.
+Resident IPC uses raw pipes throughout, so bounded failure reads cannot skip
+BufferedReader-prefetched frames. A missing/partial/invalid failure frame has a
+10-second receive bound; it blocks the inbox and never advances to another job.
+This does not extend or disarm the independent job watchdog.
+
 ## Configuration and installer (requires deployment approval)
 
 Use a fresh committed clean checkout and a fresh public deployment ID/profile,
@@ -167,6 +177,17 @@ Fixtures exercise real SQLite/Unix sockets, the formal approval/claim controller
 with model transport replaced, real FD-based deletion, and a real Linux subreaper
 adopting a double-fork/setsid child. Fake `/proc`/cgroup cases test refusal logic,
 not actual UID/capability/mount isolation. No test invokes registration or Docker.
+
+The cancellation regression uses one manager-core process/ServiceState/epoch,
+actual unbuffered OS pipes and the shared job handshake helpers. Job A has a
+real double-fork/setsid dummy descendant, is cancelled through the formal owner
+verifier, and reaches ECHILD and empty dummy-auth/workspace before `goal_failure`.
+The peer confirms BLOCKED via a separate read-only SQLite connection after ACK.
+Job B is then approved and saved in the same manager process. EOF, partial-frame
+timeout, unexpected success, invalid diagnostics and a real SQLite trigger that
+rejects BLOCKED persistence must not send ACK or `job_finished`. The per-job peer
+is a fixture at the current test UID, not the actual root PID1/UID broker; those
+remain Docker checks. See [the bounded Docker proposal](DIAGNOSTIC_PROPOSAL.md).
 
 Next, seek approval for **one model-free dedicated Docker diagnostic**, no real
 credentials, no runner registration and no existing volumes: the same limits,
