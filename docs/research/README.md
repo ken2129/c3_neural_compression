@@ -22,3 +22,7 @@ GitHub Issueで計画・承認・進捗・終了状態を管理し、ここに�
 - [同じ評価20画像でのC3／C3′／TransTIC／Adapt-ICMH比較](2026-10-16_four_method_comparison.md)
 
 - [研究制御MVP0のCPU fixture実装・検証（2026-10-16）](2026-10-16_research_harness_mvp0.md)
+
+## 関連研究・文献調査
+
+- [特徴圧縮の基礎論文とC3への応用可能性（2026-10-24、公開資料版）](literature/2026-10-24_feature_compression_and_c3.md)
