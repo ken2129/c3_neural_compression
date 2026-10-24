@@ -1,0 +1,426 @@
+{
+  "schema": "c3-issue95-resident-e2e-public-evidence-v1",
+  "observation_kind": "operator read-only observation, real GitHub records and owner confirmation; not a signed independent attestation",
+  "before_redelivery": {
+    "runs": [
+      {
+        "issue": 96,
+        "phase": "WORKER_FINISHED",
+        "binding_sha256": "fc9452ca781f4c8a099dc842df0e4dfbca51e863efb35963fdcc20049ec12409",
+        "result_sha256": "dacbc6b37c1f652ae86b442160c2dcdde5128bd4f370d01506013692ee0141c6",
+        "outcome": "completed",
+        "pr_url": "https://github.com/ken2129/c3_neural_compression/pull/98",
+        "model": "gpt-6.1-sol",
+        "elapsed_seconds": 166.12154617533088
+      },
+      {
+        "issue": 97,
+        "phase": "WORKER_FINISHED",
+        "binding_sha256": "5fcbc9ac45d15cca7a3aeae0e5878ca41538f8918cc5f2d7016b48916b0bd504",
+        "result_sha256": "98b37d06155e22dc2430e18ef4f95ddbf3541c97130ea9af027bfabcd22fb922",
+        "outcome": "completed",
+        "pr_url": "https://github.com/ken2129/c3_neural_compression/pull/99",
+        "model": "gpt-6.1-sol",
+        "elapsed_seconds": 143.24717387650162
+      }
+    ],
+    "claims": [
+      {
+        "name": "96.json",
+        "sha256": "fc9452ca781f4c8a099dc842df0e4dfbca51e863efb35963fdcc20049ec12409"
+      },
+      {
+        "name": "97.json",
+        "sha256": "5fcbc9ac45d15cca7a3aeae0e5878ca41538f8918cc5f2d7016b48916b0bd504"
+      }
+    ],
+    "events": [
+      {
+        "receipt": "actions:1312915009:40082781323",
+        "identity": "095c31c0ec28397aae8b91ebcae8e2960b739e752c041bc972f4bb175b2db6db",
+        "payload_sha256": "69167f671d1dca1bd8c319f9d9e4a4e64bbea79ba9ff193a6bac4c6bf0f40f07",
+        "last_attempt": 1,
+        "phase": "FINISHED",
+        "outcome_sha256": "9db41a4ca6704b75c162564152f51357c274379ab688673ac925b14b3999a90c"
+      },
+      {
+        "receipt": "actions:1312915009:40083267630",
+        "identity": "e829e0a78fe1dcdf0365c8737e71d2fb91532243c8e81de62a6bae3887ee5877",
+        "payload_sha256": "15f2c39a6a7e7b2fa6becad83e42ef16bcf304d94a1ab47c97c9a64d8d57753e",
+        "last_attempt": 1,
+        "phase": "FINISHED",
+        "outcome_sha256": "2c8bac8635777a2784b6a2eb9b88d61c663d6291f0de6bcec32e5be254f8ef54"
+      }
+    ],
+    "work_empty": true,
+    "blocked": false,
+    "container_id": "5d84a79805f98a9c148277447adec0ecebaf5396d146972262df2e0b4dc81f5d",
+    "started_at": "2026-10-24T09:34:03.003555664Z",
+    "restart_count": 0,
+    "roles": [
+      {
+        "uid": 0,
+        "command": "python",
+        "process_identity_sha256": "9134b675307d3b093502a0dc95fd6e635b3f301738125a8cc24bf65c93628923"
+      },
+      {
+        "uid": 10003,
+        "command": "Runner.Listener",
+        "process_identity_sha256": "ac5385b3ffb25fb311043751d83f6214e6e83c393078e89f8edf1936aa6560f4"
+      },
+      {
+        "uid": 10001,
+        "command": "python",
+        "process_identity_sha256": "2cee0fd308e41f0d22303b9e5923f7c34a69c9f78c38a24f0d11495c45ba9652"
+      }
+    ],
+    "job_cleaned_count": 2,
+    "cleanup": [
+      {
+        "worker": 0,
+        "descendants_echild": true,
+        "temporary_credentials_removed": true
+      },
+      {
+        "worker": 0,
+        "descendants_echild": true,
+        "temporary_credentials_removed": true
+      }
+    ]
+  },
+  "after_redelivery": {
+    "runs": [
+      {
+        "issue": 96,
+        "phase": "WORKER_FINISHED",
+        "binding_sha256": "fc9452ca781f4c8a099dc842df0e4dfbca51e863efb35963fdcc20049ec12409",
+        "result_sha256": "dacbc6b37c1f652ae86b442160c2dcdde5128bd4f370d01506013692ee0141c6",
+        "outcome": "completed",
+        "pr_url": "https://github.com/ken2129/c3_neural_compression/pull/98",
+        "model": "gpt-6.1-sol",
+        "elapsed_seconds": 166.12154617533088
+      },
+      {
+        "issue": 97,
+        "phase": "WORKER_FINISHED",
+        "binding_sha256": "5fcbc9ac45d15cca7a3aeae0e5878ca41538f8918cc5f2d7016b48916b0bd504",
+        "result_sha256": "98b37d06155e22dc2430e18ef4f95ddbf3541c97130ea9af027bfabcd22fb922",
+        "outcome": "completed",
+        "pr_url": "https://github.com/ken2129/c3_neural_compression/pull/99",
+        "model": "gpt-6.1-sol",
+        "elapsed_seconds": 143.24717387650162
+      }
+    ],
+    "claims": [
+      {
+        "name": "96.json",
+        "sha256": "fc9452ca781f4c8a099dc842df0e4dfbca51e863efb35963fdcc20049ec12409"
+      },
+      {
+        "name": "97.json",
+        "sha256": "5fcbc9ac45d15cca7a3aeae0e5878ca41538f8918cc5f2d7016b48916b0bd504"
+      }
+    ],
+    "events": [
+      {
+        "receipt": "actions:1312915009:40082781323",
+        "identity": "095c31c0ec28397aae8b91ebcae8e2960b739e752c041bc972f4bb175b2db6db",
+        "payload_sha256": "69167f671d1dca1bd8c319f9d9e4a4e64bbea79ba9ff193a6bac4c6bf0f40f07",
+        "last_attempt": 2,
+        "phase": "FINISHED",
+        "outcome_sha256": "9db41a4ca6704b75c162564152f51357c274379ab688673ac925b14b3999a90c"
+      },
+      {
+        "receipt": "actions:1312915009:40083267630",
+        "identity": "e829e0a78fe1dcdf0365c8737e71d2fb91532243c8e81de62a6bae3887ee5877",
+        "payload_sha256": "15f2c39a6a7e7b2fa6becad83e42ef16bcf304d94a1ab47c97c9a64d8d57753e",
+        "last_attempt": 1,
+        "phase": "FINISHED",
+        "outcome_sha256": "2c8bac8635777a2784b6a2eb9b88d61c663d6291f0de6bcec32e5be254f8ef54"
+      }
+    ],
+    "work_empty": true,
+    "blocked": false,
+    "container_id": "5d84a79805f98a9c148277447adec0ecebaf5396d146972262df2e0b4dc81f5d",
+    "started_at": "2026-10-24T09:34:03.003555664Z",
+    "restart_count": 0,
+    "roles": [
+      {
+        "uid": 0,
+        "command": "python",
+        "process_identity_sha256": "9134b675307d3b093502a0dc95fd6e635b3f301738125a8cc24bf65c93628923"
+      },
+      {
+        "uid": 10003,
+        "command": "Runner.Listener",
+        "process_identity_sha256": "ac5385b3ffb25fb311043751d83f6214e6e83c393078e89f8edf1936aa6560f4"
+      },
+      {
+        "uid": 10001,
+        "command": "python",
+        "process_identity_sha256": "2cee0fd308e41f0d22303b9e5923f7c34a69c9f78c38a24f0d11495c45ba9652"
+      }
+    ],
+    "job_cleaned_count": 2,
+    "cleanup": [
+      {
+        "worker": 0,
+        "descendants_echild": true,
+        "temporary_credentials_removed": true
+      },
+      {
+        "worker": 0,
+        "descendants_echild": true,
+        "temporary_credentials_removed": true
+      }
+    ]
+  },
+  "final": {
+    "runs": [
+      {
+        "issue": 96,
+        "phase": "WORKER_FINISHED",
+        "binding_sha256": "fc9452ca781f4c8a099dc842df0e4dfbca51e863efb35963fdcc20049ec12409",
+        "result_sha256": "dacbc6b37c1f652ae86b442160c2dcdde5128bd4f370d01506013692ee0141c6",
+        "outcome": "completed",
+        "pr_url": "https://github.com/ken2129/c3_neural_compression/pull/98",
+        "model": "gpt-6.1-sol",
+        "elapsed_seconds": 166.12154617533088
+      },
+      {
+        "issue": 97,
+        "phase": "WORKER_FINISHED",
+        "binding_sha256": "5fcbc9ac45d15cca7a3aeae0e5878ca41538f8918cc5f2d7016b48916b0bd504",
+        "result_sha256": "98b37d06155e22dc2430e18ef4f95ddbf3541c97130ea9af027bfabcd22fb922",
+        "outcome": "completed",
+        "pr_url": "https://github.com/ken2129/c3_neural_compression/pull/99",
+        "model": "gpt-6.1-sol",
+        "elapsed_seconds": 143.24717387650162
+      }
+    ],
+    "claims": [
+      {
+        "name": "96.json",
+        "sha256": "fc9452ca781f4c8a099dc842df0e4dfbca51e863efb35963fdcc20049ec12409"
+      },
+      {
+        "name": "97.json",
+        "sha256": "5fcbc9ac45d15cca7a3aeae0e5878ca41538f8918cc5f2d7016b48916b0bd504"
+      }
+    ],
+    "events": [
+      {
+        "receipt": "actions:1312915009:40082781323",
+        "identity": "095c31c0ec28397aae8b91ebcae8e2960b739e752c041bc972f4bb175b2db6db",
+        "payload_sha256": "69167f671d1dca1bd8c319f9d9e4a4e64bbea79ba9ff193a6bac4c6bf0f40f07",
+        "last_attempt": 2,
+        "phase": "FINISHED",
+        "outcome_sha256": "9db41a4ca6704b75c162564152f51357c274379ab688673ac925b14b3999a90c"
+      },
+      {
+        "receipt": "actions:1312915009:40083267630",
+        "identity": "e829e0a78fe1dcdf0365c8737e71d2fb91532243c8e81de62a6bae3887ee5877",
+        "payload_sha256": "15f2c39a6a7e7b2fa6becad83e42ef16bcf304d94a1ab47c97c9a64d8d57753e",
+        "last_attempt": 1,
+        "phase": "FINISHED",
+        "outcome_sha256": "2c8bac8635777a2784b6a2eb9b88d61c663d6291f0de6bcec32e5be254f8ef54"
+      }
+    ],
+    "work_empty": true,
+    "blocked": false,
+    "container_id": "5d84a79805f98a9c148277447adec0ecebaf5396d146972262df2e0b4dc81f5d",
+    "started_at": "2026-10-24T09:34:03.003555664Z",
+    "restart_count": 0,
+    "roles": [
+      {
+        "uid": 0,
+        "command": "python",
+        "process_identity_sha256": "9134b675307d3b093502a0dc95fd6e635b3f301738125a8cc24bf65c93628923"
+      },
+      {
+        "uid": 10003,
+        "command": "Runner.Listener",
+        "process_identity_sha256": "ac5385b3ffb25fb311043751d83f6214e6e83c393078e89f8edf1936aa6560f4"
+      },
+      {
+        "uid": 10001,
+        "command": "python",
+        "process_identity_sha256": "2cee0fd308e41f0d22303b9e5923f7c34a69c9f78c38a24f0d11495c45ba9652"
+      }
+    ],
+    "job_cleaned_count": 2,
+    "cleanup": [
+      {
+        "worker": 0,
+        "descendants_echild": true,
+        "temporary_credentials_removed": true
+      },
+      {
+        "worker": 0,
+        "descendants_echild": true,
+        "temporary_credentials_removed": true
+      }
+    ]
+  },
+  "redelivery_github": {
+    "job": {
+      "id": 120842139060,
+      "runner_id": 2,
+      "runner_name": "c3-issue-intake-5d84a79805f9",
+      "status": "completed",
+      "conclusion": "success",
+      "run_attempt": 2,
+      "started_at": "2026-10-24T09:52:23Z",
+      "completed_at": "2026-10-24T09:52:31Z"
+    },
+    "ack_lines": [
+      "2026-10-24T09:52:26.2584131Z ISSUE_EVENT_DUPLICATE"
+    ],
+    "run_id": 40082781323,
+    "attempt": 2,
+    "observation": "real GitHub Actions log; no local or mocked receipt"
+  },
+  "pr_verification": [
+    {
+      "pr_url": "https://github.com/ken2129/c3_neural_compression/pull/98",
+      "number": 98,
+      "head_sha": "77c8fe21c1a0180697bd2887873a08367bf0e2a2",
+      "base_sha": "6fd11016d64f88721eb08caff2bb8b0988f3d847",
+      "author": "ken2129",
+      "draft": false,
+      "changed_files": [
+        "docs/research/generated/issue95-resident-e2e/job-a.json",
+        "docs/research/generated/issue95-resident-e2e/job-a.md"
+      ],
+      "json": {
+        "job": "a",
+        "source_sha": "6fd11016d64f88721eb08caff2bb8b0988f3d847",
+        "input_path": "LICENSE",
+        "byte_count": 11358,
+        "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "json_matches_prepared_oracle": true,
+      "report_mentions_result": true,
+      "normal_pr": true
+    },
+    {
+      "pr_url": "https://github.com/ken2129/c3_neural_compression/pull/99",
+      "number": 99,
+      "head_sha": "a3628ceb1e16f84c7b32edd6de125bd5f80de907",
+      "base_sha": "6fd11016d64f88721eb08caff2bb8b0988f3d847",
+      "author": "ken2129",
+      "draft": false,
+      "changed_files": [
+        "docs/research/generated/issue95-resident-e2e/job-b.json",
+        "docs/research/generated/issue95-resident-e2e/job-b.md"
+      ],
+      "json": {
+        "job": "b",
+        "source_sha": "6fd11016d64f88721eb08caff2bb8b0988f3d847",
+        "input_path": "README.md",
+        "byte_count": 14941,
+        "sha256": "95aa24566d5f182ae0dfbac61fec60b3db0451f0e0eac39c6862ee017295eb6e"
+      },
+      "json_matches_prepared_oracle": true,
+      "report_mentions_result": true,
+      "normal_pr": true
+    }
+  ],
+  "input_provenance": {
+    "phase": "OBSERVER_INPUT_PROVENANCE_VERIFIED",
+    "approved_source_sha": "6fd11016d64f88721eb08caff2bb8b0988f3d847",
+    "comparison": "byte-for-byte against approved Git blobs after real worker completion; no observer-generated task outputs",
+    "inputs": [
+      {
+        "path": "LICENSE",
+        "exact_bytes_match": true,
+        "size_bytes": 11358,
+        "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "git_blob_sha": "d645695673349e3947e8e5ae42332d0ac3164cd7"
+      },
+      {
+        "path": "README.md",
+        "exact_bytes_match": true,
+        "size_bytes": 14941,
+        "sha256": "95aa24566d5f182ae0dfbac61fec60b3db0451f0e0eac39c6862ee017295eb6e",
+        "git_blob_sha": "4fca4007622e482e6941d2fd071e3a3e6d9dcda7"
+      }
+    ],
+    "runtime_files": [
+      {
+        "path": "tools/research_resident/launcher.py",
+        "sha256": "141091f11f79e49e8078d8077c0c9e25960addec958b8da72fc16f183a87ad3a",
+        "matches_runtime_commit": true
+      },
+      {
+        "path": "research_harness/resident_runtime.py",
+        "sha256": "ea54426f1b96391fb8811fbfbdc1ec0bc4c8ce0fe8165891563490fd1d188410",
+        "matches_runtime_commit": true
+      },
+      {
+        "path": "research_harness/resident_cgroup_v1.py",
+        "sha256": "f21e70a777dbdbfa74f56054ea5a126f5bac5f83e0c8937825c0fe2f8533d9bb",
+        "matches_runtime_commit": true
+      }
+    ]
+  },
+  "dot_reports": {
+    "a": {
+      "confirmed": true,
+      "source": "owner confirmed report arrival in originating chat",
+      "pr": 98,
+      "issue": 96,
+      "observer": "owner; not local inference"
+    },
+    "b": {
+      "confirmed": true,
+      "source": "user forwarded full dot report for PR99",
+      "pr": 99,
+      "issue": 97,
+      "duplicate_notification_absence": "owner reports no additional report received as of latest reply; finite observation"
+    },
+    "redelivery": {
+      "confirmed_as_of_reply": true,
+      "source": "owner reply following explicit clarification about extra reports after event replay",
+      "extra_report_received": false,
+      "limit": "observation at reply time; not indefinite notification guarantee"
+    }
+  },
+  "related_regression_tests": [
+    {
+      "mode": "normal",
+      "exit_code": 0,
+      "subprocess_seconds": 5.046,
+      "discovered": 69,
+      "passed": 68,
+      "skipped": 1
+    },
+    {
+      "mode": "optimized",
+      "exit_code": 0,
+      "subprocess_seconds": 4.971,
+      "discovered": 69,
+      "passed": 68,
+      "skipped": 1
+    }
+  ],
+  "local_witness_sha256": {
+    "E2E_RESULT.md": "6859df64e28728d8b57879ed0075b0f7e35470bfb33b87a99b4ea04791192678",
+    "current-e2e-status.json": "e76f70c2f6ee8bda8277e11b3ad2d521f98ab6687668993dccebffbff25aa680",
+    "e2e-role-baseline.json": "303e1f5aeafbea7d4d1d81b5962d4ef0d479449985286c5554da303e97f098e9",
+    "before-dedup.snapshot.json": "2808084bf4cc93f65bd4c66b3bb95dd54021746496f89fc90d37d502b73fc556",
+    "after-dedup.snapshot.json": "3f23ce918627633356a02726b89447434153d868251e0ecff9dd36e3cd57378a",
+    "final.snapshot.json": "3f23ce918627633356a02726b89447434153d868251e0ecff9dd36e3cd57378a",
+    "same-event-rerun.verification.json": "e817e1259df5adb16050fe2e51db7d9b30ab6a07b8e66dbc301926e62fdf0c2a",
+    "same-event-rerun.github-verification.json": "815d4fa917fb37c8d83122a5e8d38b49ef017d76526e3a23ddadefc4da1a691e",
+    "post-redelivery.pr-count.json": "7a77747a49406b9e2fa14cf084f250a900938b975cb59e8c6ac7d38f82848001",
+    "job-a.pr-independent-verification.json": "8b39c7fa671b83c2b3ac32b0c090f5787cd7ea162bacb8eca5877c3dd755ec0c",
+    "job-b.pr-independent-verification.json": "03f7fd966710f49df03e9f7a9b5b59bf11470f5ba964d957f19c60f7d8118476",
+    "job-a.dot-confirmation.json": "07038b1d03c97e263806a6ae88f4720890a37f78bed0477e91747ca430c6e987",
+    "job-b.dot-confirmation.json": "6e70e5a0586c9724b322a41cf66403f570863f31a31b90632642c6e80cca4477",
+    "redelivery.dot-confirmation.json": "74bcf5ae4dc2a1f3a4709cd4b06eb9a074297dc43fc99eabd46bc1dec7e3ceee",
+    "observer-input-provenance.json": "30605bed2ee16b03554b204c84126923f4987e629a353f58e87bff6cdb5ab6d6",
+    "approval-review-observation.json": "56c39dbb397b4faf78769dd68a5c866e9666354ef42ab1b14960c168419b8f40",
+    "final-original-preservation.json": "07fbceac124bf84d860423f8af9a93c5040bed254a43d11360d3299ef58c1ed0"
+  }
+}
