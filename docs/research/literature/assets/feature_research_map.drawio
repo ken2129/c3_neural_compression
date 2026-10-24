@@ -1,0 +1,598 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="Electron" agent="draw.io" version="32.6.1">
+  <diagram id="feature-map" name="重要6論文とC3への論点">
+    <mxGraphModel dx="2440" dy="1530" grid="0" page="1" pageScale="1" pageWidth="2440" pageHeight="1530" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="2" value="" style="rounded=0;arcSize=9;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=none;strokeWidth=1.3;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="2440" height="1530" as="geometry" />
+        </mxCell>
+        <mxCell id="3" value="特徴圧縮の研究年表" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=43;fontColor=#16283D;fontStyle=1;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="70" y="30" width="2000" height="57" as="geometry" />
+        </mxCell>
+        <mxCell id="4" value="22論文を方式で色分け。★は重点6論文。各ラベルの§番号はレポートに対応。" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=22;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="72" y="102" width="1900" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="5" value="レポートを開く ↗" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=20;fontColor=#1D6D89;fontStyle=1;spacing=0;" vertex="1" parent="1" link="https://github.com/ken2129/c3_neural_compression/blob/docs/feature-compression-survey-20261024/docs/research/literature/2026-10-24_feature_compression_and_c3.md">
+          <mxGeometry x="2000" y="42" width="350" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="6" value="" style="edgeStyle=none;rounded=0;html=0;endArrow=classic;endFill=1;strokeWidth=4;strokeColor=#222222;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="70.00000000879884" y="1100.0000000100624" as="sourcePoint" />
+            <mxPoint x="2276.2818504421484" y="243.93345299773353" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="94.14916808260134" y="1097.8196291259299" />
+              <mxPoint x="117.97418633760199" y="1095.4985897098713" />
+              <mxPoint x="141.47505476706147" y="1093.0368817531119" />
+              <mxPoint x="164.65177336424046" y="1090.434505246879" />
+              <mxPoint x="187.50434212239963" y="1087.6914601823978" />
+              <mxPoint x="210.03276103479985" y="1084.8077465508952" />
+              <mxPoint x="232.23703009470157" y="1081.7833643435965" />
+              <mxPoint x="254.11714929536566" y="1078.6183135517292" />
+              <mxPoint x="275.6731186300527" y="1075.3125941665185" />
+              <mxPoint x="296.9049380920236" y="1071.866206179191" />
+              <mxPoint x="317.8126076745389" y="1068.2791495809724" />
+              <mxPoint x="338.39612737085946" y="1064.55142436309" />
+              <mxPoint x="358.6554971742456" y="1060.6830305167687" />
+              <mxPoint x="378.5907170779584" y="1056.6739680332355" />
+              <mxPoint x="398.20178707525844" y="1052.5242369037164" />
+              <mxPoint x="417.4887071594065" y="1048.2338371194378" />
+              <mxPoint x="436.4514773236631" y="1043.802768671625" />
+              <mxPoint x="455.0900975612889" y="1039.231031551505" />
+              <mxPoint x="473.404567865545" y="1034.5186257503044" />
+              <mxPoint x="491.39488822969184" y="1029.6655512592488" />
+              <mxPoint x="509.06105864699003" y="1024.6718080695641" />
+              <mxPoint x="526.4030791107003" y="1019.537396172477" />
+              <mxPoint x="543.4209496140837" y="1014.2623155592137" />
+              <mxPoint x="560.1146701504003" y="1008.8465662209999" />
+              <mxPoint x="576.4842407129113" y="1003.2901481490624" />
+              <mxPoint x="592.5296612948773" y="997.5930613346272" />
+              <mxPoint x="608.2509318895591" y="991.7553057689205" />
+              <mxPoint x="623.6480524902171" y="985.776881443168" />
+              <mxPoint x="638.721023090112" y="979.6577883485965" />
+              <mxPoint x="653.4698436825048" y="973.3980264764322" />
+              <mxPoint x="667.8945142606561" y="966.9975958179009" />
+              <mxPoint x="681.9950348178265" y="960.4564963642292" />
+              <mxPoint x="695.7714053472769" y="953.7747281066431" />
+              <mxPoint x="709.2236258422677" y="946.9522910363687" />
+              <mxPoint x="722.3516962960599" y="939.9891851446323" />
+              <mxPoint x="735.155616701914" y="932.8854104226604" />
+              <mxPoint x="747.6353870530909" y="925.6409668616785" />
+              <mxPoint x="759.791007342851" y="918.2558544529132" />
+              <mxPoint x="771.6224775644553" y="910.7300731875908" />
+              <mxPoint x="783.1297977111642" y="903.0636230569376" />
+              <mxPoint x="794.3129677762389" y="895.2565040521793" />
+              <mxPoint x="805.1719877529393" y="887.3087161645425" />
+              <mxPoint x="815.7068576345271" y="879.2202593852533" />
+              <mxPoint x="825.9175774142623" y="870.9911337055378" />
+              <mxPoint x="835.8041470854056" y="862.6213391166223" />
+              <mxPoint x="845.366566641218" y="854.110875609733" />
+              <mxPoint x="854.6048360749602" y="845.4597431760958" />
+              <mxPoint x="863.5189553798928" y="836.6679418069375" />
+              <mxPoint x="872.1089245492761" y="827.7354714934838" />
+              <mxPoint x="880.3747435763717" y="818.6623322269612" />
+              <mxPoint x="888.3164124544395" y="809.4485239985955" />
+              <mxPoint x="895.9339311767405" y="800.0940467996132" />
+              <mxPoint x="903.2272997365355" y="790.5989006212407" />
+              <mxPoint x="910.1965181270851" y="780.9630854547037" />
+              <mxPoint x="916.8415863416499" y="771.1866012912287" />
+              <mxPoint x="923.1625043734907" y="761.2694481220417" />
+              <mxPoint x="929.1592722158683" y="751.2116259383693" />
+              <mxPoint x="934.8318898620432" y="741.013134731437" />
+              <mxPoint x="940.1803573052763" y="730.6739744924716" />
+              <mxPoint x="945.2046745388282" y="720.1941452126993" />
+              <mxPoint x="945.2046745388282" y="720.1941452126993" />
+              <mxPoint x="950.3556309088636" y="709.6875228722055" />
+              <mxPoint x="956.0839995917253" y="699.2679834544883" />
+              <mxPoint x="962.3897805874119" y="688.9355269558919" />
+              <mxPoint x="969.2729738959246" y="678.6901533727606" />
+              <mxPoint x="976.7335795172621" y="668.5318627014385" />
+              <mxPoint x="984.771597451426" y="658.4606549382701" />
+              <mxPoint x="993.3870276984146" y="648.4765300795991" />
+              <mxPoint x="1002.5798702582293" y="638.5794881217705" />
+              <mxPoint x="1012.3501251308692" y="628.769529061128" />
+              <mxPoint x="1022.6977923163349" y="619.0466528940161" />
+              <mxPoint x="1033.6228718146256" y="609.410859616779" />
+              <mxPoint x="1045.1253636257425" y="599.862149225761" />
+              <mxPoint x="1057.205267749684" y="590.400521717306" />
+              <mxPoint x="1069.8625841864518" y="581.0259770877585" />
+              <mxPoint x="1083.097312936045" y="571.738515333463" />
+              <mxPoint x="1096.9094539984637" y="562.5381364507635" />
+              <mxPoint x="1111.2990073737078" y="553.4248404360043" />
+              <mxPoint x="1126.2659730617772" y="544.3986272855295" />
+              <mxPoint x="1141.8103510626725" y="535.4594969956834" />
+              <mxPoint x="1157.9321413763935" y="526.6074495628105" />
+              <mxPoint x="1174.6313440029394" y="517.8424849832547" />
+              <mxPoint x="1191.907958942311" y="509.1646032533605" />
+              <mxPoint x="1209.7619861945086" y="500.5738043694722" />
+              <mxPoint x="1228.193425759531" y="492.0700883279337" />
+              <mxPoint x="1247.2022776373794" y="483.6534551250894" />
+              <mxPoint x="1266.7885418280534" y="475.3239047572838" />
+              <mxPoint x="1286.9522183315528" y="467.08143722086095" />
+              <mxPoint x="1307.6933071478777" y="458.9260525121649" />
+              <mxPoint x="1329.011808277028" y="450.8577506275401" />
+              <mxPoint x="1350.907721719004" y="442.876531563331" />
+              <mxPoint x="1373.3810474738052" y="434.9823953158815" />
+              <mxPoint x="1396.4317855414324" y="427.17534188153616" />
+              <mxPoint x="1420.059935921885" y="419.45537125663895" />
+              <mxPoint x="1444.2654986151626" y="411.8224834375342" />
+              <mxPoint x="1469.048473621266" y="404.2766784205661" />
+              <mxPoint x="1494.4088609401956" y="396.81795620207924" />
+              <mxPoint x="1520.34666057195" y="389.44631677841744" />
+              <mxPoint x="1546.8618725165297" y="382.1617601459252" />
+              <mxPoint x="1573.9544967739355" y="374.96428630094647" />
+              <mxPoint x="1601.6245333441666" y="367.8538952398261" />
+              <mxPoint x="1629.8719822272235" y="360.8305869589076" />
+              <mxPoint x="1658.6968434231053" y="353.8943614545358" />
+              <mxPoint x="1688.0991169318131" y="347.04521872305463" />
+              <mxPoint x="1718.0788027533463" y="340.28315876080865" />
+              <mxPoint x="1748.635900887705" y="333.60818156414166" />
+              <mxPoint x="1779.7704113348896" y="327.02028712939807" />
+              <mxPoint x="1811.4823340948988" y="320.5194754529224" />
+              <mxPoint x="1843.7716691677347" y="314.1057465310587" />
+              <mxPoint x="1876.638416553395" y="307.7791003601511" />
+              <mxPoint x="1910.0825762518816" y="301.539536936544" />
+              <mxPoint x="1944.1041482631936" y="295.3870562565817" />
+              <mxPoint x="1978.703132587331" y="289.32165831660825" />
+              <mxPoint x="2013.8795292242935" y="283.3433431129681" />
+              <mxPoint x="2049.633338174082" y="277.4521106420053" />
+              <mxPoint x="2085.9645594366957" y="271.6479609000643" />
+              <mxPoint x="2122.8731930121357" y="265.93089388348915" />
+              <mxPoint x="2160.3592389004" y="260.30090958862445" />
+              <mxPoint x="2198.422697101491" y="254.7580080118139" />
+              <mxPoint x="2237.063567615407" y="249.30218914940235" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="7" value="" style="edgeStyle=none;rounded=0;html=0;endArrow=none;endFill=1;strokeWidth=1.7;strokeColor=#222222;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="210.03276103479985" y="1084.8077465508952" as="sourcePoint" />
+            <mxPoint x="270" y="954" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="240.0163805173999" y="1019.4038732754476" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="8" value="" style="edgeStyle=none;rounded=0;html=0;endArrow=none;endFill=1;strokeWidth=1.7;strokeColor=#222222;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="473.404567865545" y="1034.5186257503044" as="sourcePoint" />
+            <mxPoint x="595" y="1141" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="534.2022839327725" y="1087.7593128751523" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="9" value="" style="edgeStyle=none;rounded=0;html=0;endArrow=none;endFill=1;strokeWidth=1.7;strokeColor=#222222;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="722.3516962960599" y="939.9891851446323" as="sourcePoint" />
+            <mxPoint x="585" y="722" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="653.6758481480299" y="830.9945925723162" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="10" value="" style="edgeStyle=none;rounded=0;html=0;endArrow=none;endFill=1;strokeWidth=1.7;strokeColor=#222222;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="976.7335795172621" y="668.5318627014385" as="sourcePoint" />
+            <mxPoint x="1050" y="866" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="1013.3667897586311" y="767.2659313507193" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="11" value="" style="edgeStyle=none;rounded=0;html=0;endArrow=none;endFill=1;strokeWidth=1.7;strokeColor=#222222;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1247.2022776373794" y="483.6534551250894" as="sourcePoint" />
+            <mxPoint x="1015" y="457" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="1131.1011388186898" y="470.3267275625447" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="12" value="" style="edgeStyle=none;rounded=0;html=0;endArrow=none;endFill=1;strokeWidth=1.7;strokeColor=#222222;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1520.34666057195" y="389.44631677841744" as="sourcePoint" />
+            <mxPoint x="1555" y="611" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="1537.673330285975" y="500.2231583892087" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="13" value="" style="edgeStyle=none;rounded=0;html=0;endArrow=none;endFill=1;strokeWidth=1.7;strokeColor=#222222;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1843.7716691677347" y="314.1057465310587" as="sourcePoint" />
+            <mxPoint x="1805" y="307" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="1824.3858345838673" y="310.55287326552934" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="14" value="" style="edgeStyle=none;rounded=0;html=0;endArrow=none;endFill=1;strokeWidth=1.7;strokeColor=#222222;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="2198.422697101491" y="254.7580080118139" as="sourcePoint" />
+            <mxPoint x="2095" y="446" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="2146.7113485507452" y="350.37900400590695" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="15" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=0;fillColor=#DDE9FA;strokeColor=none;strokeWidth=1.3;" vertex="1" parent="1">
+          <mxGeometry x="177.03276103479985" y="1070.8077465508952" width="66" height="29" as="geometry" />
+        </mxCell>
+        <mxCell id="16" value="2018" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=21;fontColor=#16283D;fontStyle=1;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="183.03276103479985" y="1071.8077465508952" width="60" height="29" as="geometry" />
+        </mxCell>
+        <mxCell id="17" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=0;fillColor=#DDE9FA;strokeColor=none;strokeWidth=1.3;" vertex="1" parent="1">
+          <mxGeometry x="440.404567865545" y="1020.5186257503044" width="66" height="29" as="geometry" />
+        </mxCell>
+        <mxCell id="18" value="2020" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=21;fontColor=#16283D;fontStyle=1;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="446.404567865545" y="1021.5186257503044" width="60" height="29" as="geometry" />
+        </mxCell>
+        <mxCell id="19" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=0;fillColor=#DDE9FA;strokeColor=none;strokeWidth=1.3;" vertex="1" parent="1">
+          <mxGeometry x="689.3516962960599" y="925.9891851446323" width="66" height="29" as="geometry" />
+        </mxCell>
+        <mxCell id="20" value="2021" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=21;fontColor=#16283D;fontStyle=1;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="695.3516962960599" y="926.9891851446323" width="60" height="29" as="geometry" />
+        </mxCell>
+        <mxCell id="21" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=0;fillColor=#DDE9FA;strokeColor=none;strokeWidth=1.3;" vertex="1" parent="1">
+          <mxGeometry x="943.7335795172621" y="654.5318627014385" width="66" height="29" as="geometry" />
+        </mxCell>
+        <mxCell id="22" value="2022" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=21;fontColor=#16283D;fontStyle=1;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="949.7335795172621" y="655.5318627014385" width="60" height="29" as="geometry" />
+        </mxCell>
+        <mxCell id="23" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=0;fillColor=#DDE9FA;strokeColor=none;strokeWidth=1.3;" vertex="1" parent="1">
+          <mxGeometry x="1214.2022776373794" y="469.6534551250894" width="66" height="29" as="geometry" />
+        </mxCell>
+        <mxCell id="24" value="2023" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=21;fontColor=#16283D;fontStyle=1;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="1220.2022776373794" y="470.6534551250894" width="60" height="29" as="geometry" />
+        </mxCell>
+        <mxCell id="25" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=0;fillColor=#DDE9FA;strokeColor=none;strokeWidth=1.3;" vertex="1" parent="1">
+          <mxGeometry x="1487.34666057195" y="375.44631677841744" width="66" height="29" as="geometry" />
+        </mxCell>
+        <mxCell id="26" value="2024" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=21;fontColor=#16283D;fontStyle=1;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="1493.34666057195" y="376.44631677841744" width="60" height="29" as="geometry" />
+        </mxCell>
+        <mxCell id="27" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=0;fillColor=#DDE9FA;strokeColor=none;strokeWidth=1.3;" vertex="1" parent="1">
+          <mxGeometry x="1810.7716691677347" y="300.1057465310587" width="66" height="29" as="geometry" />
+        </mxCell>
+        <mxCell id="28" value="2025" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=21;fontColor=#16283D;fontStyle=1;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="1816.7716691677347" y="301.1057465310587" width="60" height="29" as="geometry" />
+        </mxCell>
+        <mxCell id="29" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=0;fillColor=#DDE9FA;strokeColor=none;strokeWidth=1.3;" vertex="1" parent="1">
+          <mxGeometry x="2165.422697101491" y="240.7580080118139" width="66" height="29" as="geometry" />
+        </mxCell>
+        <mxCell id="30" value="2026" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=21;fontColor=#16283D;fontStyle=1;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="2171.422697101491" y="241.7580080118139" width="60" height="29" as="geometry" />
+        </mxCell>
+        <mxCell id="31" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=0;fillColor=#DBEAD5;strokeColor=#315D40;strokeWidth=1.3;strokeWidth=2;" vertex="1" parent="1" link="https://arxiv.org/abs/1802.03931" tooltip="Deep Feature Compression for Collaborative Object Detection | ICIP 2018">
+          <mxGeometry x="105" y="790" width="340" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="32" value="★01  Choi &amp; Bajić" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=22;fontColor=#315D40;fontStyle=1;spacing=0;" vertex="1" parent="1" link="https://arxiv.org/abs/1802.03931">
+          <mxGeometry x="115" y="790" width="330" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="33" value="§3.1 ↗" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=17;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://github.com/ken2129/c3_neural_compression/blob/docs/feature-compression-survey-20261024/docs/research/literature/2026-10-24_feature_compression_and_c3.md">
+          <mxGeometry x="454" y="792" width="93" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="34" value="中間特徴をHEVCで送る" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=17;fontColor=#315D40;fontStyle=0;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="114" y="831" width="430" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="35" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=0;fillColor=#FFF0C6;strokeColor=#805F16;strokeWidth=1.3;strokeWidth=2;" vertex="1" parent="1" link="https://arxiv.org/abs/1803.06131" tooltip="Towards Image Understanding from Deep Compression without Decoding | ICLR 2018">
+          <mxGeometry x="105" y="868" width="340" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="36" value="★02  Torfason et al." style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=22;fontColor=#805F16;fontStyle=1;spacing=0;" vertex="1" parent="1" link="https://arxiv.org/abs/1803.06131">
+          <mxGeometry x="115" y="868" width="330" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="37" value="§3.6 ↗" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=17;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://github.com/ken2129/c3_neural_compression/blob/docs/feature-compression-survey-20261024/docs/research/literature/2026-10-24_feature_compression_and_c3.md">
+          <mxGeometry x="454" y="870" width="93" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="38" value="画像latentから直接認識" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=17;fontColor=#805F16;fontStyle=0;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="114" y="909" width="430" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="39" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=0;fillColor=#DBEAD5;strokeColor=none;strokeWidth=1.3;" vertex="1" parent="1" link="https://arxiv.org/abs/2007.11797" tooltip="End-to-end Learning of Compressible Features | ICIP 2020">
+          <mxGeometry x="430" y="1150" width="340" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="40" value="Compressible Features" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=20;fontColor=#315D40;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://arxiv.org/abs/2007.11797">
+          <mxGeometry x="440" y="1150" width="330" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="41" value="§3.2 ↗" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=17;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://github.com/ken2129/c3_neural_compression/blob/docs/feature-compression-survey-20261024/docs/research/literature/2026-10-24_feature_compression_and_c3.md">
+          <mxGeometry x="779" y="1152" width="93" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="42" value="task＋rateで特徴を学習" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=15;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="439" y="1185" width="430" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="43" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=0;fillColor=#DBEAD5;strokeColor=none;strokeWidth=1.3;" vertex="1" parent="1" link="https://arxiv.org/abs/2105.07102" tooltip="Lightweight Compression of Intermediate Neural Network Features | OJCAS 2021">
+          <mxGeometry x="420" y="590" width="340" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="44" value="Cohen et al." style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=20;fontColor=#315D40;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://arxiv.org/abs/2105.07102">
+          <mxGeometry x="430" y="590" width="330" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="45" value="§3.3 ↗" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=17;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://github.com/ken2129/c3_neural_compression/blob/docs/feature-compression-survey-20261024/docs/research/literature/2026-10-24_feature_compression_and_c3.md">
+          <mxGeometry x="769" y="592" width="93" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="46" value="固定DNNの低複雑度圧縮" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=15;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="429" y="625" width="430" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="47" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=0;fillColor=#FFF0C6;strokeColor=none;strokeWidth=1.3;" vertex="1" parent="1" link="https://ieeexplore.ieee.org/document/9675369/" tooltip="Learning in Compressed Domain for Faster Machine Vision Tasks | VCIP 2021">
+          <mxGeometry x="420" y="652" width="340" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="48" value="Liu · Sun · Katto" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=20;fontColor=#805F16;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://ieeexplore.ieee.org/document/9675369/">
+          <mxGeometry x="430" y="652" width="330" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="49" value="§6.1 ↗" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=17;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://github.com/ken2129/c3_neural_compression/blob/docs/feature-compression-survey-20261024/docs/research/literature/2026-10-24_feature_compression_and_c3.md">
+          <mxGeometry x="769" y="654" width="93" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="50" value="entropy順にlatentを選択" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=15;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="429" y="687" width="430" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="51" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=0;fillColor=#DBEAD5;strokeColor=#315D40;strokeWidth=1.3;strokeWidth=2;" vertex="1" parent="1" link="https://arxiv.org/abs/2108.11898" tooltip="Supervised Compression for Resource-Constrained Edge Computing Systems | WACV 2022">
+          <mxGeometry x="885" y="875" width="340" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="52" value="★03  Entropic Student" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=22;fontColor=#315D40;fontStyle=1;spacing=0;" vertex="1" parent="1" link="https://arxiv.org/abs/2108.11898">
+          <mxGeometry x="895" y="875" width="330" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="53" value="§3.4 ↗" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=17;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://github.com/ken2129/c3_neural_compression/blob/docs/feature-compression-survey-20261024/docs/research/literature/2026-10-24_feature_compression_and_c3.md">
+          <mxGeometry x="1234" y="877" width="93" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="54" value="rate＋教師特徴の再現" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=17;fontColor=#315D40;fontStyle=0;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="894" y="916" width="430" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="55" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=0;fillColor=#DBEAD5;strokeColor=none;strokeWidth=1.3;" vertex="1" parent="1" link="https://www.ecva.net/papers/eccv_2022/papers_ECCV/papers/136970500.pdf" tooltip="Omni-ICM | ECCV 2022">
+          <mxGeometry x="885" y="953" width="340" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="56" value="Omni-ICM" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=20;fontColor=#315D40;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://www.ecva.net/papers/eccv_2022/papers_ECCV/papers/136970500.pdf">
+          <mxGeometry x="895" y="953" width="330" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="57" value="§3.5 ↗" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=17;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://github.com/ken2129/c3_neural_compression/blob/docs/feature-compression-survey-20261024/docs/research/literature/2026-10-24_feature_compression_and_c3.md">
+          <mxGeometry x="1234" y="955" width="93" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="58" value="対比学習＋汎用特徴codec" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=15;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="894" y="988" width="430" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="59" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=0;fillColor=#FFF0C6;strokeColor=#805F16;strokeWidth=1.3;strokeWidth=2;" vertex="1" parent="1" link="https://arxiv.org/abs/2209.01355" tooltip="Semantic Segmentation in Learned Compressed Domain | PCS 2022">
+          <mxGeometry x="885" y="1015" width="340" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="60" value="★04  Liu · Sun · Katto" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=22;fontColor=#805F16;fontStyle=1;spacing=0;" vertex="1" parent="1" link="https://arxiv.org/abs/2209.01355">
+          <mxGeometry x="895" y="1015" width="330" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="61" value="§6.1 ↗" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=17;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://github.com/ken2129/c3_neural_compression/blob/docs/feature-compression-survey-20261024/docs/research/literature/2026-10-24_feature_compression_and_c3.md">
+          <mxGeometry x="1234" y="1017" width="93" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="62" value="固定codecのlatent → bridge → 分割" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=17;fontColor=#805F16;fontStyle=0;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="894" y="1056" width="430" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="63" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=0;fillColor=#FFF0C6;strokeColor=none;strokeWidth=1.3;" vertex="1" parent="1" link="https://arxiv.org/abs/2107.08373" tooltip="Scalable Image Coding for Humans and Machines | TIP 2022">
+          <mxGeometry x="885" y="1093" width="340" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="64" value="Scalable Image Coding" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=20;fontColor=#805F16;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://arxiv.org/abs/2107.08373">
+          <mxGeometry x="895" y="1093" width="330" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="65" value="§5.2 ↗" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=17;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://github.com/ken2129/c3_neural_compression/blob/docs/feature-compression-survey-20261024/docs/research/literature/2026-10-24_feature_compression_and_c3.md">
+          <mxGeometry x="1234" y="1095" width="93" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="66" value="machine基本層＋human拡張" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=15;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="894" y="1128" width="430" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="67" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=0;fillColor=#DBEAD5;strokeColor=none;strokeWidth=1.3;" vertex="1" parent="1" link="https://openreview.net/pdf?id=p28wv4G65d" tooltip="SC2 Benchmark | TMLR 2023">
+          <mxGeometry x="850" y="325" width="340" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="68" value="SC2 Benchmark" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=20;fontColor=#315D40;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://openreview.net/pdf?id=p28wv4G65d">
+          <mxGeometry x="860" y="325" width="330" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="69" value="§4.1 ↗" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=17;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://github.com/ken2129/c3_neural_compression/blob/docs/feature-compression-survey-20261024/docs/research/literature/2026-10-24_feature_compression_and_c3.md">
+          <mxGeometry x="1199" y="327" width="93" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="70" value="通信・精度・端末負担の評価基盤" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=15;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="859" y="360" width="430" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="71" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=0;fillColor=#FFF0C6;strokeColor=none;strokeWidth=1.3;" vertex="1" parent="1" link="https://pmc.ncbi.nlm.nih.gov/articles/PMC10403241/" tooltip="Unified Architecture Adaptation for Compressed Domain Semantic Inference | TCSVT 2023">
+          <mxGeometry x="850" y="387" width="340" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="72" value="Duan et al." style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=20;fontColor=#805F16;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://pmc.ncbi.nlm.nih.gov/articles/PMC10403241/">
+          <mxGeometry x="860" y="387" width="330" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="73" value="§5.1 ↗" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=17;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://github.com/ken2129/c3_neural_compression/blob/docs/feature-compression-survey-20261024/docs/research/literature/2026-10-24_feature_compression_and_c3.md">
+          <mxGeometry x="1199" y="389" width="93" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="74" value="形状整合＋教師特徴の転移" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=15;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="859" y="422" width="430" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="75" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=0;fillColor=#DBEAD5;strokeColor=none;strokeWidth=1.3;" vertex="1" parent="1" link="https://arxiv.org/abs/2405.09077" tooltip="Compressive Feature Selection | ICME workshop 2024">
+          <mxGeometry x="1390" y="620" width="340" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="76" value="Feature Selection" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=20;fontColor=#315D40;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://arxiv.org/abs/2405.09077">
+          <mxGeometry x="1400" y="620" width="330" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="77" value="§8.2 ↗" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=17;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://github.com/ken2129/c3_neural_compression/blob/docs/feature-compression-survey-20261024/docs/research/literature/2026-10-24_feature_compression_and_c3.md">
+          <mxGeometry x="1739" y="622" width="93" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="78" value="MI・norm等で特徴を選択" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=15;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="1399" y="655" width="430" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="79" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=0;fillColor=#DBEAD5;strokeColor=none;strokeWidth=1.3;" vertex="1" parent="1" link="https://arxiv.org/abs/2405.04044" tooltip="DMOFC | PCS 2024">
+          <mxGeometry x="1390" y="682" width="340" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="80" value="DMOFC" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=20;fontColor=#315D40;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://arxiv.org/abs/2405.04044">
+          <mxGeometry x="1400" y="682" width="330" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="81" value="§8.1 ↗" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=17;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://github.com/ken2129/c3_neural_compression/blob/docs/feature-compression-survey-20261024/docs/research/literature/2026-10-24_feature_compression_and_c3.md">
+          <mxGeometry x="1739" y="684" width="93" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="82" value="識別ベクトルの容量削減" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=15;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="1399" y="717" width="430" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="83" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=0;fillColor=#FFF0C6;strokeColor=none;strokeWidth=1.3;" vertex="1" parent="1" link="https://doi.org/10.1145/3678471" tooltip="Reconstruction-Free Image Compression for Machine Vision via Knowledge Transfer | TOMM 2024">
+          <mxGeometry x="1390" y="744" width="340" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="84" value="Knowledge Transfer" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=20;fontColor=#805F16;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://doi.org/10.1145/3678471">
+          <mxGeometry x="1400" y="744" width="330" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="85" value="§5.1 ↗" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=17;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://github.com/ken2129/c3_neural_compression/blob/docs/feature-compression-survey-20261024/docs/research/literature/2026-10-24_feature_compression_and_c3.md">
+          <mxGeometry x="1739" y="746" width="93" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="86" value="logitと中間特徴を蒸留" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=15;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="1399" y="779" width="430" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="87" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=0;fillColor=#F8D6D5;strokeColor=#9B414A;strokeWidth=1.3;strokeWidth=2;" vertex="1" parent="1" link="https://doi.org/10.1109/JETCAS.2024.3386639" tooltip="Human–Machine Collaborative Image Compression Method Based on Implicit Neural Representations | JETCAS 2024">
+          <mxGeometry x="1390" y="806" width="340" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="88" value="★05  Li &amp; Zhang" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=22;fontColor=#9B414A;fontStyle=1;spacing=0;" vertex="1" parent="1" link="https://doi.org/10.1109/JETCAS.2024.3386639">
+          <mxGeometry x="1400" y="806" width="330" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="89" value="§7.2 ↗" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=17;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://github.com/ken2129/c3_neural_compression/blob/docs/feature-compression-survey-20261024/docs/research/literature/2026-10-24_feature_compression_and_c3.md">
+          <mxGeometry x="1739" y="808" width="93" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="90" value="画像別SEN → 3ch意味入力" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=17;fontColor=#9B414A;fontStyle=0;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="1399" y="847" width="430" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="91" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=0;fillColor=#F8D6D5;strokeColor=none;strokeWidth=1.3;" vertex="1" parent="1" link="https://arxiv.org/abs/2306.10681" tooltip="VNVC | TPAMI 2024">
+          <mxGeometry x="1390" y="884" width="340" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="92" value="VNVC" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=20;fontColor=#9B414A;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://arxiv.org/abs/2306.10681">
+          <mxGeometry x="1400" y="884" width="330" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="93" value="§7.4 ↗" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=17;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://github.com/ken2129/c3_neural_compression/blob/docs/feature-compression-survey-20261024/docs/research/literature/2026-10-24_feature_compression_and_c3.md">
+          <mxGeometry x="1739" y="886" width="93" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="94" value="部分復号した動画特徴を利用" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=15;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="1399" y="919" width="430" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="95" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=0;fillColor=#DBEAD5;strokeColor=none;strokeWidth=1.3;" vertex="1" parent="1" link="https://arxiv.org/abs/2412.04307" tooltip="LaMoFC | ICCV 2025">
+          <mxGeometry x="1640" y="175" width="340" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="96" value="LaMoFC" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=20;fontColor=#315D40;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://arxiv.org/abs/2412.04307">
+          <mxGeometry x="1650" y="175" width="330" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="97" value="§8.1 ↗" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=17;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://github.com/ken2129/c3_neural_compression/blob/docs/feature-compression-survey-20261024/docs/research/literature/2026-10-24_feature_compression_and_c3.md">
+          <mxGeometry x="1989" y="177" width="93" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="98" value="大型モデル特徴の評価基盤" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=15;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="1649" y="210" width="430" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="99" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=0;fillColor=#FFF0C6;strokeColor=none;strokeWidth=1.3;" vertex="1" parent="1" link="https://arxiv.org/abs/2507.01608" tooltip="POLC | ICME 2025">
+          <mxGeometry x="1640" y="237" width="340" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="100" value="POLC" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=20;fontColor=#805F16;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://arxiv.org/abs/2507.01608">
+          <mxGeometry x="1650" y="237" width="330" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="101" value="§5.1 ↗" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=17;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://github.com/ken2129/c3_neural_compression/blob/docs/feature-compression-survey-20261024/docs/research/literature/2026-10-24_feature_compression_and_c3.md">
+          <mxGeometry x="1989" y="239" width="93" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="102" value="知覚latent＋小型adapter" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=15;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="1649" y="272" width="430" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="103" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=0;fillColor=#DBEAD5;strokeColor=none;strokeWidth=1.3;" vertex="1" parent="1" link="https://openaccess.thecvf.com/content/CVPR2026/papers/Huang_Discovering_Adaptive_Task_Dependencies_for_Efficient_Multi-Task_Representation_Compression_CVPR_2026_paper.pdf" tooltip="ATDC | CVPR 2026">
+          <mxGeometry x="1930" y="455" width="340" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="104" value="ATDC" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=20;fontColor=#315D40;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://openaccess.thecvf.com/content/CVPR2026/papers/Huang_Discovering_Adaptive_Task_Dependencies_for_Efficient_Multi-Task_Representation_Compression_CVPR_2026_paper.pdf">
+          <mxGeometry x="1940" y="455" width="330" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="105" value="§8.3 ↗" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=17;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://github.com/ken2129/c3_neural_compression/blob/docs/feature-compression-survey-20261024/docs/research/literature/2026-10-24_feature_compression_and_c3.md">
+          <mxGeometry x="2279" y="457" width="93" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="106" value="task依存に応じて残差を符号化" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=15;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="1939" y="490" width="430" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="107" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=0;fillColor=#FFF0C6;strokeColor=none;strokeWidth=1.3;" vertex="1" parent="1" link="https://ieeexplore.ieee.org/document/11630155" tooltip="Efficient Object Detection on JPEG AI Pre-Reconstruction Latents | ICIP 2026">
+          <mxGeometry x="1930" y="517" width="340" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="108" value="JPEG AI latent" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=20;fontColor=#805F16;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://ieeexplore.ieee.org/document/11630155">
+          <mxGeometry x="1940" y="517" width="330" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="109" value="§5.2 ↗" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=17;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://github.com/ken2129/c3_neural_compression/blob/docs/feature-compression-survey-20261024/docs/research/literature/2026-10-24_feature_compression_and_c3.md">
+          <mxGeometry x="2279" y="519" width="93" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="110" value="RGB合成前にbridgeで検出" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=15;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="1939" y="552" width="430" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="111" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=0;fillColor=#F8D6D5;strokeColor=#9B414A;strokeWidth=1.3;strokeWidth=2;" vertex="1" parent="1" link="https://openaccess.thecvf.com/content/CVPR2026/papers/Lee_Neural-Centric_Video_Processing_Pipeline_for_Unified_Multi-Task_Inference_CVPR_2026_paper.pdf" tooltip="NVP | CVPR 2026">
+          <mxGeometry x="1930" y="579" width="340" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="112" value="★06  NVP" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=22;fontColor=#9B414A;fontStyle=1;spacing=0;" vertex="1" parent="1" link="https://openaccess.thecvf.com/content/CVPR2026/papers/Lee_Neural-Centric_Video_Processing_Pipeline_for_Unified_Multi-Task_Inference_CVPR_2026_paper.pdf">
+          <mxGeometry x="1940" y="579" width="330" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="113" value="§7.3 ↗" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=17;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://github.com/ken2129/c3_neural_compression/blob/docs/feature-compression-survey-20261024/docs/research/literature/2026-10-24_feature_compression_and_c3.md">
+          <mxGeometry x="2279" y="581" width="93" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="114" value="動画INR → 認識器内部" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=17;fontColor=#9B414A;fontStyle=0;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="1939" y="620" width="430" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="115" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=0;fillColor=#F8D6D5;strokeColor=none;strokeWidth=1.3;" vertex="1" parent="1" link="https://www.cmsworkshops.com/ICASSP2026/view_paper.php?PaperNum=9756" tooltip="STDLC | ICASSP 2026">
+          <mxGeometry x="1930" y="657" width="340" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="116" value="STDLC" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=20;fontColor=#9B414A;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://www.cmsworkshops.com/ICASSP2026/view_paper.php?PaperNum=9756">
+          <mxGeometry x="1940" y="657" width="330" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="117" value="§6.2 ↗" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=17;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://github.com/ken2129/c3_neural_compression/blob/docs/feature-compression-survey-20261024/docs/research/literature/2026-10-24_feature_compression_and_c3.md">
+          <mxGeometry x="2279" y="659" width="93" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="118" value="機械向け映像圧縮／経路未確認" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=15;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="1939" y="692" width="430" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="119" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#8E949B;strokeWidth=1.3;dashed=1;dashPattern=3 3;" vertex="1" parent="1">
+          <mxGeometry x="1855" y="966" width="491" height="248" as="geometry" />
+        </mxCell>
+        <mxCell id="120" value="レポートの研究群別  /  §4" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=20;fontColor=#16283D;fontStyle=1;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="1877" y="980" width="440" height="29" as="geometry" />
+        </mxCell>
+        <mxCell id="121" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=0;fillColor=#DBEAD5;strokeColor=none;strokeWidth=1.3;" vertex="1" parent="1">
+          <mxGeometry x="1878" y="1020" width="444" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="122" value="認識特徴を圧縮  ·  §4.1" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=21;fontColor=#315D40;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://github.com/ken2129/c3_neural_compression/blob/docs/feature-compression-survey-20261024/docs/research/literature/2026-10-24_feature_compression_and_c3.md">
+          <mxGeometry x="1890" y="1020" width="420" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="123" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=0;fillColor=#FFF0C6;strokeColor=none;strokeWidth=1.3;" vertex="1" parent="1">
+          <mxGeometry x="1878" y="1066" width="444" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="124" value="画像latentから認識  ·  §4.2" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=21;fontColor=#805F16;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://github.com/ken2129/c3_neural_compression/blob/docs/feature-compression-survey-20261024/docs/research/literature/2026-10-24_feature_compression_and_c3.md">
+          <mxGeometry x="1890" y="1066" width="420" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="125" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=0;fillColor=#F8D6D5;strokeColor=none;strokeWidth=1.3;" vertex="1" parent="1">
+          <mxGeometry x="1878" y="1112" width="444" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="126" value="INR・動画の近接研究  ·  §4.3" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=21;fontColor=#9B414A;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://github.com/ken2129/c3_neural_compression/blob/docs/feature-compression-survey-20261024/docs/research/literature/2026-10-24_feature_compression_and_c3.md">
+          <mxGeometry x="1890" y="1112" width="420" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="127" value="★ C3検討の優先6本（§12）／入門の読む順は§2&#10;STDLCの具体的経路は未確認" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=13;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="1878" y="1168" width="441" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="128" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=0;fillColor=#F5F7FA;strokeColor=#D4DAE2;strokeWidth=1.3;" vertex="1" parent="1">
+          <mxGeometry x="70" y="1284" width="2290" height="129" as="geometry" />
+        </mxCell>
+        <mxCell id="129" value="C3で検証するなら" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=24;fontColor=#16283D;fontStyle=1;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="92" y="1300" width="270" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="130" value="§9  ·  3案とも未検証" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=19;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://github.com/ken2129/c3_neural_compression/blob/docs/feature-compression-survey-20261024/docs/research/literature/2026-10-24_feature_compression_and_c3.md">
+          <mxGeometry x="92" y="1347" width="270" height="29" as="geometry" />
+        </mxCell>
+        <mxCell id="131" value="A  固定特徴を符号化" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=24;fontColor=#16283D;fontStyle=1;spacing=0;" vertex="1" parent="1" link="https://github.com/ken2129/c3_neural_compression/blob/docs/feature-compression-survey-20261024/docs/research/literature/2026-10-24_feature_compression_and_c3.md">
+          <mxGeometry x="395" y="1303" width="590" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="132" value="画像別fitの費用に見合うか" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=20;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="395" y="1350" width="590" height="31" as="geometry" />
+        </mxCell>
+        <mxCell id="133" value="B  共有adapterで接続" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=24;fontColor=#16283D;fontStyle=1;spacing=0;" vertex="1" parent="1" link="https://github.com/ken2129/c3_neural_compression/blob/docs/feature-compression-survey-20261024/docs/research/literature/2026-10-24_feature_compression_and_c3.md">
+          <mxGeometry x="1070" y="1303" width="590" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="134" value="未知画像・rateでも整合するか" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=20;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="1070" y="1350" width="590" height="31" as="geometry" />
+        </mxCell>
+        <mxCell id="135" value="C  画像別adapterも送信" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=24;fontColor=#16283D;fontStyle=1;spacing=0;" vertex="1" parent="1" link="https://github.com/ken2129/c3_neural_compression/blob/docs/feature-compression-survey-20261024/docs/research/literature/2026-10-24_feature_compression_and_c3.md">
+          <mxGeometry x="1750" y="1303" width="590" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="136" value="追加重み込みで利益が残るか" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=20;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="1750" y="1350" width="590" height="31" as="geometry" />
+        </mxCell>
+        <mxCell id="137" value="線は発表年への対応であり、引用・継承関係ではない。分類は重複しうる。赤は非INRの動画研究も含む。2019年は省略し、横方向の距離は時間に比例しない。" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=16;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1">
+          <mxGeometry x="74" y="1430" width="2270" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="138" value="Layout adapted from Tianyi Li et al., A Survey on Diffusion Language Models, Fig. 1 (arXiv:2508.10875v3). 内容・色分類・年・配置を変更。" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=14;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://arxiv.org/pdf/2508.10875v3#page=2">
+          <mxGeometry x="74" y="1471" width="1720" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="139" value="Source license: CC BY 4.0 ↗" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;fontFamily=Noto Sans CJK JP;fontSize=14;fontColor=#64748B;fontStyle=0;spacing=0;" vertex="1" parent="1" link="https://creativecommons.org/licenses/by/4.0/">
+          <mxGeometry x="1850" y="1471" width="500" height="25" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
