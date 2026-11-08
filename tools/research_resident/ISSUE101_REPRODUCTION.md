@@ -38,11 +38,14 @@ Local `2fce23f...` documented the E2E results. Neither is an extra runtime fix.
 The startup launcher, resident runtime and v1 adapter hashes match the published
 PR100 evidence. New commits additionally test existing registered runner state
 and rejection without repair.
+Full correspondence checks matched51 runtime Python/CLI/client files and the
+source marker for both the existing deployed SHA and the new public image SHA,
+with no mismatches. See the structured evidence below.
 
 ## Host prerequisites and refusal conditions
 
-Linux with private PID/IPC/cgroup namespaces, pidfd and child subreaping is
-required. The observed host uses kernel5.15 and Docker's cgroup-v1 layout.
+Linux x86_64 with private PID/IPC/cgroup namespaces, pidfd and child subreaping is
+required. The observed host uses kernel 5.15 and Docker's cgroup-v1 layout.
 UID10001(manager), UID10002(worker) and UID10003(runner) remain separate.
 Use read-only root, default seccomp/AppArmor, no-new-privileges and only
 SETUID/SETGID capabilities. Never add GPU, Docker socket, host namespaces,
@@ -67,7 +70,7 @@ goal Dockerfile and resident extension, verifies the fixed client SHA256, and
 adds only approved input blobs. Do not build by copying a running container,
 committing its writable layer, or sending HOME/credentials as build context.
 
-The composed build pins Codex0.160.0 and requires explicit official Linux x64
+The composed build pins Codex 0.160.0 and requires explicit official Linux x64
 runner version/SHA256. Retain the measured base-image digest and resulting
 image ID with the source SHA and build arguments. A mutable base tag alone is
 not an immutable image identifier.
@@ -86,12 +89,174 @@ repaired. Bootstrap refuses unsafe owners/modes and preserves registration
 files. The old running volume had already been manually repaired and must not
 be treated as proof of the new image's initial mode.
 
-## New verification (2026-11-07)
+## New verification (2026-11-07 to 2026-11-08)
 
-Results will be recorded here after execution, with normal/-O totals, each skip
-reason, failures, source/image IDs and the distinction between a production
-image startup check and the synthetic lifecycle diagnostic. No new real model
-or GitHub event replay is authorized by the historical Issue96/97 approvals.
+Tested local source: `2aa0f678095b6f7d11095b2da79465b087bdca88`. Public source:
+`7b18350af315ec1537bf13dc5f13ea28e736f21b` in PR104. The GitHub connector
+published an equivalent commit because the Mac credential helper was unavailable.
+Both full Git trees are exactly `193ad301acd23cbb777a1a54b87110b2482db5b8`;
+only commit metadata differs. Tests and native diagnostic ran on the local SHA;
+the production rebuild uses the public SHA. Subsequent report-only commits do
+not change runtime or test bytes.
+
+Tests ran as UID1001 under Linux/Python 3.11 in new containers with 1CPU/1GiB,
+64PIDs, no GPU, no network, read-only source/root and a 256 MiB test tmpfs.
+The suite uses actual temp executable fixtures, so only that test tmpfs uses
+`exec`; the production work tmpfs remains `noexec`.
+
+| Invocation | Discovered | Passed | Skipped | Failures/errors | Seconds |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `python -B -m unittest discover -s tests -p 'test_harness_*.py'` | 1112 | 1111 | 1 | 0/0 | 23.969 |
+| Same suite with `-O` | 1112 | 1111 | 1 | 0/0 | 23.965 |
+
+Both used the identical discovery suite through `unittest.TextTestRunner` so
+skip reasons could be recorded. The skipped test is
+`ResidentRealLinuxTests.test_real_procfs_self_observation_matches_broker_anchor_when_pid1_links_are_denied`:
+it requires a root-owned PID1; the unprivileged test PID1 is not the root broker.
+This skip is not proof of live broker isolation.
+
+The first run, before correcting the test harness's tmpfs flags, reported
+5 failures and 2 errors from executable fixtures on a `noexec` mount, with the
+same 1112 discovered/1 skip. No runtime code was changed to obtain the pass.
+The complete normal and optimized suites were then rerun on an executable test
+tmpfs and both passed. These results are new; they do not reuse PR100 counts.
+
+Live read-only observations found PID1/root, runner UID10003 and manager UID10001
+unchanged since 2026-10-24, no UID10002 worker, `/work` empty, two
+WORKER_FINISHED service rows, ten FINISHED inbox rows and no blocked latch.
+`/runner` is 10003:10003/0700 and its four registration records are 10003:10003/0600.
+No registration-file contents were read or published.
+An independent post-check matched container/image/start time/restart count,
+all three permanent process identities, state counts, and every recorded
+registration-file owner/mode/inode/mtime. No existing state was repaired/reset.
+Structured results and observation limits are in [ISSUE101_EVIDENCE.json](ISSUE101_EVIDENCE.json).
+
+Production-image build/startup and synthetic lifecycle results follow below.
+No new real model or GitHub event replay is authorized by the historical
+Issue96/97 approvals. New inference, real runner registration, persistent
+credential transfer and cutover have not been performed.
+
+### Native model-free lifecycle diagnostic
+
+Executed on 2026-11-08 using the committed `run_diagnostic.py`, not the old E2E
+approvals. Its GitHub/approval/Codex/runner peers are fixed synthetic fixtures;
+UID switching, native cgroup-v1 resource admission, IPC, SQLite, pidfd/ECHILD
+cleanup and process residency are real Docker/Linux operations.
+
+- Source: local `2aa0f678095b6f7d11095b2da79465b087bdca88` (public-equivalent tree above).
+- Container: `4fef8ea03bcac1b35a3cd434ed9fb5bd102eb31b2896ca0b13e9e4632f7ed6ef`.
+- Image: `sha256:3dcff0a0d594e1803c6c8ca5d514dfa913b08239c0f9a984e7be4b50dde32b8e`.
+- Result SHA256: `576e9a318f6c064c431e5c4f8d0b2b6b413efd8b6381783fc89ba85ca1ff9a2c`.
+- Run 9.453 seconds; total build/create/run/stop 13.173 seconds. All 18 saved checks
+  true: A cancellation, BLOCKED before failure ACK, ECHILD/empty workspace,
+  B completed in the same PID1/manager/runner, duplicate suppression, two claims,
+  four FINISHED inbox rows and private synthetic records.
+- The success observation was running with RestartCount=0. The script then
+  deliberately stopped only its new container, leaving it exited 143 with
+  RestartCount=0. An independent readback verified the result checksum and
+  UID/GID10001/mode0600. Both diagnostic volumes and the stopped container remain.
+
+No real GitHub API/event, model inference, result PR or external notification
+was exercised by this diagnostic. These 18 checks do not replace that evidence.
+
+### Production image and startup
+
+The first build of the equivalent local source stopped at the 600 second ceiling
+while npm was fetching its pinned native package (exit 130, about 546 MB disk
+growth). A subsequent direct fetch of the same public package succeeded.
+The public-source rebuild completed without a code or dependency-version change:
+
+| Pin/result | Value |
+| --- | --- |
+| Public source | `7b18350af315ec1537bf13dc5f13ea28e736f21b` |
+| Input source | `6fd11016d64f88721eb08caff2bb8b0988f3d847` |
+| Image tag on the inspected engine | `uchishiba-c3-issue101:7b18350a` |
+| Immutable image ID | `sha256:c26c26168b575c974f6b4f1a4d2144a8a0a5458485e1c82aaab0c79c4bbee266` |
+| Base manifest digest | `python@sha256:a83ba18aef0f865b1a4a611c2cf460fe446f2795673bbb9fe43be570439e3b39` |
+| Runner | `2.338.1` |
+| Runner archive SHA256 | `08e9ccb3604d2462c24b5e33604dc30810296ca15cc65f23cffd4317eb144c37` |
+| Codex | `0.160.0` (existing pin retained) |
+| Build result | exit 0, 88.131 seconds, 2,224,779,264 bytes observed disk growth |
+| Build context archive SHA256 | `93d32585e9297fe8384418877f1b76af682db43f82fd551f46eab7f357693eca` |
+
+Every legacy-builder RUN used CFS quota/period 100000/100000 and 1 GiB memory/no
+swap. The 600 second / 4 GiB growth monitor did not trigger in the successful build.
+The generated Dockerfile is exactly the committed goal base plus resident
+extension. No running-container layer was committed or patched.
+
+The production-image probe passed real private cgroup-v1 admission with
+memory 1073741824, swap 0, pids 64, cpu_quota/cpu_period 100000/100000 and
+work_bytes 268435456. The image's runner directory was 10003:10003/0700,
+with no credentials/registration marker. Fresh-volume copy-up preserved that
+owner/mode in the actual production launcher test:
+
+- Container: `426eeff47cb4bdae928e7d3813eb333de1f3a1b12742d5f0bb3781127720b8a1`.
+- Dedicated fresh control/runner volumes, intake OFF, no real credentials copied,
+  no runner registered and no model launched.
+- Observed `RESIDENT_WAITING_FOR_RUNNER` while running, RestartCount=0.
+- Only the new test container was then stopped; final status exited 143,
+  RestartCount=0. Its volumes are preserved. Production manager startup after
+  real registration remains untested; native manager lifecycle above uses fixtures.
+
+The first observer looked only at stdout and missed the phase on stderr, so
+it timed out and stopped its own container. The observer was fixed to capture
+both streams, then manually started/stopped that same new container once more.
+Thus this production setup check had two explicit starts; it is not evidence
+of unattended setup or of per-job restarts. The image/volume needed no patches.
+
+#### Build recipe (no authentication, no deployment)
+
+Use a clean checkout of the public source above and fetch the pinned PR93
+client object. On a clean build engine, pulling the recorded base manifest and
+tagging it `python:3.11-slim-bookworm` selects the measured base for the committed
+Dockerfile. The build remains dependent on apt feeds; bit-for-bit reproducibility
+of a future fresh build is not claimed. Preserve/reuse the measured image ID
+for exact image identity. No registry push was performed.
+
+From that checkout, create a context outside the checkout:
+
+```sh
+export C3_ISSUE101_CONTEXT="$(mktemp -d)"
+python3 -B - <<'PY'
+import importlib.util, os
+from pathlib import Path
+spec = importlib.util.spec_from_file_location(
+    'resident_prepare', 'tools/research_resident/prepare.py')
+m = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(m)
+m.build_context(Path(os.environ['C3_ISSUE101_CONTEXT']), {
+    'runtime_source_sha': '7b18350af315ec1537bf13dc5f13ea28e736f21b',
+    'input_source_sha': '6fd11016d64f88721eb08caff2bb8b0988f3d847',
+}, {'inputs': []})
+PY
+DOCKER_BUILDKIT=0 docker build --cpu-period 100000 --cpu-quota 100000 \
+  --memory 1g --memory-swap 1g --pull=false --network bridge \
+  --build-arg SOURCE_SHA=7b18350af315ec1537bf13dc5f13ea28e736f21b \
+  --build-arg INPUT_SOURCE_SHA=6fd11016d64f88721eb08caff2bb8b0988f3d847 \
+  --build-arg DEPLOYMENT_ID=f2e12fff10527a3c8d8e87725b26d64b \
+  --build-arg RUNNER_VERSION=2.338.1 \
+  --build-arg RUNNER_SHA256=08e9ccb3604d2462c24b5e33604dc30810296ca15cc65f23cffd4317eb144c37 \
+  -f "$C3_ISSUE101_CONTEXT/Dockerfile.resident" \
+  -t uchishiba-c3-issue101:7b18350a "$C3_ISSUE101_CONTEXT"
+```
+
+The recorded deployment ID above belongs to the stopped startup check. These
+are build-only replay arguments, not permission to create another service with
+that ID. A new actual deployment needs a fresh approved profile/ID, dedicated
+authentication and real inspect manifest. The optional build-metadata JSON in
+the measured context held synthetic planning data only and is not copied into
+the image; the recipe does not need that observer file.
+
+## Remaining approval and evidence boundaries
+
+The implementation PR and new image/startup/lifecycle checks are ready for
+review. The existing controller continues running the old image. Real
+registration/credential access and cutover are the Issue101 step 5 approval
+boundary; no older approval is inherited. Production manager/real runner
+coexistence and any new actual model/PR/notification path remain untested on
+the new image. If that real path is needed, specify new Issue/request IDs,
+model calls, cost ceiling, duration and stop conditions before approval.
+Do not close Issue95 or merge related PRs as part of this work.
 
 ## Cutover and rollback
 
