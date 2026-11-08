@@ -156,8 +156,7 @@ def manager():
     root = common.initialize_manager_state(hello, epoch)
     state = ServiceState(root, require_epochs=True)
     inbox = Inbox('/control/inbox.sqlite')
-    server = ReceiptServer(SOCKET_PATH, inbox, policy)
-    server.start()
+    server = None
     try:
         # A prior uncertain attempt is evidence, never permission for a retry.
         if state.db.execute("SELECT 1 FROM service_runs WHERE phase='CLAIMED'").fetchone():
@@ -165,6 +164,10 @@ def manager():
             report(dict(phase='RESIDENT_BLOCKED', reason='UNCERTAIN_PRIOR_CLAIM'))
         else:
             inbox.recover()  # Queued deliveries only; no GitHub discovery.
+        # Publish IPC only after the durable startup decision. The runner may
+        # already be delivering; it must not get a success ACK before this gate.
+        server = ReceiptServer(SOCKET_PATH, inbox, policy)
+        server.start()
         report(dict(phase='RESIDENT_MANAGER_READY', intake_enabled=policy['enabled'], issue_polling=False))
         while True:
             if not server.thread.is_alive():
@@ -202,8 +205,11 @@ def manager():
             inbox.finish(receipt['receipt_id'], answer)
             common.write_frame(sys.stdout.buffer, {'op': 'report', 'reports': [answer]})
     finally:
-        server.close()
-        state.close()
+        try:
+            if server is not None and server.thread is not None:
+                server.close()
+        finally:
+            state.close()
 
 
 def _runner_ready():

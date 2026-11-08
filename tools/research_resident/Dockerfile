@@ -14,7 +14,7 @@ RUN test -n "$RUNNER_VERSION" && test "${#RUNNER_SHA256}" = 64 \
       "https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz" \
  && echo "$RUNNER_SHA256  /tmp/runner.tgz" | sha256sum --check --strict \
  && tar -xzf /tmp/runner.tgz --no-same-owner -C /runner \
- && rm /tmp/runner.tgz && chown -R 10003:10003 /runner
+ && rm /tmp/runner.tgz && chown -R 10003:10003 /runner && chmod 0700 /runner
 COPY tools/research_resident/launcher.py /opt/service/resident_launcher.py
 COPY tools/research_resident/register_runner.py /opt/service/register_runner.py
 COPY tools/research_resident/submit_issue_event.py /opt/c3/bin/submit-issue-event

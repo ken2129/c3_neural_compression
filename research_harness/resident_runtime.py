@@ -114,6 +114,15 @@ class ResidentLinuxBackend(GoalLinuxUIDBackend):
         from .resident_deployment import validate_resident_deployment
         return validate_resident_deployment(*args, **kwargs)
 
+    @staticmethod
+    def resources():
+        # Only this resident backend admits the measured private v1 layout.
+        # A v2 failure never falls back to v1 or a guessed resource profile.
+        if Path('/proc/self/cgroup').read_text().strip() == '0::/':
+            return GoalLinuxUIDBackend.resources()
+        from .resident_cgroup_v1 import resources
+        return resources()
+
     def reap(self):
         self.children_empty = reap_children()
 

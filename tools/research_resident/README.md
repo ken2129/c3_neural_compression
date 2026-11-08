@@ -1,8 +1,10 @@
-# Issue92 machine side — deployment is not enabled
+# Resident runtime (Issue92 / Issue101)
 
-This is a **new opt-in runtime**, based on the unmerged PR84 runtime. It does
-not change the existing goal/canary entrypoint or migrate any old claim/result.
-Do not replace an existing service with it on the strength of offline tests.
+This opt-in runtime is based on unmerged PR84/PR94. The limited real CPU E2E
+subsequently succeeded in Issue95/PR100. Issue101 packages the local fixes used
+there plus the later runner extraction fix. See
+[source mapping, reproduction and validation](ISSUE101_REPRODUCTION.md).
+The existing goal/canary entrypoint and old claim/result records are retained.
 
 ## Connection to dot's PR93
 
@@ -126,9 +128,9 @@ Aggregate limits stay 1CPU/1GiB/64PID, read-only root, bridge, private PID/IPC a
 cgroup namespaces, no-new-privileges, SETUID/SETGID only, no host binds/GPU/socket.
 `/work` is the approved <=256MiB noexec tmpfs; IPC socket tmpfs is 1MiB. Codex
 per-process CPU/wall/output/work limits are still taken from the formal plan.
-The runner uses DOTNET_PROCESSOR_COUNT=1, manager gh uses GOMAXPROCS=1. Whether
-the real runner plus Codex fits these unchanged ceilings **needs Docker/live
-validation**; exceeding them must not silently increase limits.
+The runner uses DOTNET_PROCESSOR_COUNT=1, manager gh uses GOMAXPROCS=1. The
+limited real A/B E2E used these ceilings; wider workloads remain unverified.
+Exceeding them must not silently increase limits.
 
 ## Registration, enablement and cutover — separate approval
 
@@ -189,15 +191,27 @@ rejects BLOCKED persistence must not send ACK or `job_finished`. The per-job pee
 is a fixture at the current test UID, not the actual root PID1/UID broker; those
 remain Docker checks. See [the bounded Docker proposal](DIAGNOSTIC_PROPOSAL.md).
 
-Next, seek approval for **one model-free dedicated Docker diagnostic**, no real
-credentials, no runner registration and no existing volumes: the same limits,
-fixed dummy runner/approval fixtures, two distinct sequential dummy jobs, repeated
-and unapproved events, abnormal/cancel/timeout cleanup and a fail-closed case.
-Bound the diagnostic to 120 seconds after build and build+run to 10 minutes, no
-automatic restart/retry; retain only this diagnostic's stopped evidence. Report
-same container ID/PID1 ticks, roles, worker0, ECHILD and removed temporary dummy
-auth after both jobs. Only afterward propose live runner delivery and real Codex
-tests. Unit-test counts alone do not establish deployment or live E2E success.
+The model-free Docker diagnostic has since passed on fixed runtime
+abee7bf5debde263cc83b041f62addb496948d79. Its saved evidence and limits are in
+[DIAGNOSTIC_PROPOSAL.md](DIAGNOSTIC_PROPOSAL.md); GitHub and Codex peers were
+fixtures, so it does not establish real delivery or inference.
+
+[Historical Issue95 preparation](ISSUE95_PREPARATION.md) records the startup-gate fix
+and earlier SQLite/socket regressions.
+The inspected engine uses cgroup v1. The resident backend now has a narrowly
+scoped v1 resource reader, selected only by measured kernel membership; the
+original v2/disposable paths retain their checks. Native v1 admission and the
+limited real E2E later passed on the recorded deployment. New Issue101 results
+are recorded separately in [the reproduction report](ISSUE101_REPRODUCTION.md).
+
+The official runner archive can replace `/runner`'s directory mode while being
+extracted. The image build restores ownership to UID/GID10003 and mode0700
+after extraction, before Docker initializes a fresh runner volume. An existing
+volume masks image files: rebuilding an image does not repair that volume.
+Bootstrap requires the current private owner/mode and refuses incompatible
+state without changing registration files. Preserve and inspect an existing
+volume separately; do not recursively chown it or delete registration records
+as an automatic recovery step.
 
 Official references: [runner implementation/configuration](https://github.com/actions/runner/blob/main/src/Runner.Listener/CommandSettings.cs),
 [self-hosted runners](https://docs.github.com/en/actions/reference/runners/self-hosted-runners).

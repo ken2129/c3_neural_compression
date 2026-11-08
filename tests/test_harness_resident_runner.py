@@ -68,6 +68,70 @@ class RunnerBootstrapTests(unittest.TestCase):
             binary.unlink();binary.symlink_to(sys.executable)
             with self.assertRaises(ContractError):resident_runner.exec_private_runner(root)
 
+    def test_existing_registered_directory_preserves_records_on_exec_and_mode_rejection(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);self.fixture(root)
+            records={'.runner':b'{"fixture":true}', '.credentials':b'SYNTHETIC-NONCREDENTIAL'}
+            for name,value in records.items():
+                (root/name).write_bytes(value);(root/name).chmod(0o600)
+            before={name:((root/name).read_bytes(),(root/name).stat().st_mode)
+                    for name in records}
+            child=self.launch(root);out,err=child.communicate(timeout=5)
+            self.assertEqual((child.returncode,err),(0,b''))
+            root.chmod(0o755)
+            with self.assertRaises(ContractError):resident_runner.exec_private_runner(root)
+            self.assertEqual(root.stat().st_mode&0o777,0o755)
+            self.assertEqual({name:((root/name).read_bytes(),(root/name).stat().st_mode)
+                              for name in records},before)
+
+    def test_wrong_owner_rejects_before_chdir_or_exec_without_repair(self):
+        from types import SimpleNamespace
+        import stat
+        info=SimpleNamespace(st_mode=stat.S_IFDIR|0o700,st_uid=os.geteuid()+1)
+        with patch.object(Path,'lstat',return_value=info), \
+             patch.object(resident_runner.os,'chdir') as chdir, \
+             patch.object(resident_runner.os,'execve') as execute:
+            with self.assertRaises(ContractError):resident_runner.exec_private_runner(Path('/runner'))
+            chdir.assert_not_called();execute.assert_not_called()
+
+    def test_official_archive_top_directory_is_private_before_bootstrap(self):
+        # Exercise the committed extraction command with real tar metadata.
+        # Only scratch paths and the fixture UID/GID replace image-only values.
+        import io
+        import shlex
+        import stat
+        import tarfile
+        dockerfile=(ROOT/'tools/research_resident/Dockerfile').read_text()
+        tail=dockerfile.split(' && tar -xzf /tmp/runner.tgz',1)[1].split(chr(10)+'COPY ',1)[0]
+        extraction=('tar -xzf /tmp/runner.tgz'+tail).replace(chr(92)+chr(10),' ')
+        for archive_mode in (0o755,0o777):
+            with self.subTest(archive_mode=oct(archive_mode)),tempfile.TemporaryDirectory() as tmp:
+                parent=Path(tmp)
+                root=parent/'installed';root.mkdir(mode=0o700)
+                payload_root=parent/'payload';payload_root.mkdir()
+                binary=self.fixture(payload_root)
+                archive=parent/'release.tgz'
+                with tarfile.open(archive,'w:gz') as out:
+                    directory=tarfile.TarInfo('.');directory.type=tarfile.DIRTYPE
+                    directory.mode=archive_mode;directory.uid=directory.gid=10003
+                    out.addfile(directory)
+                    directory=tarfile.TarInfo('./bin');directory.type=tarfile.DIRTYPE
+                    directory.mode=0o755;out.addfile(directory)
+                    payload=binary.read_bytes()
+                    member=tarfile.TarInfo('./bin/Runner.Listener')
+                    member.mode=0o555;member.size=len(payload);member.uid=member.gid=10003
+                    out.addfile(member,io.BytesIO(payload))
+                command=extraction.replace('/tmp/runner.tgz',shlex.quote(str(archive)))
+                command=command.replace('/runner',shlex.quote(str(root)))
+                command=command.replace('10003:10003',str(os.getuid())+':'+str(os.getgid()))
+                result=subprocess.run(['/bin/sh','-eu','-c',command],capture_output=True,timeout=5)
+                self.assertEqual((result.returncode,result.stderr),(0,b''))
+                self.assertEqual(stat.S_IMODE(root.stat().st_mode),0o700)
+                self.assertEqual(root.stat().st_uid,os.geteuid())
+                child=self.launch(root);out,err=child.communicate(timeout=5)
+                self.assertEqual((child.returncode,err),(0,b''))
+                self.assertEqual(json.loads(out)['pid'],child.pid)
+
     def test_identity_requires_permanent_runner_uid_gid_no_groups_no_caps_and_nnp(self):
         zero='CapEff: 0\nCapPrm: 0\nCapInh: 0\nCapAmb: 0\nNoNewPrivs: 1\n'
         # Only identity facts are simulated; actual filesystem/exec is above.

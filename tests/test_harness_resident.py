@@ -109,7 +109,8 @@ class ResidentSupervisorTests(unittest.TestCase):
 
 
 class ResidentRealLinuxTests(unittest.TestCase):
-    @unittest.skipUnless(sys.platform=='linux','fixed Linux procfs observations')
+    @unittest.skipUnless(sys.platform=='linux' and Path('/proc/1').stat().st_uid==0,
+                         'requires Linux with root-owned PID1; user-owned bash PID1 is not a broker')
     def test_real_procfs_self_observation_matches_broker_anchor_when_pid1_links_are_denied(self):
         # No UID switch/host mutation. Real self namespace, boot and PID1 stat;
         # only the absent image marker and the denied cross-process links are
