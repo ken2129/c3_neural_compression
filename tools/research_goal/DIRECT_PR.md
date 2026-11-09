@@ -87,11 +87,33 @@ GitHub に同じ identity として見える操作を、本人と worker に暗�
 - `deployment_id`: 新しい installation を示す公開 ID
 - `source_sha`: installation が許可する、40 桁の固定 source commit
 - `publish_result_pr: true`
-- `model`: 明示的な固定モデル ID。`-latest` は使わない
 - `sandbox_mode: "externalSandbox"` と `external_network: "enabled"`
 - `model_usage_approved: true`
 - `max_seconds` と `resource_budget`
 - `goal`, `completion_criteria`, `inputs`, `write_scope`
+
+### モデル名は共通設定で管理する
+
+このdirect-PR経路（常駐版を含む）のモデル名は、準備用の
+`goal-profile.json` の `model` 一か所で指定します。installerはそれを
+コンテナの保護された `/control/goal-runtime.json` に配置します。
+新しいIssueのplanには `model` を書く必要がありません。
+`--direct-plan-template` もモデル名を含まない雛形を出力します。
+
+管理側はIssue原文のowner承認を確認したうえで、設定モデルを補った実行計画を作ります。
+その実際のモデル名はplan digest、workerへ渡す計画・プロンプト、保存結果に含まれます。
+補完によってIssue本文やその承認hashを書き換えることはありません。
+設定値がない・不正・`-latest` の場合は実行を拒否し、暗黙の既定モデルへ進みません。
+
+従来の `model` 入りplanは、共通設定と一致する場合に限り互換入力として受け付けます。
+Issueから別モデルを上書き指定することはできません。既存の承認済みIssueから
+モデル名だけを削る場合も、変更されたIssue本文への新しいowner承認が必要です。
+新しいplanのowner承認は、`deployment_id` の環境で設定されたモデルを使う依頼です。
+実行途中に設定モデルが変われば再確認時のplan digestが一致せず停止します。
+
+モデル利用自体への `model_usage_approved: true`、期限、owner承認、資源上限、
+入力・書込範囲の検査は引き続き必要です。共通モデル設定は既存の配置手順で管理し、
+Issueやworkerから変更しません。推論強度や旧canary/goal-only経路の契約は変更しません。
 
 `direct_pr` は次の値を、本人承認を受けた実値で指定します。
 以下は項目の説明であり、実行や公開の承認ではありません。
@@ -163,6 +185,8 @@ runtime home と private IPC への書込、利用料金のハード上限がな
 plan の aggregate 予算は実際に作る allocation と一致させます。
 source と runtime は別に指定できますが、`plan.source_sha` と `direct_pr.base_sha` は同じ入力 commit です。
 初回 `goal-plan.json` は、この文書の `codex-direct-pr-v1` plan オブジェクトそのものです。
+モデル名は `goal-profile.json` だけに記入します。初期planと後続Issueのどちらも、
+installer/managerがその同じ設定値を補って検証します。
 
 ### 必要な承認を得てから新 installation を作る
 

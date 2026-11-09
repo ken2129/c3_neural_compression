@@ -303,6 +303,7 @@ class DirectPlanTemplateTests(unittest.TestCase):
              patch.object(prepare.subprocess, 'Popen') as popen, redirect_stdout(output):
             prepare.main(['--direct-plan-template'])
         value = json.loads(output.getvalue())
+        self.assertNotIn('model', value)
         self.assertIs(value['publish_result_pr'], False)
         self.assertIs(value['model_usage_approved'], False)
         self.assertIs(value['direct_pr']['public_results_approved'], False)

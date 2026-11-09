@@ -1,7 +1,9 @@
 """Closed approved-goal data contract; validation never authorizes execution.
 
-The owner receipt binds the complete canonical plan, including instructions and
-resource limits. Source paths name files in the pinned, operator-installed
+The owner receipt binds the raw Issue request, including instructions and
+resource limits. Direct-PR requests may delegate model selection to the trusted
+deployment; the resulting execution-plan digest includes the concrete model.
+Source paths name files in the pinned, operator-installed
 revision. A trusted runner must stage them and enforce the declared write and
 resource boundaries before dispatch. This module performs no I/O or model calls.
 """
@@ -146,6 +148,23 @@ def validate_goal_plan(plan, allowed_source_sha, *, resource_limits=None, deploy
     if len(canonical(plan)) > MAX_PLAN_BYTES:
         raise ContractError('goal plan exceeds size bound')
     return deepcopy(plan)
+
+
+def resolve_direct_pr_plan(plan, allowed_source_sha, *, configured_model,
+                           resource_limits=None, deployment_id=None):
+    """Resolve the worker model from trusted deployment configuration only.
+
+    New Issue plans omit model. Legacy explicit models remain valid only when
+    they agree with that configuration. The detached resolved plan, including
+    its concrete model, is what claim digests, workers and result checks use.
+    This does not change the raw Issue bytes covered by owner approval.
+    """
+    if type(plan) is not dict or plan.get('kind') != DIRECT_PR_KIND:
+        raise ContractError('direct PR plan required')
+    if 'model' in plan and plan['model'] != configured_model:
+        raise ContractError('Issue model differs from configured model')
+    return validate_goal_plan(dict(plan, model=configured_model), allowed_source_sha,
+        resource_limits=resource_limits, deployment_id=deployment_id)
 
 
 def direct_pr_scope(plan):

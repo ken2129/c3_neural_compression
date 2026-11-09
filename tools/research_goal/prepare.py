@@ -23,7 +23,7 @@ sys.dont_write_bytecode = True
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from research_harness.goal_plan import (validate_goal_plan, GOAL_RESOURCE_BUDGET, RESOURCE_BOUNDS,
-                                      DIRECT_PR_KIND, direct_pr_scope)
+                                      DIRECT_PR_KIND, direct_pr_scope, resolve_direct_pr_plan)
 from research_harness.goal_deployment import validate_goal_deployment
 from research_harness.schema import ContractError, canonical, fields, loads
 
@@ -102,7 +102,7 @@ def direct_plan_template():
     from research_harness.schema import REPOSITORY
     return dict(kind=DIRECT_PR_KIND, deployment_id='COPY_FRESH_PROFILE_ID',
         source_sha='REVIEWED_INPUT_COMMIT', publish_result_pr=False,
-        model='EXPLICIT_PINNED_MODEL', sandbox_mode='externalSandbox',
+        sandbox_mode='externalSandbox',
         external_network='enabled', max_seconds=900, model_usage_approved=False,
         goal='REVIEW_AND_APPROVE_GOAL', completion_criteria=['REVIEW_AND_APPROVE_CRITERIA'],
         inputs=[], write_scope=['output'], resource_budget=dict(GOAL_RESOURCE_BUDGET),
@@ -122,7 +122,13 @@ def validate_profile(profile, plan):
     fields(profile['risk_acknowledgements'], CONSENTS)
     if any(profile['risk_acknowledgements'][key] is not True for key in CONSENTS):
         raise ContractError('explicit new goal execution and residual-risk approvals required')
-    checked = validate_goal_plan(plan, profile['input_source_sha'], resource_limits=profile['resource_limits'], deployment_id=profile['deployment_id'])
+    if type(plan) is dict and plan.get('kind') == DIRECT_PR_KIND:
+        checked = resolve_direct_pr_plan(plan, profile['input_source_sha'],
+            configured_model=profile['model'], resource_limits=profile['resource_limits'],
+            deployment_id=profile['deployment_id'])
+    else:
+        checked = validate_goal_plan(plan, profile['input_source_sha'],
+            resource_limits=profile['resource_limits'], deployment_id=profile['deployment_id'])
     if checked['model'] != profile['model']:
         raise ContractError('approved goal and operator models differ')
     limits = profile['resource_limits']

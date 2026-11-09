@@ -82,6 +82,13 @@ This does not extend or disarm the independent job watchdog.
 
 ## Configuration and installer (requires deployment approval)
 
+The worker model is configured once in the deployment profile's `model`,
+installed at `/control/goal-runtime.json`. New direct-PR Issue plans omit it;
+the trusted manager resolves the model before binding/dispatch. Matching legacy
+explicit values remain supported, while conflicting values are rejected.
+See [the shared model configuration](../research_goal/DIRECT_PR.md#モデル名は共通設定で管理する).
+Owner approval, per-job budgets and deployment ceilings still apply.
+
 Use a fresh committed clean checkout and a fresh public deployment ID/profile,
 as in `tools/research_goal/DIRECT_PR.md`. Keep the existing risk consents and
 model/resource ceilings explicit. Supply dedicated manager GitHub hosts, worker
