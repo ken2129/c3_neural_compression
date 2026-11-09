@@ -247,21 +247,40 @@ authentication and real inspect manifest. The optional build-metadata JSON in
 the measured context held synthetic planning data only and is not copied into
 the image; the recipe does not need that observer file.
 
-## Remaining approval and evidence boundaries
+## Completed scope and verification limits
 
-The implementation PR and new image/startup/lifecycle checks are ready for
-review. The existing controller continues running the old image. Real
-registration/credential access and cutover are the Issue101 step 5 approval
-boundary; no older approval is inherited. Production manager/real runner
-coexistence and any new actual model/PR/notification path remain untested on
-the new image. If that real path is needed, specify new Issue/request IDs,
-model calls, cost ceiling, duration and stop conditions before approval.
-Do not close Issue95 or merge related PRs as part of this work.
+Issue101 packages the local fixes and demonstrates a build and isolated startup
+from the public source. Replacing the running controller is not required to
+complete that scope. These reproduction checks retain the existing controller
+on its recorded image. The implementation and evidence in PR104 are ready for
+review, and merge remains a separate decision.
 
-## Cutover and rollback
+The real-runtime image reached unregistered-runner wait with no manual image
+or volume patch. The separate native model-free diagnostic verified manager
+residency, sequential jobs, cleanup and duplicate handling with synthetic peers.
+Actual manager/registered-runner coexistence and any new actual model/PR/
+notification path remain untested on the new image. The earlier successful
+real E2E remains the historical evidence; it is not a new-image test result.
 
-Implementation/PR creation does not replace the live container. Before a
-separately confirmed cutover: record exact source/image/full IDs, reconcile
+Real registration, credential transfer, additional live-path checks and a
+possible future replacement are optional separately scoped operations, not
+unfinished requirements to replace the existing controller. No previous
+approval is inherited. If a new model-backed check is needed, specify new
+Issue/request IDs, model calls, cost ceiling, duration and stop conditions
+before approval. Do not close Issue95 or merge related PRs as part of this work.
+
+## Verification cleanup and optional future rollback
+
+For the completed checks, only the newly created diagnostic/startup containers
+were stopped. Their images, volumes and evidence were retained. No existing
+service, credentials, registration records, claims or artifacts were replaced.
+A failed new verification attempt is handled by stopping only its identified
+test container and investigating its evidence; the old service keeps running.
+
+The following replacement plan is retained for reference only. No replacement
+is requested, approved or required by the completed reproduction checks.
+Before a separately requested and confirmed cutover: record exact
+source/image/full IDs, reconcile
 pending/active inbox rows and uncertain claims without resetting them, confirm
 no worker is running, record private volume ownership, and prepare protected
 consistent backups. Never expose or copy secrets into this public report.
