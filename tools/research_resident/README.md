@@ -89,6 +89,36 @@ explicit values remain supported, while conflicting values are rejected.
 See [the shared model configuration](../research_goal/DIRECT_PR.md#モデル名は共通設定で管理する).
 Owner approval, per-job budgets and deployment ceilings still apply.
 
+### Daily ON/OFF: one existing setting
+
+After the initial runner/intake setup, use only `enabled` in the existing
+`/control/goal-runtime.json` for the operational execution switch:
+
+- `false`: do not start a new job. Received events stay pending; an already
+  running job keeps its admitted configuration and finishes normally.
+- `true`: resume pending events through the normal current-Issue/owner approval
+  checks. Expired, revoked or changed approvals do not become executable.
+
+The resident can boot with `enabled: false`. Its manager checks the protected
+file while idle at most one second apart and again after dequeue, before
+dispatch. No restart, new configuration file or control command is required.
+OFF stops new execution; it does not unregister the runner, discard queued
+events, or cancel a job. Existing cancellation and deadline checks still apply.
+
+Keep owner/group `10001:10001`, mode `0600`, and save with an atomic replacement
+inside `/control` to avoid a partially written file. Missing, unreadable,
+malformed or nonboolean values pause dispatch; fixing the file allows dispatch
+again. Only `enabled` is live: changes to model, source, limits or other fields
+require a reviewed setup restart. A pause does not clear uncertain claims or a
+cleanup latch. The separate `resident-intake.json` remains the initial trusted
+runner/workflow setup policy; do not toggle it for daily ON/OFF. The legacy
+disposable goal/canary entrypoint keeps its existing startup requirements.
+
+This hot-reload behavior requires an image containing this change. Older
+images reject an OFF profile at startup; keep such a controller stopped with
+`enabled: false` until its reviewed runtime is updated. Merely changing a
+running old manager's file does not add the new queue-preserving behavior.
+
 Use a fresh committed clean checkout and a fresh public deployment ID/profile,
 as in `tools/research_goal/DIRECT_PR.md`. Keep the existing risk consents and
 model/resource ceilings explicit. Supply dedicated manager GitHub hosts, worker

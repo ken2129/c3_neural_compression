@@ -144,6 +144,21 @@ def process_event(controller, receipt, *, finish_runtime):
         'issue', 'phase', 'dispatched', 'duplicate', 'outcome', 'pr_url', 'reason')}
 
 
+def dispatch_profile(installed):
+    """Reload only the operator's execution switch; other changes need restart.
+
+    Use protected reads as manager UID. A missing, partial or invalid file is
+    never an implicit ON. Each admitted job keeps its own immutable snapshot,
+    so changing enabled does not revoke an already running job's approval.
+    """
+    current = common.protected_json('/control/goal-runtime.json')
+    if (type(current) is not dict or type(current.get('enabled')) is not bool
+            or canonical({k: v for k, v in current.items() if k != 'enabled'})
+            != canonical({k: v for k, v in installed.items() if k != 'enabled'})):
+        raise ContractError('resident dispatch configuration rejected')
+    return current
+
+
 def manager():
     if os.getresuid() != (10001,) * 3:
         raise ContractError('resident manager UID required')
@@ -169,28 +184,52 @@ def manager():
         server = ReceiptServer(SOCKET_PATH, inbox, policy)
         server.start()
         report(dict(phase='RESIDENT_MANAGER_READY', intake_enabled=policy['enabled'], issue_polling=False))
+        switch_state = None
         while True:
             if not server.thread.is_alive():
                 raise IntakeBlocked('IPC_FAILED')
             try:
-                receipt = inbox.take() if policy['enabled'] else None
+                current = dispatch_profile(profile)
+                phase = 'RESIDENT_AUTOMATION_ON' if current['enabled'] else 'RESIDENT_AUTOMATION_OFF'
+            except Exception:
+                current = None
+                phase = 'RESIDENT_AUTOMATION_CONFIG_REJECTED'
+            if phase != switch_state:
+                report(dict(phase=phase))
+                switch_state = phase
+            if current is None or not current['enabled'] or not policy['enabled']:
+                inbox.wake.clear()
+                inbox.wake.wait(timeout=1)
+                continue
+            try:
+                receipt = inbox.take()
             except IntakeBlocked:
                 # Keep roles alive but refuse all new receipts after a latch.
                 time.sleep(1)
                 continue
             if receipt is None:
                 inbox.wake.clear()
-                receipt = inbox.take() if policy['enabled'] else None
+                receipt = inbox.take()
                 if receipt is None:
-                    inbox.wake.wait()
+                    # Also observe OFF -> ON without requiring a new event.
+                    inbox.wake.wait(timeout=1)
                     continue
+            # An OFF change between dequeue and dispatch must leave the event
+            # pending, rather than finish it as disabled or create a claim.
+            try:
+                current = dispatch_profile(profile)
+            except Exception:
+                current = None
+            if current is None or not current['enabled']:
+                inbox.defer(receipt['receipt_id'])
+                continue
             validate_receipt(receipt, policy)
-            runtime = ResidentGoalPipeRuntime(incoming, sys.stdout.buffer, epoch, profile)
+            runtime = ResidentGoalPipeRuntime(incoming, sys.stdout.buffer, epoch, current)
             controller = DirectPRController(state, ManagerGitHub(), GitHubOwnerComments(), runtime, None,
-                profile=profile, worker_pr_config=common.protected_json('/control/worker-pr.json'),
-                source_sha=profile['input_source_sha'], enabled=profile['enabled'],
-                resource_limits=profile['resource_limits'], deployment_id=profile['deployment_id'],
-                installed_plan_digest=profile['installed_plan_digest'])
+                profile=current, worker_pr_config=common.protected_json('/control/worker-pr.json'),
+                source_sha=current['input_source_sha'], enabled=current['enabled'],
+                resource_limits=current['resource_limits'], deployment_id=current['deployment_id'],
+                installed_plan_digest=current['installed_plan_digest'])
             def finish():
                 common.write_frame(sys.stdout.buffer, {'op': 'job_finished'})
                 if common.read_frame(incoming) != {'cleaned': True}:
@@ -348,7 +387,7 @@ def supervise():
     if blocked:
         report(dict(phase='RESIDENT_BLOCKED', reason='CLEANUP_UNVERIFIED'))
         while True: signal.pause()
-    config, profile, initialize_new = common.deployment(validator=validate_resident_deployment)
+    config, profile, initialize_new = common.deployment(validator=validate_resident_deployment, allow_disabled=True)
     if 'direct_pr_scope' not in profile:
         raise ContractError('resident mode is explicitly direct-PR-only')
     epoch = read_epoch(container_id=config['container_id'])

@@ -67,9 +67,32 @@ class GoalStartupTests(unittest.TestCase):
         if value == '/etc/hostname': return self.root/'hostname'
         return Path(value)
 
-    def deploy(self):
+    def deploy(self, **kwargs):
         with patch.object(launcher, 'Path', side_effect=self.path), patch.object(launcher.os, 'getpid', return_value=1):
-            return launcher.deployment()
+            return launcher.deployment(**kwargs)
+
+    def test_resident_can_start_off_without_enabling_the_disposable_entrypoint(self):
+        self.profile['enabled'] = False
+        self.write('goal-runtime.json', self.profile)
+        with control_identity(self.control):
+            with self.assertRaises(launcher.GoalStartupFailure):
+                self.deploy()
+            config, profile, _ = self.deploy(allow_disabled=True)
+            self.assertEqual(config['container_id'], CONTAINER_ID)
+            self.assertIs(profile['enabled'], False)
+
+    def test_paused_startup_still_requires_strict_boolean_and_explicit_consents(self):
+        for value in (0, 1, 'false', None):
+            self.profile['enabled'] = value
+            self.write('goal-runtime.json', self.profile)
+            with self.subTest(enabled=value), control_identity(self.control):
+                with self.assertRaises(launcher.GoalStartupFailure):
+                    self.deploy(allow_disabled=True)
+        self.profile['enabled'] = False
+        self.profile['risk_acknowledgements'][next(iter(self.profile['risk_acknowledgements']))] = False
+        self.write('goal-runtime.json', self.profile)
+        with control_identity(self.control), self.assertRaises(launcher.GoalStartupFailure):
+            self.deploy(allow_disabled=True)
 
     def test_deployment_real_root_effective_manager_passes_actual_validation(self):
         with control_identity(self.control) as ids:

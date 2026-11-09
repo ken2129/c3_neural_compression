@@ -175,6 +175,18 @@ class Inbox:
             if cursor.rowcount != 1:
                 raise IntakeBlocked('INBOX_FAILED')
 
+    def defer(self, receipt_id):
+        """Release an unstarted delivery when the operator switches OFF.
+
+        This changes only its delivery lease. No service claim/approval is
+        removed or reset; the normal verifier will run when it is resumed.
+        """
+        with self.connect() as db:
+            cursor = db.execute("UPDATE events SET phase='PENDING' WHERE receipt=? AND phase='ACTIVE'",
+                                (receipt_id,))
+            if cursor.rowcount != 1:
+                raise IntakeBlocked('INBOX_FAILED')
+
     def block(self):
         with self.connect() as db:
             db.execute("INSERT OR IGNORE INTO gate VALUES (1,'CLEANUP_UNVERIFIED')")

@@ -171,7 +171,7 @@ def protected_json(path, limit=65536):
     return loads(read_private(Path(path), limit=limit))
 
 
-def deployment(*, validator=None):
+def deployment(*, validator=None, allow_disabled=False):
     with startup_stage('identity'):
         if os.getresuid() != (0, 0, 0) or os.getpid() != 1:
             raise ContractError('goal requires dedicated root PID1')
@@ -186,7 +186,9 @@ def deployment(*, validator=None):
             if type(profile['installed_plan_digest']) is not str or re.fullmatch('[0-9a-f]{64}', profile['installed_plan_digest']) is None:
                 raise ContractError('installed goal plan digest required')
             fields(profile['risk_acknowledgements'], CONSENTS)
-            if (profile['schema'] != 'c3-goal-runtime-v1' or profile['enabled'] is not True
+            if (profile['schema'] != 'c3-goal-runtime-v1'
+                    or type(profile['enabled']) is not bool
+                    or (not allow_disabled and profile['enabled'] is not True)
                     or any(profile['risk_acknowledgements'][key] is not True for key in CONSENTS)):
                 raise ContractError('new goal execution remains disabled')
         with startup_stage('deployment_manifest'):
