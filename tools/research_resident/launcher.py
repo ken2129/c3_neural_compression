@@ -45,6 +45,10 @@ class ResidentHandshakeBlocked(IntakeBlocked):
         super().__init__('CLEANUP_UNVERIFIED')
 
 
+class ResidentExecutionPaused(ContractError):
+    """Preflight observed OFF before any execution claim was created."""
+
+
 def read_failure_frame(stream, *, timeout=10.0):
     """Bound the full line, including EOF/partial writes, without prefetch.
 
@@ -75,6 +79,15 @@ class ResidentGoalPipeRuntime(common.GoalPipeRuntime):
     namespace. Reuse requires consuming the job's terminal failure frame first.
     Approval checks and the negative reply itself still use the common runtime.
     """
+    def preflight(self):
+        common.write_frame(self.outgoing, {'op': 'preflight'})
+        reply = common.read_frame(self.incoming)
+        if reply == {'ready': False, 'reason': 'AUTOMATION_OFF'}:
+            raise ResidentExecutionPaused('resident execution paused')
+        if reply != {'ready': True}:
+            raise ContractError('goal preflight rejected')
+        return self.epoch
+
     def run(self,binding,recheck):
         rejected=False
         def checked():
@@ -125,6 +138,11 @@ def process_event(controller, receipt, *, finish_runtime):
     runtime = controller.runtime
     try:
         answer = controller.process(receipt['issue_number'])
+    except ResidentExecutionPaused:
+        # Prepared private files must be cleaned before returning this delivery
+        # to PENDING. No claim exists, so this is not a failed execution.
+        finish_runtime()
+        raise
     except ResidentHandshakeBlocked:
         # No failure_ack/job_finished after a missing or invalid goal_failure.
         # The manager blocks the inbox and PID1 performs fail-closed shutdown.
@@ -237,6 +255,9 @@ def manager():
                     raise IntakeBlocked('CLEANUP_UNVERIFIED')
             try:
                 answer = process_event(controller, receipt, finish_runtime=finish)
+            except ResidentExecutionPaused:
+                inbox.defer(receipt['receipt_id'])
+                continue
             except ResidentHandshakeBlocked:
                 inbox.block()
                 report(dict(phase='RESIDENT_BLOCKED',reason='FAILURE_HANDSHAKE_UNVERIFIED'))
@@ -303,6 +324,19 @@ def _start_runner():
     return child
 
 
+def preflight_reply(backend, request):
+    try:
+        backend.admit_goal(request)
+    except Exception as exc:
+        detail = safe_goal_runtime_diagnostic(exc)
+        if detail is not None and detail['reason'] == 'GOAL_RUNTIME_DISABLED':
+            report(dict(phase='RESIDENT_PRECLAIM_PAUSED', reason='AUTOMATION_OFF'))
+            return {'ready': False, 'reason': 'AUTOMATION_OFF'}
+        report(dict(phase='RESIDENT_PRECLAIM_BLOCKED', reason='ADMISSION_REJECTED'))
+        return {'ready': False}
+    return {'ready': True}
+
+
 def job_supervise():
     """Per-job subreaper: only Codex descendants are children of this process."""
     from research_harness.resident_runtime import install_subreaper, require_job_supervisor
@@ -335,14 +369,9 @@ def job_supervise():
     while True:
         frame = common.read_frame(incoming)
         if frame == {'op': 'preflight'}:
-            try:
-                backend.admit_goal(GoalRequest(plan, profile['input_source_sha']))
-            except Exception:
-                report(dict(phase='RESIDENT_PRECLAIM_BLOCKED', reason='ADMISSION_REJECTED'))
-                common.write_frame(sys.stdout.buffer, {'ready': False})
-            else:
-                preflight = True
-                common.write_frame(sys.stdout.buffer, {'ready': True})
+            reply = preflight_reply(backend, GoalRequest(plan, profile['input_source_sha']))
+            preflight = reply == {'ready': True}
+            common.write_frame(sys.stdout.buffer, reply)
         elif set(frame) == {'op', 'binding'} and frame['op'] == 'goal':
             if attempted or not preflight: raise ContractError('resident preflight order')
             attempted = True
@@ -450,6 +479,7 @@ def supervise():
                     report(dict(phase='RESIDENT_JOB_CLEANED', worker=0, descendants_echild=True,
                                 temporary_credentials_removed=True))
                 elif (set(frame) in ({'prepared'}, {'ready'}, {'goal_failure'}, {'direct_pr_result'})
+                        or frame == {'ready': False, 'reason': 'AUTOMATION_OFF'}
                         or frame == {'op':'recheck'}):
                     common.write_frame(control.stdin, frame)
                 else:

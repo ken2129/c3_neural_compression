@@ -312,7 +312,8 @@ class GoalAdmissionTests(unittest.TestCase):
         self.manifest=dict(source_sha='a'*40,files={'data/input.csv':
             dict(sha256=hashlib.sha256(raw).hexdigest(),size_bytes=len(raw))})
 
-    def admit(self):
+    def admit(self, backend=None):
+        backend = runtime.GoalLinuxUIDBackend() if backend is None else backend
         real_path=Path;real_listdir=os.listdir;real_lstat=Path.lstat
         def mapped(*values):
             path=real_path(*values)
@@ -343,8 +344,8 @@ class GoalAdmissionTests(unittest.TestCase):
              patch.object(runtime.os,'readlink',return_value='ipc:[123]'), \
              patch.object(runtime.os,'listdir',side_effect=lambda path:real_listdir(mapped(path))), \
              patch.object(runtime.os.path,'lexists',return_value=False), \
-             patch('research_harness.goal_deployment.validate_goal_deployment',return_value={'container_id':'c'*64}) as deployment:
-            backend=runtime.GoalLinuxUIDBackend();backend.admit_goal(self.request)
+             patch.object(backend,'verify_deployment',return_value={'container_id':'c'*64}) as deployment:
+            backend.admit_goal(self.request)
             self.assertEqual(backend._ipc_namespace,'ipc:[123]')
             self.assertEqual(uid.call_args.args,(0,))
             self.assertEqual(deployment.call_args.kwargs['runtime_source_sha'],'b'*40)

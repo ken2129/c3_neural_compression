@@ -60,7 +60,7 @@ class ResidentSwitchTests(unittest.TestCase):
             if value is not None and take_hook is not None:
                 take_hook()
             return value
-        frames = [{'epoch': self.runtime.epoch.to_dict()}, {'cleaned': True}]
+        frames = [{'epoch': self.runtime.epoch.to_dict()}] + [{'cleaned': True}] * 4
         server = SimpleNamespace(start=Mock(), close=Mock(),
                                  thread=SimpleNamespace(is_alive=lambda: True))
         self.inbox.wake = SimpleNamespace(set=Mock(), clear=Mock(), wait=wait)
@@ -121,6 +121,42 @@ class ResidentSwitchTests(unittest.TestCase):
         self.inbox.enqueue(receipt(issue=ISSUE))
         self.inbox.enqueue(receipt(run=2, issue=ISSUE + 1))
         self.runtime.on_run = lambda: self.live.update(enabled=False)
+        self.run_loop()
+        self.assertEqual(self.runtime.runs, 1)
+        self.assertEqual(self.state.get(ISSUE)['phase'], 'WORKER_FINISHED')
+        self.assertIsNone(self.state.get(ISSUE + 1))
+        self.assertEqual(self.phases(), [('FINISHED',), ('PENDING',)])
+
+    def test_off_during_preflight_cleans_then_defers_and_resumes_without_claim_reset(self):
+        self.setup_loop(enabled=True)
+        self.inbox.enqueue(receipt(issue=ISSUE))
+        def paused():
+            self.live['enabled'] = False
+            raise resident.ResidentExecutionPaused('resident execution paused')
+        self.runtime.on_preflight = paused
+        def wait():
+            if len(self.waits) == 1:
+                self.assertEqual(self.phases(), [('PENDING',)])
+                self.assertIsNone(self.state.get(ISSUE))
+                self.assertEqual(self.runtime.runs, 0)
+                self.live['enabled'] = True
+                self.runtime.on_preflight = lambda: None
+            else:
+                raise StopManager()
+        self.wait_hook = wait
+        self.run_loop()
+        self.assertEqual(self.runtime.preflights, 2)
+        self.assertEqual(self.runtime.runs, 1)
+        self.assertEqual(self.state.get(ISSUE)['phase'], 'WORKER_FINISHED')
+        self.assertEqual(self.phases(), [('FINISHED',)])
+
+    def test_off_after_successful_preflight_preserves_admitted_job_and_pauses_next(self):
+        self.setup_loop(enabled=True)
+        second = direct_source(ISSUE + 1)
+        self.issues = MultipleSources(self.source, second)
+        self.inbox.enqueue(receipt(issue=ISSUE))
+        self.inbox.enqueue(receipt(run=2, issue=ISSUE + 1))
+        self.runtime.on_preflight = lambda: self.live.update(enabled=False)
         self.run_loop()
         self.assertEqual(self.runtime.runs, 1)
         self.assertEqual(self.state.get(ISSUE)['phase'], 'WORKER_FINISHED')

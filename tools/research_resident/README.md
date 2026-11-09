@@ -6,6 +6,9 @@ there plus the later runner extraction fix. See
 [source mapping, reproduction and validation](ISSUE101_REPRODUCTION.md).
 The existing goal/canary entrypoint and old claim/result records are retained.
 
+For the system overview, current deployment state, ON/OFF semantics and GPU
+limitations, start with [研究自動化システム](../../docs/research_automation.md).
+
 ## Connection to dot's PR93
 
 The workflow remains owned by PR93. Its reviewed commit is
@@ -95,7 +98,7 @@ After the initial runner/intake setup, use only `enabled` in the existing
 `/control/goal-runtime.json` for the operational execution switch:
 
 - `false`: do not start a new job. Received events stay pending; an already
-  running job keeps its admitted configuration and finishes normally.
+  admitted job keeps its execution permission and finishes normally.
 - `true`: resume pending events through the normal current-Issue/owner approval
   checks. Expired, revoked or changed approvals do not become executable.
 
@@ -118,6 +121,14 @@ This hot-reload behavior requires an image containing this change. Older
 images reject an OFF profile at startup; keep such a controller stopped with
 `enabled: false` until its reviewed runtime is updated. Merely changing a
 running old manager's file does not add the new queue-preserving behavior.
+
+A successful full preflight is the per-job admission boundary. If OFF is
+observed before that boundary, the prepared job is cleaned and its delivery is
+returned to PENDING without an execution claim. If OFF follows successful
+preflight, the same job remains admitted through worker startup; the next job
+waits. The resident backend remembers only that job's plan digest after all
+checks succeeded. Subsequent admission still checks model/source/consents,
+workspace and the other existing constraints. Disposable admission is unchanged.
 
 Use a fresh committed clean checkout and a fresh public deployment ID/profile,
 as in `tools/research_goal/DIRECT_PR.md`. Keep the existing risk consents and

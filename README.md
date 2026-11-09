@@ -1,7 +1,11 @@
 # C3 (neural compression)
 
-新しい承認済み研究 task には、[Codex が実装・CPU 実験から通常 PR まで担当する opt-in 経路](tools/research_goal/DIRECT_PR.md)を推奨します。
-既定 OFF で、専用 actor／認証と GitHub 側の保護設定の準備が必要です。実機実行・通知は未検証で、既存の実行経路は変更しません。
+研究自動化の構成・設定・ON/OFF・現在の配置・未対応事項は、
+[研究自動化システム](docs/research_automation.md)を入口にしてください。
+[Codex が実装・CPU処理から通常PRまで担当する opt-in 経路](tools/research_goal/DIRECT_PR.md)と
+[常駐runtimeの手順](tools/research_resident/README.md)があります。
+限定CPU実E2Eの実績はありますが、公開修正版の配置とGPU実験の自動起動は未完了です。
+導入・認証・実験承認が必要で、既定OFFです。
 
 This repository contains code for reproducing results in the paper
 *C3: High-performance and low-complexity neural compression from a single image or video*
@@ -47,6 +51,8 @@ The rate-distortion values and MACs per pixel for C3 and other compression basel
 研究・実験の準備、GPU実行の役割分担、安全境界、データ・成果物の保管は[全体方針](docs/experiment_policy.md)にまとめています。個別の作業はIssue／PRで管理し、その時点の経過は以下の研究日記に残します。
 
 ## Research control prototype (CPU only)
+
+以下はMVP0のfixtureの説明です。実モデルを使う常駐経路と現在の配置は、上の全体説明を参照してください。
 
 [Research harness runbook](docs/research_harness.md) describes the fail-closed
 MVP0: strict plans, transactional claims, owned CPU fixture processes, mock

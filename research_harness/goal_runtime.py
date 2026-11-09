@@ -479,6 +479,9 @@ class GoalLinuxUIDBackend(LinuxUIDBackend):
         return dict(memory=finite('memory.max'),swap=finite('memory.swap.max'),pids=finite('pids.max'),
                     cpu_quota=int(cpu[0]),cpu_period=int(cpu[1]),work_bytes=vfs.f_blocks*vfs.f_frsize)
 
+    def execution_enabled(self, config, request):
+        return config['enabled'] is True
+
     def admit_goal(self, request):
         try:
             os.seteuid(CONTROLLER_UID)
@@ -493,7 +496,7 @@ class GoalLinuxUIDBackend(LinuxUIDBackend):
             os.seteuid(0)
         fields(config,('schema','enabled','deployment_id','installed_plan_digest','input_source_sha','runtime_source_sha','model','resource_limits','risk_acknowledgements'), ('direct_pr_scope',))
         if (config['schema']!='c3-goal-runtime-v1' or config['input_source_sha']!=request.source_sha
-                or config['enabled'] is not True
+                or type(config['enabled']) is not bool
                 or config['model']!=request.plan['model']
                 or type(config['deployment_id']) is not str
                 or re.fullmatch('[0-9a-f]{32}',config['deployment_id']) is None
@@ -601,6 +604,8 @@ class GoalLinuxUIDBackend(LinuxUIDBackend):
         finally:os.seteuid(0)
         if any(os.path.lexists(p) for p in ('/.codex','/work/.codex','/work/goal/.codex')):
             raise GoalRuntimeBlocked('GOAL_UNAPPROVED_CONFIG')
+        if self.execution_enabled(config, request) is not True:
+            raise GoalRuntimeBlocked('GOAL_RUNTIME_DISABLED')
 
     @staticmethod
     def launch_goal(request):

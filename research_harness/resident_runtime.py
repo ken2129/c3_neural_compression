@@ -103,6 +103,21 @@ class ResidentLinuxBackend(GoalLinuxUIDBackend):
         # read them from a plan, event, worker or mutable operator JSON.
         self.broker_epoch=broker_epoch
         self.broker_ipc_namespace=broker_ipc_namespace
+        self._admitted_goal_digest = None
+
+    def execution_enabled(self, config, request):
+        # A successful preflight is the start boundary for this one job.
+        # OFF pauses later jobs, rather than revoke this already admitted one
+        # between its durable claim and the worker's second admission check.
+        return (config['enabled'] is True or
+                (config['enabled'] is False and self._admitted_goal_digest == request.digest))
+
+    def admit_goal(self, request):
+        result = super().admit_goal(request)
+        # Cache only after every protected configuration/workspace check passed.
+        # All other checks still run on subsequent admission of this same job.
+        self._admitted_goal_digest = request.digest
+        return result
 
     def init_namespace(self,kind):
         if kind=='pid':return 'pid:[%d]'%self.broker_epoch.pid_namespace_inode
