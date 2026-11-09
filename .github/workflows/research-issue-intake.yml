@@ -1,0 +1,37 @@
+name: Research Issue intake
+
+# Default OFF. Install the Issue92 manager contract before enabling these vars.
+# This workflow only delivers a receipt; the manager owns formal approval.
+'on':
+  issues:
+    types: [opened, edited, reopened, closed, labeled, unlabeled]
+  issue_comment:
+    types: [created, edited, deleted]
+
+permissions: {}
+
+jobs:
+  deliver:
+    if: >-
+      vars.C3_ISSUE_INTAKE_ENABLED == 'true' &&
+      vars.C3_ISSUE_INTAKE_CONTRACT == 'c3-issue-event-v1' &&
+      github.repository == 'ken2129/c3_neural_compression' &&
+      github.repository_id == '1312915009' &&
+      github.ref == 'refs/heads/main' &&
+      github.actor == 'ken2129' &&
+      github.actor_id == '55587773' &&
+      github.triggering_actor == 'ken2129' &&
+      github.event.sender.id == 55587773 &&
+      !github.event.issue.pull_request &&
+      (github.event_name == 'issues' || github.event_name == 'issue_comment')
+    runs-on: [self-hosted, linux, c3-issue-intake-v1]
+    timeout-minutes: 2
+    # No Actions concurrency group: its pending-job replacement can lose events.
+    # The durable manager queue serializes jobs; its claim prevents double runs.
+    steps:
+      - name: Deliver event to resident manager
+        shell: bash --noprofile --norc -euo pipefail {0}
+        env:
+          C3_TRIGGERING_ACTOR: ${{ github.triggering_actor }}
+        run: |
+          /usr/bin/python3 -I /opt/c3/actions/issue_event.py

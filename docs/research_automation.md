@@ -12,16 +12,41 @@
 | 項目 | 確認した状態 |
 | --- | --- |
 | 既存の常駐controller | `enabled: false` を保存し、worker不在を確認して停止済み |
-| 限定CPU実E2E | #95 / PR #100で、実イベント→実Codex→結果PR→外側の報告を確認済み |
-| 公開版の再現修正 | PR #104はopen・未merge。修正版イメージのbuildと未登録runner待機を確認済み。既存配置への置換は未実施 |
-| モデル設定の集約 | PR #105はopen・未merge・未配置 |
-| `enabled` の動的ON/OFF | PR #106と、本変更の実行開始境界の修正が必要。旧配置へ未反映 |
+| 限定CPU実E2E | #95 / 旧PR #100で確認済み。記録とA/B成果物は統合PR #108に保持 |
+| 公開版の再現修正 | 旧PR #104の修正・記録をPR #108へ統合。修正版イメージのbuildと未登録runner待機を確認済み。既存配置への置換は未実施 |
+| モデル設定の集約 | 旧PR #105の変更をPR #108へ統合。未merge・未配置 |
+| `enabled` の動的ON/OFF | 旧PR #106と実行開始境界の修正をPR #108へ統合。旧配置へ未反映 |
 | GPU実験の自動起動 | 未接続。現行residentはGPUデバイスを拒否するCPU経路 |
 | GPU作業用コンテナ | 既存コンテナは稼働中。GPUデバイスは見えるが、入力・依存・実験入口の準備は別途必要 |
 | GPU空き通知 | 作業コンテナ内の独立した補助プロセス。controllerのOFFとは独立 |
 
 過去のCPU成功を新版の実E2EやGPU実行の成功へ読み替えない。
-準備中のGPU実験は [Issue #107](https://github.com/ken2129/c3_neural_compression/issues/107) を参照する。
+準備中のGPU実験は [Issue #24](https://github.com/ken2129/c3_neural_compression/issues/24) のpilot計画を参照する。
+旧Issue #107はその計画へ統合した。全体の実装レビュー先は
+[PR #108](https://github.com/ken2129/c3_neural_compression/pull/108) で、mainへのmergeと実配置は未実施。
+
+### 整理後の入口
+
+- 自動化の全体目標はIssue #56、常駐方式の実装・レビュー追跡はIssue #92とPR #108。
+- 研究の順序はIssue #35、最初のGPU費用pilotはIssue #24。文献調査PR #102は別件として保持する。
+- 旧実装PR #71/#84/#93/#94/#104/#105/#106、結果PR #86/#88/#90/#98/#99/#100は
+  PR #108へ統合してcloseする。closeはmergeや配置の完了を意味せず、元branch・commit・レビューは残す。
+- 旧レビューの未resolveスレッドは、統合PRで元の指摘を参照して確認する。
+  古い差分への指摘や後続で修正したものも含むため、closeだけで解決済みにはしない。
+
+### 保存した検証結果
+
+| 元Issue / PR | 内容 | 統合先に保持した成果物 |
+| --- | --- | --- |
+| #85 / #86 | 公開定数N=1000のCPU smoke | [計算・5テスト・結果](../research_outputs/direct_pr_cpu_smoke/README.md) |
+| #87 / #88 | 既存Issue50公開値の整合性監査 | [監査レポート・CLI・27テスト](research/generated/issue50-goal-review/report.md) |
+| #89 / #90 | 公開3入力のprovenance確認 | [報告・CLI・7テスト](research/generated/issue50-input-provenance-e2e/report.md) |
+| #96 / #98 | 常駐E2E A: LICENSEのhash | [job A](research/generated/issue95-resident-e2e/job-a.md) |
+| #97 / #99 | 常駐E2E B: READMEのhash | [job B](research/generated/issue95-resident-e2e/job-b.md) |
+| #95 / #100 | 外側からの配送・結果保存・回収・通知の観測 | [E2E統合記録](research/2026-10-24_issue95_resident_e2e.md) |
+
+これらは過去の実行記録。今回の整理でモデルや実験を再実行したものではない。
+当時の失敗・介入・未確認事項も保持し、集約値の再計算を新しい研究測定とは扱わない。
 
 ## 構成と一回の仕事
 
@@ -128,7 +153,7 @@ work256MiB、出力1MiB。GPUデバイスも明示的に拒否する。
 GPU実験には、実験用依存・入力、許可GPUの選択と直前の利用確認、メモリ/保存領域、
 長い実行時間、結果回収を接続する必要がある。現在の作業コンテナでは想定COCO入力がなく、
 PyTorch/torchvisionはCPU版だった。GPU版JAXのパッケージがあることは実GPU動作の証明ではない。
-実験計画と未準備項目はIssue #107で追う。
+実験計画と未準備項目はIssue #24のpilot節で追う。
 
 ### GPU空き通知は独立した補助機能
 
@@ -170,7 +195,7 @@ Macの接続を閉じても作業コンテナが動いている間は継続す�
 | 優先する課題 | 現在の扱い |
 | --- | --- |
 | OFFと開始が重なる競合 | 本変更で修正・回帰試験。実配置は別 |
-| GPU研究経路・長時間資源・入力/依存 | 未接続。Issue #107の準備と対応する実装が必要 |
+| GPU研究経路・長時間資源・入力/依存 | 未接続。Issue #24のpilot準備と対応する実装が必要 |
 | 簡単なIssue操作による実行開始 | 未実装。現在のowner承認との整合を含めて設計する |
 | イメージ更新と状態の引継ぎ | 新規導入経路のみ。更新/移行手順が不足 |
 | GPU監視のコード管理・再起動時の扱い | 補助プロセスの管理を整理する必要あり |
