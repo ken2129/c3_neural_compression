@@ -145,4 +145,60 @@ class OwnerApprovalTests(unittest.TestCase):
             with self.assertRaises(ContractError):adapter.comments(100)
 
 
+class ApprovalReadBudgetTests(unittest.TestCase):
+    def test_budget_is_shared_and_nested_does_not_extend(self):
+        from research_harness.owner_approval import approval_read_budget, approval_read_timeout
+        now=[10.0]
+        with patch('research_harness.owner_approval.time.monotonic',side_effect=lambda:now[0]):
+            self.assertEqual(approval_read_timeout(20),20)
+            with approval_read_budget():
+                now[0]=12
+                self.assertEqual(approval_read_timeout(20),3)
+                with approval_read_budget():
+                    now[0]=14
+                    self.assertEqual(approval_read_timeout(20),1)
+            self.assertEqual(approval_read_timeout(20),20)
+
+    def test_elapsed_budget_fails_and_context_is_cleared(self):
+        from research_harness.owner_approval import approval_read_budget, approval_read_timeout
+        now=[10.0]
+        with patch('research_harness.owner_approval.time.monotonic',side_effect=lambda:now[0]):
+            with self.assertRaises(TimeoutError):
+                with approval_read_budget():now[0]=15
+            self.assertEqual(approval_read_timeout(20),20)
+            with self.assertRaises(RuntimeError):
+                with approval_read_budget():raise RuntimeError('test')
+            self.assertEqual(approval_read_timeout(20),20)
+
+    def test_graphql_refresh_uses_bounded_manager_transport(self):
+        from research_harness.owner_approval import approval_read_budget, approval_read_timeout
+        now=[10.0]
+        def bounded(command):
+            self.assertEqual(command[:5],['/usr/bin/gh','api','--hostname','github.com','graphql'])
+            self.assertEqual(approval_read_timeout(20),2)
+            raise TimeoutError
+        with patch('research_harness.owner_approval.time.monotonic',side_effect=lambda:now[0]):
+            with approval_read_budget():
+                now[0]=13
+                with patch('research_harness.manager_github.ManagerGitHub._executable',return_value='/usr/bin/gh'), \
+                     patch('research_harness.manager_github.ManagerGitHub._run',side_effect=bounded) as run, \
+                     patch('research_harness.owner_approval.subprocess.run') as legacy:
+                    with self.assertRaises(TimeoutError):GitHubOwnerComments().comments(100)
+                    run.assert_called_once();legacy.assert_not_called()
+
+    def test_expired_budget_never_launches_graphql_or_rest(self):
+        from research_harness.owner_approval import approval_read_budget
+        from research_harness.manager_github import ManagerGitHub
+        now=[10.0]
+        with patch('research_harness.owner_approval.time.monotonic',side_effect=lambda:now[0]):
+            with self.assertRaises(TimeoutError):
+                with approval_read_budget():
+                    now[0]=16
+                    with patch('research_harness.owner_approval.subprocess.run') as run:
+                        with self.assertRaises(TimeoutError):GitHubOwnerComments().comments(100)
+                        run.assert_not_called()
+                    with patch('research_harness.manager_github.subprocess.Popen') as popen:
+                        with self.assertRaises(TimeoutError):ManagerGitHub._run([])
+                        popen.assert_not_called()
+
 if __name__ == '__main__':unittest.main()

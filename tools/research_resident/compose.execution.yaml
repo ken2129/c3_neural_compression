@@ -1,0 +1,9 @@
+# Explicit opt-in overlay. Only the trusted root broker uses this socket.
+# It is never mounted into any experiment container or exposed to Codex.
+services:
+  controller:
+    volumes:
+      - type: bind
+        source: /var/run/docker.sock
+        target: /run/c3-docker.sock
+        read_only: false

@@ -1,0 +1,45 @@
+services:
+  controller:
+    build:
+      context: ${C3_GOAL_CONTEXT:?immutable context required}
+      dockerfile: Dockerfile.resident
+      args:
+        SOURCE_SHA: ${C3_RUNTIME_SHA:?reviewed runtime required}
+        INPUT_SOURCE_SHA: ${C3_INPUT_SHA:?approved input required}
+        DEPLOYMENT_ID: ${C3_DEPLOYMENT_ID:?fresh deployment required}
+        RUNNER_VERSION: ${C3_RUNNER_VERSION:?reviewed runner required}
+        RUNNER_SHA256: ${C3_RUNNER_SHA256:?reviewed archive checksum required}
+    labels:
+      c3.purpose: dedicated-resident-controller
+      c3.source-sha: ${C3_RUNTIME_SHA}
+      c3.input-source-sha: ${C3_INPUT_SHA}
+      c3.deployment-id: ${C3_DEPLOYMENT_ID}
+    user: '0:0'
+    init: false
+    read_only: true
+    network_mode: bridge
+    ipc: private
+    cgroup: private
+    runtime: runc
+    cap_drop: [ALL]
+    cap_add: [SETUID, SETGID]
+    security_opt: ['no-new-privileges:true']
+    pids_limit: ${C3_GOAL_PIDS:?profile required}
+    mem_limit: ${C3_GOAL_MEMORY:?profile required}
+    memswap_limit: ${C3_GOAL_MEMORY}
+    cpus: 1
+    shm_size: 64m
+    restart: unless-stopped
+    volumes:
+      - goal-control:/control
+      - runner-state:/runner
+    tmpfs:
+      - /work:rw,noexec,nosuid,nodev,size=${C3_GOAL_WORK:?profile required},mode=0755,uid=0,gid=0
+      - /control-ipc:rw,noexec,nosuid,nodev,size=1048576,mode=0711,uid=10001,gid=10001
+volumes:
+  goal-control:
+    labels:
+      c3.deployment-id: ${C3_DEPLOYMENT_ID}
+  runner-state:
+    labels:
+      c3.deployment-id: ${C3_DEPLOYMENT_ID}

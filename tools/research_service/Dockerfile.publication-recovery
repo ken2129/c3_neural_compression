@@ -1,0 +1,17 @@
+# Publication only. Contains no Codex executable and starts no experiment worker.
+FROM python:3.11-slim-bookworm
+ARG SOURCE_SHA
+RUN test "${#SOURCE_SHA}" = 40 \
+ && apt-get update && apt-get install -y --no-install-recommends gh ca-certificates \
+ && rm -rf /var/lib/apt/lists/* \
+ && groupadd --gid 10001 control \
+ && useradd --uid 10001 --gid 10001 --no-create-home control \
+ && mkdir -p /opt/service \
+ && printf '%s\n' "$SOURCE_SHA" > /opt/service/source-sha
+LABEL c3.purpose="publication-only-recovery" c3.source-sha="$SOURCE_SHA"
+COPY research_harness/ /opt/service/research_harness/
+COPY tools/research_service/recover_publication.py /opt/service/recover_publication.py
+USER 10001:10001
+ENV HOME=/control/home GH_CONFIG_DIR=/control/gh
+ENTRYPOINT ["python","-I","-B","/opt/service/recover_publication.py"]
+CMD ["--once"]

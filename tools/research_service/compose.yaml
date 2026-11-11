@@ -1,0 +1,33 @@
+# Proposed dedicated deployment. Do not apply to an existing research container.
+# Requires separate approval for new persistent volume, networking and credentials.
+services:
+  controller:
+    build:
+      context: ../..
+      dockerfile: tools/research_service/Dockerfile
+      args:
+        SOURCE_SHA: ${C3_SOURCE_SHA:?set reviewed source commit}
+    labels:
+      c3.purpose: dedicated-research-controller
+      c3.source-sha: ${C3_SOURCE_SHA:?set reviewed source commit}
+    user: "0:0"
+    init: false
+    read_only: true
+    network_mode: bridge
+    ipc: private
+    cgroup: private
+    runtime: runc
+    cap_drop: [ALL]
+    cap_add: [SETUID, SETGID]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 64
+    mem_limit: 1g
+    memswap_limit: 1g
+    cpus: 1
+    restart: unless-stopped
+    volumes:
+      - control-state:/control
+    tmpfs:
+      - /work:rw,noexec,nosuid,nodev,size=256m,mode=0700,uid=10002,gid=10002
+volumes:
+  control-state:
