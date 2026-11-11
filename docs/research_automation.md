@@ -4,7 +4,7 @@
 研究手法・資源利用・成果物の方針は [実験ポリシー](experiment_policy.md)、
 個別実験の条件は各Issueを正本とする。
 
-以下の旧配置状態は **2026-11-09の確認時点**。2026-11-11にGPU接続の実装・CPU fixtureを追加したが未配置。PRの実装、テスト済み範囲、
+以下の旧配置状態は **2026-11-09の確認時点**。2026-11-11にIssue指定の実験コンテナ内でCodexを動かす経路へ修正したが未配置。PRの実装、テスト済み範囲、
 実際に配置した機能を分けて読む。ここに書かれた計画から実験が自動承認されることはない。
 
 ## 現在どこまで動くか
@@ -16,8 +16,8 @@
 | 公開版の再現修正 | 旧PR #104の修正・記録をPR #108へ統合。修正版イメージのbuildと未登録runner待機を確認済み。既存配置への置換は未実施 |
 | モデル設定の集約 | 旧PR #105の変更をPR #108へ統合。未merge・未配置 |
 | `enabled` の動的ON/OFF | 旧PR #106と実行開始境界の修正をPR #108へ統合。旧配置へ未反映 |
-| GPU実験の自動起動 | 登録済みレシピを既存GPUコンテナで実行し、結果をCPU workerへ渡す接続を追加。CPU fixtureで検証、未配置・実GPU常駐E2Eは未実施 |
-| GPU作業用コンテナ | PR #109で専用環境・入力を準備し、手動の1画像4条件pilotが完了。新しいagent・登録レシピ・manager接続設定の配置は別途必要 |
+| GPU実験の自動起動 | Issue指定の実験コンテナでCodexを起動し、同じセッションで実験・解析・PR作成する経路を追加。未配置・実GPU常駐E2Eは未実施 |
+| GPU作業用コンテナ | PR #109で専用環境・入力を準備し、手動の1画像4条件pilotが完了。Codexの版・研究UID・workspaceの確認と、新しい管理設定の配置は別途必要 |
 | GPU空き通知 | 作業コンテナ内の独立した補助プロセス。controllerのOFFとは独立 |
 
 過去のCPU成功を新版の実E2EやGPU実行の成功へ読み替えない。
@@ -58,19 +58,19 @@ flowchart TD
     R --> Q["Unix socket → 永続イベントキュー"]
     Q --> M["manager：ON/OFF・現行Issue・承認を確認"]
     M --> P["実行前チェック → 一度だけclaim"]
-    P --> C["CPUのみの依頼：Codex worker"]
-    P --> E["GPU依頼：manager → SSH → 既存GPUコンテナのagent"]
-    E --> W["GPU空き待ち → 登録済みレシピ → 停止・子孫回収"]
-    W --> D["許可された小容量の数値・テキスト結果"]
-    D --> C
-    C --> PR["workerが結果PRを公開"]
-    C --> X["worker子孫・一時領域を回収"]
+    P --> C["従来のCPU依頼：管理側のCPU worker"]
+    P --> E["execution_container：同じホストの登録済みコンテナ"]
+    E --> W["実験側でCodex起動：調査・修正・GPU/CPU実験・待機・解析"]
+    W --> PR["同じCodexが結果PRを公開"]
+    C --> PR
+    W --> X["そのjobの子孫と認証コピーを回収、研究workspaceは維持"]
+    C --> X
     X --> Q
     G["GPU作業コンテナ内の空き監視"] --> S["ユーザー指定Slackへ通知"]
 ```
 
 この図の常駐経路は、導入・runner登録・受付設定が済んでいる場合の構成。
-現在の旧controllerは停止している。新しいGPU接続は未配置。
+現在の旧controllerは停止している。新しい実験コンテナ経路は未配置。
 空き通知自体は起動命令ではなく、GPU agentが承認済み依頼のために空きを待つ。
 
 1. 普通の計画Issueを作っても実行しない。
@@ -140,7 +140,7 @@ PR #106だけでは、この境界の途中でOFFになると依頼をBLOCKEDと
 | `/control/resident-intake.json` | 初回導入時のrunner/workflow受付ポリシー。日常のON/OFFでは触らない |
 | `/control/worker-pr.json` | workerのPR公開設定。実験承認やmerge承認の代わりにはしない |
 | `/control/state/`・`/control/inbox.sqlite` | claim・実行結果・イベントの永続台帳。手編集や自動resetをしない |
-| `/control/gpu-results/` | 同じrun bindingに対応するGPU実行・回収の私有記録。CPU worker起動前に保存 |
+| `/control/execution-results/` | 同じrun bindingに対応する実験側Codexの終了・回収の私有記録 |
 | `/runner` | runner本体と登録情報。managerの設定やworkerの成果物とは分離 |
 
 PR #105以降のdirect-PR経路ではモデル名は共通設定から解決する。
@@ -150,31 +150,26 @@ PR #105以降のdirect-PR経路ではモデル名は共通設定から解決す�
 
 ## 実験中の待機とGPU実行
 
-新しい接続では、GPU工程はmanagerが登録済みレシピとして実行・待機し、終了と回収を
-確認してから解析用Codexを一度起動する。GPU待機中にCodexを再呼び出ししない。
-Codexが任意のGPUコマンドやSSH接続を選ぶ経路は追加しない。
+管理用と実験用は同じLinuxホスト上の2種類のコンテナとする。Issueの正式planに
+`execution_container` で登録済み参照名を指定し、共通runtime設定の
+`execution_containers` が実名・実IDまたは作成用image、研究UID、workspace、資源を規定する。
+実験コンテナは仕事ごとに作り直さず、再利用できる。未登録の指定はclaim前に拒否する。
 
-確認した旧配置の上限はwall 600秒、各プロセスCPU120秒、メモリ1GiB、64PID、
-work256MiB、出力1MiB。GPUデバイスも明示的に拒否する。
-**時間制限を延ばすだけではGPU実験経路にはならない。**
+Codexは実験側に置く。通常のshell/file toolsでコードを調査・修正し、実験を実行して
+同じセッションで待ち、解析・PR作成まで担当する。GPUレシピを先に実行してから
+管理側で解析用Codexを起動する旧案は置き換えた。研究コマンドの個別allowlistや
+独自の実験操作MCPを新設しない。
 
-GPU依頼は既存のdirect-PR planに `gpu_experiment`（machine・recipe・待機/実行上限）を
-付け、共通runtime設定の `gpu_targets` で登録先・レシピdigest・許可上限を解決する。
-未登録の指定はclaim前に拒否する。CPU workerの600秒等の上限はそのままで、
-residentの待機割当にGPU工程の上限を別途加える。
+管理側の固定brokerだけがローカルDockerを操作し、実験側へDocker socket・管理volume・
+承認用認証を渡さない。owner承認・単回claim・取消・期限・回収の検査を維持する。
+同じ仕事の子孫だけを回収し、研究workspace・既存成果物・無関係なプロセスを残す。
+回収が不明なら次の仕事を始めない。
 
-GPU agentは固定source・入力を照合し、許可UUIDの空きを確認して起動する。
-メモリ・保存量・時間等を監視し、取消時もそのagentの子孫だけをpidfdで停止する。
-子孫回収が確認できない通信断では次のjobを始めない。結果は16KiB以内の許可された
-テキストに限定し、brokerがworker-homeへデータとして渡す。入力・重み・全ログは
-GPUコンテナ内に残す。レシピの信頼されたcollectorが公開内容を選ぶのであり、
-共通制御が研究の妥当性や秘密除去を自動証明するわけではない。
-
-接続はmanagerだけのSSH認証で既存ホストのDocker execを呼ぶ。
-ホストにファイル・常駐サービス・mountを追加しないが、managerにはそのホストへの
-SSH/Docker権限を明示的に配置する必要がある。CPU workerに認証は渡さない。
-登録レシピは信頼されたコードであり、共有GPUコンテナのRSS監視をcgroup hard limitや
-任意コードの隔離と呼ばない。詳細・配置境界は [GPU接続手順](../tools/research_gpu/README.md)。
+設定・初回準備・再利用・新規作成・資源制限・認証更新・検証範囲は
+[実験コンテナ経路](../tools/research_resident/EXECUTION.md) を正本とする。
+Docker操作権限を管理側へ与えるため、新しい配置では明示的なopt-inが必要。
+既存のcontrollerやホスト設定を自動変更する実装ではない。SSH鍵やマシン間通信は使わない。
+再利用先の監視をcgroup hard limitや任意コードの完全隔離と呼ばない。
 
 ### GPU空き通知は独立した補助機能
 
@@ -216,11 +211,11 @@ Macの接続を閉じても作業コンテナが動いている間は継続す�
 | 優先する課題 | 現在の扱い |
 | --- | --- |
 | OFFと開始が重なる競合 | 本変更で修正・回帰試験。実配置は別 |
-| GPU研究経路・長時間資源・入力/依存 | 接続コード・CPU fixtureを追加。専用認証・agent/recipeの配置と実環境E2Eは未実施 |
+| GPU研究経路・長時間資源・入力/依存 | 実験側Codexの経路へ修正。Docker権限の明示配置・実環境E2Eは未実施 |
 | 簡単なIssue操作による実行開始 | 未実装。現在のowner承認との整合を含めて設計する |
 | イメージ更新と状態の引継ぎ | 新規導入経路のみ。更新/移行手順が不足 |
 | GPU監視のコード管理・再起動時の扱い | 補助プロセスの管理を整理する必要あり |
-| モデル・マシン間の汎用化 | Issue #110。最初のbackendはLinuxホストへのSSH＋既存Dockerコンテナ |
+| モデル・マシン間の汎用化 | Issue #110。まずLinuxの1台で登録済みコンテナを指定・再利用する |
 
 - [常駐runtimeの導入・役割・回収](../tools/research_resident/README.md)
 - [公開修正と再現確認の範囲](../tools/research_resident/ISSUE101_REPRODUCTION.md)

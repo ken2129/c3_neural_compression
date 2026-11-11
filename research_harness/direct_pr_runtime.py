@@ -92,9 +92,6 @@ def stage_direct_workspace(plan, *, as_uid):
         _write_new(WORKER_CONFIG_PATH, canonical(config), 0o600)
         _write_new(WORKER_TOKEN_PATH, token, 0o600)
         _write_new('/work/worker-home/approved-plan.json', canonical(plan), 0o600)
-        if 'gpu_experiment' in plan:
-            from .gpu_contract import GPU_RESULT_PATH, PENDING
-            _write_new(GPU_RESULT_PATH, canonical(PENDING), 0o600)
     finally:
         as_uid(0)
     return True  # Staged only; not a candidate or a publication approval.
@@ -158,7 +155,7 @@ def validate_direct_workspace(plan, manifest):
         raise ContractError('direct workspace entry missing')
 
 
-def validate_worker_home(plan, *, gpu_definition=None):
+def validate_worker_home(plan):
     def read_worker(path, limit):
         info = path.lstat()
         if (not stat.S_ISREG(info.st_mode) or info.st_uid != WORKER or info.st_nlink != 1
@@ -176,8 +173,6 @@ def validate_worker_home(plan, *, gpu_definition=None):
         finally:
             os.close(fd)
     expected = {'worker-pr.json', 'github-token', 'approved-plan.json'}
-    if 'gpu_experiment' in plan:
-        expected.add('gpu-result.json')
     home = Path('/work/worker-home')
     if set(os.listdir(home)) != expected:
         raise ContractError('direct worker home must contain only explicit credentials/plan')
@@ -186,30 +181,3 @@ def validate_worker_home(plan, *, gpu_definition=None):
         raise ContractError('direct worker config/plan mismatch')
     if not read_worker(home/'github-token', 8192).strip():
         raise ContractError('direct worker credential missing')
-    if 'gpu_experiment' in plan:
-        from .gpu_contract import PENDING, MAX_RESULT_BYTES, validate_gpu_result
-        value = loads(read_worker(home/'gpu-result.json', MAX_RESULT_BYTES))
-        if value != PENDING:
-            checked = validate_gpu_result(value, request=plan['gpu_experiment'], definition=gpu_definition)
-            if checked['binding']['plan_digest'] != hashlib.sha256(canonical(plan)).hexdigest():
-                raise ContractError('GPU worker input plan binding mismatch')
-
-
-def stage_gpu_result(plan, result, *, binding, definition, as_uid):
-    """A trusted broker copies data only; it never executes GPU output."""
-    from .gpu_contract import GPU_RESULT_PATH, PENDING, MAX_RESULT_BYTES, validate_gpu_result
-    checked = validate_gpu_result(result, binding=binding, request=plan['gpu_experiment'], definition=definition)
-    try:
-        as_uid(WORKER)
-        path = Path(GPU_RESULT_PATH)
-        info = path.lstat()
-        if (not stat.S_ISREG(info.st_mode) or info.st_uid != WORKER or info.st_nlink != 1
-                or stat.S_IMODE(info.st_mode) != 0o600 or info.st_size > MAX_RESULT_BYTES
-                or loads(path.read_bytes()) != PENDING):
-            raise ContractError('GPU worker input must be the fresh pending slot')
-        # No worker exists yet. Exclusive temporary + replace preserves its UID.
-        temporary = path.with_name('gpu-result.pending')
-        _write_new(temporary, canonical(checked), 0o600)
-        os.replace(temporary, path)
-    finally:
-        as_uid(0)

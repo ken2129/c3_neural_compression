@@ -31,9 +31,9 @@ from research_harness.resident_runtime import (ResidentGoalSupervisor, ResidentL
     cleanup_job, persist_block, BLOCK_MARKER, RUNNER_UID, ResidentBlocked)
 from research_harness.restart_boundary import RestartEpoch, read_epoch
 from research_harness.schema import ContractError, canonical
-from research_harness.gpu_contract import installed_target, resident_job_seconds, validate_gpu_result
-from research_harness.gpu_backend import SSHDockerGPUBackend, GPUCleanupUnverified
 from research_harness.service_state import ServiceState
+from research_harness.execution_contract import execution_limits
+from research_harness.execution_docker import ExecutionCleanupUnverified
 
 SCRIPT = '/opt/service/resident_launcher.py'
 
@@ -49,14 +49,6 @@ class ResidentHandshakeBlocked(IntakeBlocked):
 
 class ResidentExecutionPaused(ContractError):
     """Preflight observed OFF before any execution claim was created."""
-
-
-def persist_gpu_result(binding, result):
-    from research_harness.persistent_fixture import exclusive_record
-    directory = Path('/control/gpu-results')
-    directory.mkdir(mode=0o700, exist_ok=True)
-    common.protected_control_directory(directory)
-    exclusive_record(directory/(binding['run_id']+'.json'), result)
 
 
 def read_failure_frame(stream, *, timeout=10.0):
@@ -89,6 +81,13 @@ class ResidentGoalPipeRuntime(common.GoalPipeRuntime):
     namespace. Reuse requires consuming the job's terminal failure frame first.
     Approval checks and the negative reply itself still use the common runtime.
     """
+    def prepare_plan(self,plan):
+        self.plan=validate_goal_plan(plan,self.profile['input_source_sha'],
+            resource_limits=execution_limits(self.profile,plan),deployment_id=self.profile['deployment_id'])
+        common.require_installed_plan(self.profile,self.plan)
+        common.write_frame(self.outgoing,{'op':'prepare_goal','plan':self.plan})
+        if common.read_frame(self.incoming)!={'prepared':True}:raise ContractError('goal preparation rejected')
+
     def preflight(self):
         common.write_frame(self.outgoing, {'op': 'preflight'})
         reply = common.read_frame(self.incoming)
@@ -99,27 +98,12 @@ class ResidentGoalPipeRuntime(common.GoalPipeRuntime):
         return self.epoch
 
     def run(self,binding,recheck):
-        if 'gpu_experiment' in self.plan:
-            request = self.plan['gpu_experiment']
-            _, definition = installed_target(self.profile, request)
-            def checked_gpu():
-                # OFF remains a next-job switch after this job's admission.
-                # A changed target/credential configuration is never accepted.
-                dispatch_profile(self.profile)
-                recheck()
-            def persist(result):
-                persist_gpu_result(binding, result)
-            backend = SSHDockerGPUBackend(self.profile, request,
-                status=lambda phase, elapsed: report(dict(phase='RESIDENT_GPU_STAGE',
-                    issue=binding['issue_number'], stage=phase, elapsed_seconds=elapsed)))
-            result = backend.run(binding, checked_gpu, on_result=persist)
-            common.write_frame(self.outgoing, {'op':'gpu_result','result':result,'binding':binding})
-            if common.read_frame(self.incoming) != {'gpu_result_staged':True}:
-                raise GPUCleanupUnverified()
         rejected=False
         def checked():
             nonlocal rejected
-            try:recheck()
+            try:
+                if 'execution_container' in self.plan:dispatch_profile(self.profile)
+                recheck()
             except Exception:
                 rejected=True
                 raise
@@ -170,12 +154,12 @@ def process_event(controller, receipt, *, finish_runtime):
         # to PENDING. No claim exists, so this is not a failed execution.
         finish_runtime()
         raise
+    except ExecutionCleanupUnverified:
+        raise ResidentHandshakeBlocked() from None
     except ResidentHandshakeBlocked:
         # No failure_ack/job_finished after a missing or invalid goal_failure.
         # The manager blocks the inbox and PID1 performs fail-closed shutdown.
         raise
-    except GPUCleanupUnverified:
-        raise ResidentHandshakeBlocked() from None
     except Exception as exc:
         if runtime.failed_issue is not None:
             row = controller.state.get(runtime.failed_issue)
@@ -378,6 +362,9 @@ def job_supervise():
         common.as_uid(10001)
         profile = common.protected_json('/control/goal-runtime.json')
     finally: common.as_uid(0)
+    if 'execution_container' in boot['plan']:
+        from research_harness.execution_delivery import broker
+        return broker(boot,profile,incoming,sys.stdout.buffer,common)
     plan = validate_goal_plan(boot['plan'], profile['input_source_sha'],
         resource_limits=profile['resource_limits'], deployment_id=profile['deployment_id'])
     if plan['kind'] != DIRECT_PR_KIND: raise ContractError('resident direct-PR-only')
@@ -386,7 +373,7 @@ def job_supervise():
         broker_ipc_namespace=boot['broker_ipc_namespace'])
     supervisor = ResidentGoalSupervisor(backend, controller_pid=boot['controller_pid'], runner_pid=boot['runner_pid'])
     supervisor.reserve()
-    backend.arm_watchdog(resident_job_seconds(plan) + 30)
+    backend.arm_watchdog(plan['max_seconds'] + 30)
     try:
         common.stage_workspace(plan)
     except Exception:
@@ -395,31 +382,17 @@ def job_supervise():
     else:
         common.write_frame(sys.stdout.buffer, {'prepared': True})
     attempted = preflight = False
-    gpu_result_binding = None
     while True:
         frame = common.read_frame(incoming)
         if frame == {'op': 'preflight'}:
             reply = preflight_reply(backend, GoalRequest(plan, profile['input_source_sha']))
             preflight = reply == {'ready': True}
             common.write_frame(sys.stdout.buffer, reply)
-        elif set(frame) == {'op','result','binding'} and frame['op'] == 'gpu_result':
-            if attempted or not preflight or 'gpu_experiment' not in plan or gpu_result_binding is not None:
-                raise ContractError('resident GPU result order rejected')
-            binding = frame['binding']; common.validate_binding(binding)
-            if binding['plan_digest'] != GoalRequest(plan,profile['input_source_sha']).digest:
-                raise ContractError('GPU result plan binding rejected')
-            _, definition = installed_target(profile, plan['gpu_experiment'])
-            from research_harness.direct_pr_runtime import stage_gpu_result
-            stage_gpu_result(plan,frame['result'],binding=binding,definition=definition,as_uid=common.as_uid)
-            gpu_result_binding = dict(binding)
-            common.write_frame(sys.stdout.buffer,{'gpu_result_staged':True})
         elif set(frame) == {'op', 'binding'} and frame['op'] == 'goal':
             if attempted or not preflight: raise ContractError('resident preflight order')
             attempted = True
             supervisor = ResidentGoalSupervisor(backend, controller_pid=boot['controller_pid'], runner_pid=boot['runner_pid'])
             binding = frame['binding']; common.validate_binding(binding)
-            if 'gpu_experiment' in plan and gpu_result_binding != binding:
-                raise ContractError('GPU stage must settle before CPU worker startup')
             request = GoalRequest(plan, profile['input_source_sha'])
             if binding['plan_digest'] != request.digest or binding['source_sha'] != request.source_sha:
                 raise ContractError('resident binding mismatch')
@@ -459,7 +432,10 @@ def supervise():
     if blocked:
         report(dict(phase='RESIDENT_BLOCKED', reason='CLEANUP_UNVERIFIED'))
         while True: signal.pause()
-    config, profile, initialize_new = common.deployment(validator=validate_resident_deployment, allow_disabled=True, allow_gpu=True)
+    config, profile, initialize_new = common.deployment(validator=validate_resident_deployment, allow_disabled=True, allow_execution=True)
+    if 'execution_containers' in profile:
+        from research_harness.execution_docker import validate_docker_authority
+        validate_docker_authority()  # Before runner/CPU jobs can see the mount.
     if 'direct_pr_scope' not in profile:
         raise ContractError('resident mode is explicitly direct-PR-only')
     epoch = read_epoch(container_id=config['container_id'])
@@ -488,20 +464,19 @@ def supervise():
                 if set(frame) == {'op', 'plan'} and frame['op'] == 'prepare_goal':
                     if job is not None: raise ContractError('resident overlap')
                     plan = validate_goal_plan(frame['plan'], profile['input_source_sha'],
-                        resource_limits=profile['resource_limits'], deployment_id=profile['deployment_id'])
+                        resource_limits=execution_limits(profile,frame['plan']), deployment_id=profile['deployment_id'])
                     common.require_installed_plan(profile, plan)
                     if plan['kind'] != DIRECT_PR_KIND: raise ContractError('resident direct-PR-only')
                     job = subprocess.Popen([sys.executable, '-I', '-B', SCRIPT, 'job'],
                         env=dict(LANG='C.UTF-8', PATH='/usr/local/bin:/usr/bin:/bin'),
                         stdin=subprocess.PIPE, stdout=subprocess.PIPE, close_fds=True, bufsize=0)
-                    job_deadline = time.monotonic() + resident_job_seconds(plan) + 35
+                    job_deadline = time.monotonic() + plan['max_seconds'] + 35
                     common.write_frame(job.stdin, {'plan': plan, 'controller_pid': control.pid, 'runner_pid': runner.pid,
                         'broker_epoch':epoch.to_dict(),'broker_ipc_namespace':broker_ipc_namespace})
                 elif set(frame) == {'op', 'reports'} and frame['op'] == 'report':
                     common.write_frame(sys.stdout.buffer, {'mode': 'resident-direct-pr', 'reports': frame['reports']})
                 elif job is not None and (frame in ({'op':'preflight'}, {'op':'job_finished'})
                         or set(frame)=={'op','binding'} and frame['op']=='goal'
-                        or set(frame)=={'op','result','binding'} and frame['op']=='gpu_result'
                         or set(frame)=={'approved'} or set(frame)=={'approved','reason','origin'}
                         or set(frame)=={'op','issue','phase'} and frame['op']=='failure_ack'):
                     if frame.get('op') == 'goal': job_deadline = time.monotonic() + plan['max_seconds'] + 5
@@ -522,9 +497,9 @@ def supervise():
                     common.write_frame(control.stdin, {'cleaned': True})
                     report(dict(phase='RESIDENT_JOB_CLEANED', worker=0, descendants_echild=True,
                                 temporary_credentials_removed=True))
-                elif (set(frame) in ({'prepared'}, {'ready'}, {'goal_failure'}, {'direct_pr_result'}, {'gpu_result_staged'})
+                elif (set(frame) in ({'prepared'}, {'ready'}, {'goal_failure'}, {'direct_pr_result'})
                         or frame == {'ready': False, 'reason': 'AUTOMATION_OFF'}
-                        or frame == {'op':'recheck'}):
+                        or frame == {'op':'recheck'} or frame == {'execution_cleanup_unverified':True}):
                     common.write_frame(control.stdin, frame)
                 else:
                     raise ContractError('resident job frame rejected')

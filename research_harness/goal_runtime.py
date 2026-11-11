@@ -494,7 +494,7 @@ class GoalLinuxUIDBackend(LinuxUIDBackend):
                                              owner=(0,CONTROLLER_UID)))
         finally:
             os.seteuid(0)
-        fields(config,('schema','enabled','deployment_id','installed_plan_digest','input_source_sha','runtime_source_sha','model','resource_limits','risk_acknowledgements'), ('direct_pr_scope','gpu_targets'))
+        fields(config,('schema','enabled','deployment_id','installed_plan_digest','input_source_sha','runtime_source_sha','model','resource_limits','risk_acknowledgements'), ('direct_pr_scope','execution_containers','docker_control_approved'))
         if (config['schema']!='c3-goal-runtime-v1' or config['input_source_sha']!=request.source_sha
                 or type(config['enabled']) is not bool
                 or config['model']!=request.plan['model']
@@ -592,13 +592,7 @@ class GoalLinuxUIDBackend(LinuxUIDBackend):
                     raise GoalRuntimeBlocked('GOAL_RUNTIME_HOME_INVALID')
             if plan['kind'] == DIRECT_PR_KIND:
                 from .direct_pr_runtime import validate_worker_home
-                gpu_definition = None
-                if 'gpu_experiment' in plan:
-                    from .gpu_contract import installed_target
-                    _, gpu_definition = installed_target(config, plan['gpu_experiment'])
-                    validate_worker_home(plan, gpu_definition=gpu_definition)
-                else:
-                    validate_worker_home(plan)
+                validate_worker_home(plan)
             elif os.listdir('/work/worker-home'):
                 raise GoalRuntimeBlocked('GOAL_RUNTIME_HOME_NOT_FRESH')
             if set(os.listdir('/work/codex-home'))!={'auth.json'}:

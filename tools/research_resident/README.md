@@ -8,9 +8,11 @@ The existing goal/canary entrypoint and old claim/result records are retained.
 
 For the system overview, current deployment state, ON/OFF semantics and GPU
 limitations, start with [研究自動化システム](../../docs/research_automation.md).
-The optional [installed GPU recipe stage](../research_gpu/README.md) runs before
-the CPU worker. It is implemented but remains uninstalled and has only CPU
-fixture validation; it does not change the existing default OFF state.
+The optional [Issue-selected execution container path](EXECUTION.md) runs Codex
+inside a registered experiment container on the same host. It uses native tools
+and one session for research, experiments, analysis and PR creation. Containers
+can be reused or created from a prepared pinned image. This remains uninstalled;
+production stays OFF. Local Docker control is a separate explicit opt-in.
 
 ## Connection to dot's PR93
 

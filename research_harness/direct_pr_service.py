@@ -71,15 +71,17 @@ class DirectPRController(GoalController):
             raise RecheckRejected('expired')
         if status != 'PENDING_TRUSTED_APPROVAL' or content_hash(issue) != receipt['content_sha256']:
             raise RecheckRejected('changed')
+        from .execution_contract import execution_limits
+        limits = (execution_limits(self.profile,request['plan']) if 'execution_container' in request['plan'] else self.resource_limits)
         plan = resolve_direct_pr_plan(request['plan'], self.source_sha,
             configured_model=self.profile['model'],
-            resource_limits=self.resource_limits, deployment_id=self.deployment_id)
+            resource_limits=limits, deployment_id=self.deployment_id)
         if (plan['kind'] != DIRECT_PR_KIND or plan['direct_pr']['issue_number'] != number
                 or plan['model'] != self.profile['model']):
             raise ContractError('direct PR request does not match execution Issue/profile')
         require_installed_goal(self.profile, plan)
         binding = goal_binding(issue, dict(request, plan=plan), self.source_sha,
-            resource_limits=self.resource_limits, deployment_id=self.deployment_id)
+            resource_limits=limits, deployment_id=self.deployment_id)
         if expected is not None and expected != binding:
             raise RecheckRejected('changed')
         return binding, plan, timestamp(request['expires_at'])

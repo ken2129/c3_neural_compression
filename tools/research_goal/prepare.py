@@ -111,14 +111,17 @@ def direct_plan_template():
             public_results_approved=False))
 
 
-def validate_profile(profile, plan, *, allow_gpu=False):
+def validate_profile(profile, plan, *, allow_execution=False):
     fields(profile, ('schema', 'enabled', 'deployment_id', 'input_source_sha', 'runtime_source_sha',
-                     'model', 'resource_limits', 'risk_acknowledgements'), ('gpu_targets',))
-    if 'gpu_targets' in profile:
-        if not allow_gpu:
-            raise ContractError('GPU recipe transport requires resident installation')
-        from research_harness.gpu_contract import validate_targets
-        validate_targets(profile['gpu_targets'])
+                     'model', 'resource_limits', 'risk_acknowledgements'), ('execution_containers','docker_control_approved'))
+    from research_harness.execution_contract import validate_containers,execution_limits
+    if 'execution_containers' in profile:
+        if not allow_execution or profile.get('docker_control_approved') is not True:
+            raise ContractError('local Docker control requires explicit resident opt-in')
+        validate_containers(profile['execution_containers'])
+    elif profile.get('docker_control_approved',False) is not False:
+        raise ContractError('Docker approval supplied without registered execution containers')
+    selected_limits=execution_limits(profile,plan)
     if profile['schema'] != 'c3-goal-runtime-v1' or profile['enabled'] is not True:
         raise ContractError('goal deployment remains disabled')
     for key in ('input_source_sha', 'runtime_source_sha'):
@@ -129,16 +132,13 @@ def validate_profile(profile, plan, *, allow_gpu=False):
         raise ContractError('explicit new goal execution and residual-risk approvals required')
     if type(plan) is dict and plan.get('kind') == DIRECT_PR_KIND:
         checked = resolve_direct_pr_plan(plan, profile['input_source_sha'],
-            configured_model=profile['model'], resource_limits=profile['resource_limits'],
+            configured_model=profile['model'], resource_limits=selected_limits,
             deployment_id=profile['deployment_id'])
     else:
         checked = validate_goal_plan(plan, profile['input_source_sha'],
             resource_limits=profile['resource_limits'], deployment_id=profile['deployment_id'])
     if checked['model'] != profile['model']:
         raise ContractError('approved goal and operator models differ')
-    if 'gpu_experiment' in checked:
-        from research_harness.gpu_contract import installed_target
-        installed_target(profile, checked['gpu_experiment'])
     limits = profile['resource_limits']
     # Initial concrete deployment supports these aggregate ceilings. This is
     # separate from the extensible goal data contract and must be re-approved
@@ -147,19 +147,19 @@ def validate_profile(profile, plan, *, allow_gpu=False):
             or limits['max_work_bytes'] > 256*1024**2 or checked['max_seconds'] <= 20):
         raise ContractError('requested deployment exceeds current goal supervisor support')
     for key in ('memory_bytes', 'max_processes', 'max_work_bytes'):
-        if checked['resource_budget'][key] != limits[key]:
+        if checked['resource_budget'][key] != selected_limits[key]:
             raise ContractError('initial plan must approve actual aggregate deployment allocation')
     return checked
 
 
-def installed_profile(profile, plan, *, allow_gpu=False):
+def installed_profile(profile, plan, *, allow_execution=False):
     """Bind the validated prepared task; proposal files cannot supply this digest."""
-    checked = validate_profile(profile, plan, allow_gpu=allow_gpu)
+    checked = validate_profile(profile, plan, allow_execution=allow_execution)
     result = {**profile, 'installed_plan_digest': hashlib.sha256(canonical(checked)).hexdigest()}
     if checked['kind'] == DIRECT_PR_KIND:
         result['direct_pr_scope'] = direct_pr_scope(checked)
-    if len(canonical(result)) > 16384:
-        raise ContractError('installed runtime profile exceeds protected reader limit')
+    if len(canonical(result))>16384:
+        raise ContractError('installed profile exceeds protected reader limit')
     return result
 
 

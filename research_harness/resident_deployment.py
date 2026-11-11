@@ -11,11 +11,11 @@ from .schema import ContractError
 
 
 def validate_resident_deployment(inspect, consumers, *, runtime_source_sha, input_source_sha,
-                             volume_name, volume_inspect, resource_limits, deployment_id):
+                             volume_name, volume_inspect, resource_limits, deployment_id, docker_control=False):
     return _validate(inspect,consumers,runtime_source_sha=runtime_source_sha,
         input_source_sha=input_source_sha,volume_name=volume_name,volume_inspect=volume_inspect,
         resource_limits=resource_limits,deployment_id=deployment_id,
-        purpose='dedicated-resident-controller',script='/opt/service/resident_launcher.py',restart='unless-stopped')
+        purpose='dedicated-resident-controller',script='/opt/service/resident_launcher.py',restart='unless-stopped',docker_control=docker_control)
 
 
 def validate_diagnostic_deployment(inspect,consumers,**kwargs):
@@ -36,7 +36,7 @@ def validate_diagnostic_deployment(inspect,consumers,**kwargs):
 
 def _validate(inspect,consumers,*,runtime_source_sha,input_source_sha,volume_name,
               volume_inspect,resource_limits,deployment_id,purpose,script,restart,
-              security_options=('no-new-privileges:true',)):
+              security_options=('no-new-privileges:true',),docker_control=False):
     """Validate a new goal-only installation; never normalize canary evidence."""
     source_sha = runtime_source_sha
     if (type(input_source_sha) is not str or re.fullmatch("[0-9a-f]{40}", input_source_sha) is None
@@ -79,7 +79,9 @@ def _validate(inspect,consumers,*,runtime_source_sha,input_source_sha,volume_nam
         if type(host['MemorySwap']) is not int or host['MemorySwap']!=host['Memory']:raise ValueError()
         runner_volume = volume_name.removesuffix('_goal-control') + '_runner-state'
         if volume_name == runner_volume or not volume_name.endswith('_goal-control'):raise ValueError()
+        socket_bind='/var/run/docker.sock:/run/c3-docker.sock'
         expected_binds={volume_name+':/control',runner_volume+':/runner'}
+        if docker_control: expected_binds.add(socket_bind)
         binds=host.get('Binds')
         if binds not in (None,[]) and set(binds) not in (expected_binds,{v+':rw' for v in expected_binds}):raise ValueError()
         if any(host.get(key) not in (None,[]) for key in ('Devices','DeviceRequests')):raise ValueError()
@@ -87,9 +89,13 @@ def _validate(inspect,consumers,*,runtime_source_sha,input_source_sha,volume_nam
         if not 64*1024**2<=host['Memory']<=1024**3 or not 2<=host['PidsLimit']<=64 or host['NanoCpus']!=10**9:raise ValueError()
         if host['Memory']!=resource_limits['memory_bytes'] or host['PidsLimit']!=resource_limits['max_processes']:raise ValueError()
         mounts=inspect['Mounts']
-        if type(mounts) is not list or len(mounts)!=2:raise ValueError()
+        if type(mounts) is not list or len(mounts)!=(3 if docker_control else 2):raise ValueError()
         if type(volume_inspect) is not dict or set(volume_inspect)!={'control','runner'}:raise ValueError()
-        if {m['Destination'] for m in mounts}!={'/control','/runner'}:raise ValueError()
+        expected_destinations={'/control','/runner'}|({'/run/c3-docker.sock'} if docker_control else set())
+        if {m['Destination'] for m in mounts}!=expected_destinations:raise ValueError()
+        if docker_control:
+            mount=next(m for m in mounts if m['Destination']=='/run/c3-docker.sock')
+            if mount['Type']!='bind' or mount['Source']!='/var/run/docker.sock' or mount['RW'] is not True:raise ValueError()
         for destination,name,key in [('/control',volume_name,'control'),('/runner',runner_volume,'runner')]:
             mount=next(m for m in mounts if m['Destination']==destination)
             if mount['Type']!='volume' or mount['Name']!=name or mount['RW'] is not True:raise ValueError()

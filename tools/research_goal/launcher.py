@@ -171,7 +171,7 @@ def protected_json(path, limit=65536):
     return loads(read_private(Path(path), limit=limit))
 
 
-def deployment(*, validator=None, allow_disabled=False, allow_gpu=False):
+def deployment(*, validator=None, allow_disabled=False, allow_execution=False):
     with startup_stage('identity'):
         if os.getresuid() != (0, 0, 0) or os.getpid() != 1:
             raise ContractError('goal requires dedicated root PID1')
@@ -182,12 +182,12 @@ def deployment(*, validator=None, allow_disabled=False, allow_gpu=False):
         with startup_stage('profile'):
             profile = protected_json('/control/goal-runtime.json')
             fields(profile, ('schema', 'enabled', 'deployment_id', 'input_source_sha', 'runtime_source_sha',
-                             'model', 'resource_limits', 'risk_acknowledgements', 'installed_plan_digest'), ('direct_pr_scope','gpu_targets'))
-            if 'gpu_targets' in profile:
-                if not allow_gpu:
-                    raise ContractError('remote GPU stage requires resident entrypoint')
-                from research_harness.gpu_contract import validate_targets
-                validate_targets(profile['gpu_targets'])
+                             'model', 'resource_limits', 'risk_acknowledgements', 'installed_plan_digest'), ('direct_pr_scope','execution_containers','docker_control_approved'))
+            if 'execution_containers' in profile:
+                from research_harness.execution_contract import validate_containers
+                if not allow_execution or profile.get('docker_control_approved') is not True:
+                    raise ContractError('local Docker execution requires resident opt-in')
+                validate_containers(profile['execution_containers'])
             if type(profile['installed_plan_digest']) is not str or re.fullmatch('[0-9a-f]{64}', profile['installed_plan_digest']) is None:
                 raise ContractError('installed goal plan digest required')
             fields(profile['risk_acknowledgements'], CONSENTS)
@@ -207,7 +207,8 @@ def deployment(*, validator=None, allow_disabled=False, allow_gpu=False):
         verified = (validate_goal_deployment if validator is None else validator)(data['inspect'], data['consumers'],
             runtime_source_sha=profile['runtime_source_sha'], input_source_sha=profile['input_source_sha'],
             volume_name=data['volume_name'], volume_inspect=data['volume_inspect'],
-            resource_limits=profile['resource_limits'], deployment_id=profile['deployment_id'])
+            resource_limits=profile['resource_limits'], deployment_id=profile['deployment_id'],
+            **({'docker_control':True} if 'execution_containers' in profile else {}))
     with startup_stage('installed_identity'):
         if (Path('/opt/service/source-sha').read_text().strip() != verified['runtime_source_sha']
                 or Path('/etc/hostname').read_text().strip() != verified['container_id'][:12]
@@ -330,11 +331,11 @@ class GoalPipeRuntime:
     def current_epoch(self): return self.epoch
 
     def prepare_plan(self, plan):
+        if 'execution_container' in plan and type(self) is GoalPipeRuntime:
+            raise ContractError('execution containers require resident runtime')
         self.plan = validate_goal_plan(plan, self.profile['input_source_sha'],
                                       resource_limits=self.profile['resource_limits'], deployment_id=self.profile['deployment_id'])
         require_installed_plan(self.profile, self.plan)
-        if 'gpu_experiment' in self.plan and type(self) is GoalPipeRuntime:
-            raise ContractError('remote GPU stage requires resident runtime')
         write_frame(self.outgoing, {'op': 'prepare_goal', 'plan': self.plan})
         if read_frame(self.incoming) != {'prepared': True}: raise ContractError('goal preparation rejected')
 
@@ -348,6 +349,9 @@ class GoalPipeRuntime:
         write_frame(self.outgoing, {'op': 'goal', 'binding': binding})
         while True:
             frame = read_frame(self.incoming)
+            if frame == {'execution_cleanup_unverified':True}:
+                from research_harness.execution_docker import ExecutionCleanupUnverified
+                raise ExecutionCleanupUnverified()
             if frame == {'op': 'recheck'}:
                 try: recheck()
                 except BaseException as exc:
