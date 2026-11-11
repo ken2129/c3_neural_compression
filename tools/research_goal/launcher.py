@@ -171,7 +171,7 @@ def protected_json(path, limit=65536):
     return loads(read_private(Path(path), limit=limit))
 
 
-def deployment(*, validator=None, allow_disabled=False):
+def deployment(*, validator=None, allow_disabled=False, allow_gpu=False):
     with startup_stage('identity'):
         if os.getresuid() != (0, 0, 0) or os.getpid() != 1:
             raise ContractError('goal requires dedicated root PID1')
@@ -182,7 +182,12 @@ def deployment(*, validator=None, allow_disabled=False):
         with startup_stage('profile'):
             profile = protected_json('/control/goal-runtime.json')
             fields(profile, ('schema', 'enabled', 'deployment_id', 'input_source_sha', 'runtime_source_sha',
-                             'model', 'resource_limits', 'risk_acknowledgements', 'installed_plan_digest'), ('direct_pr_scope',))
+                             'model', 'resource_limits', 'risk_acknowledgements', 'installed_plan_digest'), ('direct_pr_scope','gpu_targets'))
+            if 'gpu_targets' in profile:
+                if not allow_gpu:
+                    raise ContractError('remote GPU stage requires resident entrypoint')
+                from research_harness.gpu_contract import validate_targets
+                validate_targets(profile['gpu_targets'])
             if type(profile['installed_plan_digest']) is not str or re.fullmatch('[0-9a-f]{64}', profile['installed_plan_digest']) is None:
                 raise ContractError('installed goal plan digest required')
             fields(profile['risk_acknowledgements'], CONSENTS)
@@ -328,6 +333,8 @@ class GoalPipeRuntime:
         self.plan = validate_goal_plan(plan, self.profile['input_source_sha'],
                                       resource_limits=self.profile['resource_limits'], deployment_id=self.profile['deployment_id'])
         require_installed_plan(self.profile, self.plan)
+        if 'gpu_experiment' in self.plan and type(self) is GoalPipeRuntime:
+            raise ContractError('remote GPU stage requires resident runtime')
         write_frame(self.outgoing, {'op': 'prepare_goal', 'plan': self.plan})
         if read_frame(self.incoming) != {'prepared': True}: raise ContractError('goal preparation rejected')
 

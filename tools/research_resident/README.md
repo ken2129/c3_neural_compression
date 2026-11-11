@@ -8,6 +8,9 @@ The existing goal/canary entrypoint and old claim/result records are retained.
 
 For the system overview, current deployment state, ON/OFF semantics and GPU
 limitations, start with [研究自動化システム](../../docs/research_automation.md).
+The optional [installed GPU recipe stage](../research_gpu/README.md) runs before
+the CPU worker. It is implemented but remains uninstalled and has only CPU
+fixture validation; it does not change the existing default OFF state.
 
 ## Connection to dot's PR93
 

@@ -111,9 +111,14 @@ def direct_plan_template():
             public_results_approved=False))
 
 
-def validate_profile(profile, plan):
+def validate_profile(profile, plan, *, allow_gpu=False):
     fields(profile, ('schema', 'enabled', 'deployment_id', 'input_source_sha', 'runtime_source_sha',
-                     'model', 'resource_limits', 'risk_acknowledgements'))
+                     'model', 'resource_limits', 'risk_acknowledgements'), ('gpu_targets',))
+    if 'gpu_targets' in profile:
+        if not allow_gpu:
+            raise ContractError('GPU recipe transport requires resident installation')
+        from research_harness.gpu_contract import validate_targets
+        validate_targets(profile['gpu_targets'])
     if profile['schema'] != 'c3-goal-runtime-v1' or profile['enabled'] is not True:
         raise ContractError('goal deployment remains disabled')
     for key in ('input_source_sha', 'runtime_source_sha'):
@@ -131,6 +136,9 @@ def validate_profile(profile, plan):
             resource_limits=profile['resource_limits'], deployment_id=profile['deployment_id'])
     if checked['model'] != profile['model']:
         raise ContractError('approved goal and operator models differ')
+    if 'gpu_experiment' in checked:
+        from research_harness.gpu_contract import installed_target
+        installed_target(profile, checked['gpu_experiment'])
     limits = profile['resource_limits']
     # Initial concrete deployment supports these aggregate ceilings. This is
     # separate from the extensible goal data contract and must be re-approved
@@ -144,12 +152,14 @@ def validate_profile(profile, plan):
     return checked
 
 
-def installed_profile(profile, plan):
+def installed_profile(profile, plan, *, allow_gpu=False):
     """Bind the validated prepared task; proposal files cannot supply this digest."""
-    checked = validate_profile(profile, plan)
+    checked = validate_profile(profile, plan, allow_gpu=allow_gpu)
     result = {**profile, 'installed_plan_digest': hashlib.sha256(canonical(checked)).hexdigest()}
     if checked['kind'] == DIRECT_PR_KIND:
         result['direct_pr_scope'] = direct_pr_scope(checked)
+    if len(canonical(result)) > 16384:
+        raise ContractError('installed runtime profile exceeds protected reader limit')
     return result
 
 

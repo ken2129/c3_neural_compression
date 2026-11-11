@@ -87,7 +87,11 @@ def validate_goal_plan(plan, allowed_source_sha, *, resource_limits=None, deploy
     match it to the protected operator profile before making a durable claim.
     """
     direct = type(plan) is dict and plan.get('kind') == DIRECT_PR_KIND
-    fields(plan, (*_PLAN_FIELDS, 'direct_pr') if direct else _PLAN_FIELDS)
+    fields(plan, (*_PLAN_FIELDS, 'direct_pr') if direct else _PLAN_FIELDS,
+           ('gpu_experiment',) if direct else ())
+    if 'gpu_experiment' in plan:
+        from .gpu_contract import validate_gpu_request
+        validate_gpu_request(plan['gpu_experiment'])
     if plan['kind'] not in (GOAL_KIND, DIRECT_PR_KIND):
         raise ContractError('unsupported goal kind')
     if direct:
@@ -180,6 +184,9 @@ def require_installed_goal(profile, plan):
     if plan.get('kind') == DIRECT_PR_KIND:
         if profile.get('direct_pr_scope') != direct_pr_scope(plan):
             raise ContractError('direct PR goal exceeds installed input/write envelope')
+        if 'gpu_experiment' in plan:
+            from .gpu_contract import installed_target
+            installed_target(profile, plan['gpu_experiment'])
     elif ('direct_pr_scope' in profile
           or profile.get('installed_plan_digest') != hashlib.sha256(canonical(plan)).hexdigest()):
         raise ContractError('goal differs from prepared operator task')

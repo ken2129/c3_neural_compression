@@ -1,7 +1,7 @@
 # Installer concatenates the unchanged committed research_goal/Dockerfile and
 # this committed extension. The original Codex distribution checks are retained.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      python3 curl git libicu72 libkrb5-3 libssl3 liblttng-ust1 libunwind8 zlib1g \
+      python3 curl git openssh-client libicu72 libkrb5-3 libssl3 liblttng-ust1 libunwind8 zlib1g \
  && rm -rf /var/lib/apt/lists/* \
  && groupadd --gid 10003 actions && useradd --uid 10003 --gid 10003 --no-create-home actions \
  && mkdir -p /runner /opt/c3/bin /opt/c3/actions /control-ipc \

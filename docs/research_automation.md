@@ -4,7 +4,7 @@
 研究手法・資源利用・成果物の方針は [実験ポリシー](experiment_policy.md)、
 個別実験の条件は各Issueを正本とする。
 
-以下の配置状態は **2026-11-09の確認時点**。PRの実装、テスト済み範囲、
+以下の旧配置状態は **2026-11-09の確認時点**。2026-11-11にGPU接続の実装・CPU fixtureを追加したが未配置。PRの実装、テスト済み範囲、
 実際に配置した機能を分けて読む。ここに書かれた計画から実験が自動承認されることはない。
 
 ## 現在どこまで動くか
@@ -16,12 +16,13 @@
 | 公開版の再現修正 | 旧PR #104の修正・記録をPR #108へ統合。修正版イメージのbuildと未登録runner待機を確認済み。既存配置への置換は未実施 |
 | モデル設定の集約 | 旧PR #105の変更をPR #108へ統合。未merge・未配置 |
 | `enabled` の動的ON/OFF | 旧PR #106と実行開始境界の修正をPR #108へ統合。旧配置へ未反映 |
-| GPU実験の自動起動 | 未接続。現行residentはGPUデバイスを拒否するCPU経路 |
-| GPU作業用コンテナ | 既存コンテナは稼働中。GPUデバイスは見えるが、入力・依存・実験入口の準備は別途必要 |
+| GPU実験の自動起動 | 登録済みレシピを既存GPUコンテナで実行し、結果をCPU workerへ渡す接続を追加。CPU fixtureで検証、未配置・実GPU常駐E2Eは未実施 |
+| GPU作業用コンテナ | PR #109で専用環境・入力を準備し、手動の1画像4条件pilotが完了。新しいagent・登録レシピ・manager接続設定の配置は別途必要 |
 | GPU空き通知 | 作業コンテナ内の独立した補助プロセス。controllerのOFFとは独立 |
 
 過去のCPU成功を新版の実E2EやGPU実行の成功へ読み替えない。
-準備中のGPU実験は [Issue #24](https://github.com/ken2129/c3_neural_compression/issues/24) のpilot計画を参照する。
+GPU費用pilotの結果は [PR #109](https://github.com/ken2129/c3_neural_compression/pull/109)、
+研究本体の計画は [Issue #24](https://github.com/ken2129/c3_neural_compression/issues/24) を参照する。
 旧Issue #107はその計画へ統合した。全体の実装レビュー先は
 [PR #108](https://github.com/ken2129/c3_neural_compression/pull/108) で、mainへのmergeと実配置は未実施。
 
@@ -57,7 +58,11 @@ flowchart TD
     R --> Q["Unix socket → 永続イベントキュー"]
     Q --> M["manager：ON/OFF・現行Issue・承認を確認"]
     M --> P["実行前チェック → 一度だけclaim"]
-    P --> C["Codex worker：現在は承認済みCPU処理"]
+    P --> C["CPUのみの依頼：Codex worker"]
+    P --> E["GPU依頼：manager → SSH → 既存GPUコンテナのagent"]
+    E --> W["GPU空き待ち → 登録済みレシピ → 停止・子孫回収"]
+    W --> D["許可された小容量の数値・テキスト結果"]
+    D --> C
     C --> PR["workerが結果PRを公開"]
     C --> X["worker子孫・一時領域を回収"]
     X --> Q
@@ -65,7 +70,8 @@ flowchart TD
 ```
 
 この図の常駐経路は、導入・runner登録・受付設定が済んでいる場合の構成。
-現在の旧controllerは停止している。GPU通知から実験を起動する線はまだない。
+現在の旧controllerは停止している。新しいGPU接続は未配置。
+空き通知自体は起動命令ではなく、GPU agentが承認済み依頼のために空きを待つ。
 
 1. 普通の計画Issueを作っても実行しない。
 2. 実行候補には `[実行承認済み]` のタイトル、本文末尾の正式な
@@ -89,6 +95,7 @@ PRの実在、研究としての成功、Slack通知はそれぞれ別の状態�
 | manager / UID10001 | 設定・認証・承認検証・SQLite台帳 |
 | worker / UID10002 | 仕事ごとに起動するCodexと、その処理・結果PR作成 |
 | runner / UID10003 | Actionsとの接続、固定形式のイベント配送 |
+| 別のGPU作業コンテナのagent | 登録済みレシピだけを実行し、資源監視・自身の子孫回収・許可された結果回収を担当 |
 
 ホストへの常駐プログラム、Docker socket、広いホストmountを実行入口にしない。
 workerへ管理台帳やmanager用GitHub認証は渡さない。worker自身の認証・外向き通信の
@@ -133,6 +140,7 @@ PR #106だけでは、この境界の途中でOFFになると依頼をBLOCKEDと
 | `/control/resident-intake.json` | 初回導入時のrunner/workflow受付ポリシー。日常のON/OFFでは触らない |
 | `/control/worker-pr.json` | workerのPR公開設定。実験承認やmerge承認の代わりにはしない |
 | `/control/state/`・`/control/inbox.sqlite` | claim・実行結果・イベントの永続台帳。手編集や自動resetをしない |
+| `/control/gpu-results/` | 同じrun bindingに対応するGPU実行・回収の私有記録。CPU worker起動前に保存 |
 | `/runner` | runner本体と登録情報。managerの設定やworkerの成果物とは分離 |
 
 PR #105以降のdirect-PR経路ではモデル名は共通設定から解決する。
@@ -142,18 +150,31 @@ PR #105以降のdirect-PR経路ではモデル名は共通設定から解決す�
 
 ## 実験中の待機とGPU実行
 
-Codexが実験コマンドの終了を同じセッションで待ち、終了後に解析する流れを基本案とする。
-待機のためだけに別Codexを起動し直す仕組みは必須ではない。
-ただし、現在のresidentのdeadlineはコマンド待ちを含む全体時間である。
+新しい接続では、GPU工程はmanagerが登録済みレシピとして実行・待機し、終了と回収を
+確認してから解析用Codexを一度起動する。GPU待機中にCodexを再呼び出ししない。
+Codexが任意のGPUコマンドやSSH接続を選ぶ経路は追加しない。
 
 確認した旧配置の上限はwall 600秒、各プロセスCPU120秒、メモリ1GiB、64PID、
 work256MiB、出力1MiB。GPUデバイスも明示的に拒否する。
 **時間制限を延ばすだけではGPU実験経路にはならない。**
 
-GPU実験には、実験用依存・入力、許可GPUの選択と直前の利用確認、メモリ/保存領域、
-長い実行時間、結果回収を接続する必要がある。現在の作業コンテナでは想定COCO入力がなく、
-PyTorch/torchvisionはCPU版だった。GPU版JAXのパッケージがあることは実GPU動作の証明ではない。
-実験計画と未準備項目はIssue #24のpilot節で追う。
+GPU依頼は既存のdirect-PR planに `gpu_experiment`（machine・recipe・待機/実行上限）を
+付け、共通runtime設定の `gpu_targets` で登録先・レシピdigest・許可上限を解決する。
+未登録の指定はclaim前に拒否する。CPU workerの600秒等の上限はそのままで、
+residentの待機割当にGPU工程の上限を別途加える。
+
+GPU agentは固定source・入力を照合し、許可UUIDの空きを確認して起動する。
+メモリ・保存量・時間等を監視し、取消時もそのagentの子孫だけをpidfdで停止する。
+子孫回収が確認できない通信断では次のjobを始めない。結果は16KiB以内の許可された
+テキストに限定し、brokerがworker-homeへデータとして渡す。入力・重み・全ログは
+GPUコンテナ内に残す。レシピの信頼されたcollectorが公開内容を選ぶのであり、
+共通制御が研究の妥当性や秘密除去を自動証明するわけではない。
+
+接続はmanagerだけのSSH認証で既存ホストのDocker execを呼ぶ。
+ホストにファイル・常駐サービス・mountを追加しないが、managerにはそのホストへの
+SSH/Docker権限を明示的に配置する必要がある。CPU workerに認証は渡さない。
+登録レシピは信頼されたコードであり、共有GPUコンテナのRSS監視をcgroup hard limitや
+任意コードの隔離と呼ばない。詳細・配置境界は [GPU接続手順](../tools/research_gpu/README.md)。
 
 ### GPU空き通知は独立した補助機能
 
@@ -195,10 +216,11 @@ Macの接続を閉じても作業コンテナが動いている間は継続す�
 | 優先する課題 | 現在の扱い |
 | --- | --- |
 | OFFと開始が重なる競合 | 本変更で修正・回帰試験。実配置は別 |
-| GPU研究経路・長時間資源・入力/依存 | 未接続。Issue #24のpilot準備と対応する実装が必要 |
+| GPU研究経路・長時間資源・入力/依存 | 接続コード・CPU fixtureを追加。専用認証・agent/recipeの配置と実環境E2Eは未実施 |
 | 簡単なIssue操作による実行開始 | 未実装。現在のowner承認との整合を含めて設計する |
 | イメージ更新と状態の引継ぎ | 新規導入経路のみ。更新/移行手順が不足 |
 | GPU監視のコード管理・再起動時の扱い | 補助プロセスの管理を整理する必要あり |
+| モデル・マシン間の汎用化 | Issue #110。最初のbackendはLinuxホストへのSSH＋既存Dockerコンテナ |
 
 - [常駐runtimeの導入・役割・回収](../tools/research_resident/README.md)
 - [公開修正と再現確認の範囲](../tools/research_resident/ISSUE101_REPRODUCTION.md)

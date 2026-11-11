@@ -36,5 +36,6 @@ tools/research_service/**
 # Shared state readers recognize direct-PR completion records (never enable execution).
 !research_harness/direct_pr_service.py
 !research_harness/goal_plan.py
+!research_harness/gpu_contract.py
 !research_harness/goal_service.py
 !research_harness/worker_pr.py

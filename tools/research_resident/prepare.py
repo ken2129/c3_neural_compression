@@ -54,7 +54,7 @@ def build_context(destination, profile, plan):
 
 
 def validate_resident_profile(profile,plan,policy):
-    checked=common.validate_profile(profile,plan)
+    checked=common.validate_profile(profile,plan,allow_gpu=True)
     if checked['kind']!=DIRECT_PR_KIND:raise ContractError('resident is direct-PR-only')
     validate_policy(policy)
     if policy['enabled'] is not False:
@@ -62,10 +62,39 @@ def validate_resident_profile(profile,plan,policy):
     return checked
 
 
+def gpu_ssh_records(profile, mapping_path):
+    """Only explicitly supplied manager-only keys; never discover/copy ~/.ssh."""
+    targets = profile.get('gpu_targets')
+    if targets is None:
+        if mapping_path is not None:
+            raise ContractError('GPU SSH material supplied without installed targets')
+        return {}
+    from research_harness.gpu_contract import validate_targets
+    validate_targets(targets)
+    if mapping_path is None:
+        raise ContractError('explicit GPU SSH material mapping required')
+    mapping = loads(common.read_credential(mapping_path, 16384))
+    expected = {target[key] for target in targets.values() for key in ('identity_file','known_hosts_file')}
+    if type(mapping) is not dict or set(mapping) != expected:
+        raise ContractError('GPU SSH material differs from installed target paths')
+    result = {}
+    for destination, source in mapping.items():
+        path = Path(destination)
+        if (path.parent != Path('/control') or type(source) is not str
+                or re.fullmatch(r'gpu-[a-z0-9_-]+\.(key|known-hosts)',path.name) is None):
+            raise ContractError('GPU SSH records must be flat private control files')
+        if path.name in ('goal-runtime.json','codex-auth.json','worker-github-token','worker-pr.json',
+                          'goal-deployment.json','resident-intake.json'):
+            raise ContractError('GPU SSH record collides with runtime configuration')
+        result[path.name] = common.read_credential(source, 65536)
+    return result
+
+
 def main(argv=None):
     parser=common.SafeArgumentParser(description=__doc__)
     parser.add_argument('--approve-new-resident-deployment',action='store_true')
     parser.add_argument('--approve-worker-github-access',action='store_true')
+    parser.add_argument('--gpu-ssh-material')
     for name in ('project','profile','plan','intake-policy','codex-auth-file','github-hosts-file',
                  'worker-pr-config','worker-github-token-file','runner-version','runner-sha256'):
         parser.add_argument('--'+name,required=True)
@@ -81,6 +110,7 @@ def main(argv=None):
         plan=validate_resident_profile(profile,loads(Path(args.plan).read_bytes()),policy)
     common.at_stage('freshness',common.require_fresh_deployment_id,profile['deployment_id'])
     with common.install_stage('credentials'):
+        gpu_records = gpu_ssh_records(profile, args.gpu_ssh_material)
         auth=common.read_credential(args.codex_auth_file,65536)
         from research_harness.model_deployment import validate_chatgpt_auth
         from research_harness.worker_pr import validate_worker_pr_config,WorkerGitHub
@@ -127,9 +157,9 @@ def main(argv=None):
         manifest=dict(inspect=inspect,consumers=consumers,volume_name=control,
                       volume_inspect=volumes,initialize_new_state=True)
         common.copy_records(ident,{'goal-deployment.json':canonical(manifest),
-            'goal-runtime.json':canonical(common.installed_profile(profile,plan)),
+            'goal-runtime.json':canonical(common.installed_profile(profile,plan,allow_gpu=True)),
             'resident-intake.json':canonical(policy),'codex-auth.json':auth,'gh/hosts.yml':github,
-            'worker-pr.json':canonical(worker),'worker-github-token':token})
+            'worker-pr.json':canonical(worker),'worker-github-token':token,**gpu_records})
         print(json.dumps(dict(phase='RESIDENT_CREATED_STOPPED',container_id=ident,
             image_id=inspect['Image'],deployment_id=profile['deployment_id'],intake_enabled=False)))
         # Deliberately no docker start, runner registration, repository-variable
