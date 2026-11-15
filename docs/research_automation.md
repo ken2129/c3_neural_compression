@@ -4,7 +4,7 @@
 研究手法・資源利用・成果物の方針は [実験ポリシー](experiment_policy.md)、
 個別実験の条件は各Issueを正本とする。
 
-以下の旧配置状態は **2026-11-09の確認時点**。2026-11-11にIssue指定の実験コンテナ内でCodexを動かす経路へ修正したが未配置。PRの実装、テスト済み範囲、
+以下は **2026-11-15の確認時点**。実験コンテナ経路のruntime `8dcbd973` を新環境へ配置し、初回E2EはCodex通信で停止した。PRの実装、テスト済み範囲、
 実際に配置した機能を分けて読む。ここに書かれた計画から実験が自動承認されることはない。
 
 ## 現在どこまで動くか
@@ -12,19 +12,21 @@
 | 項目 | 確認した状態 |
 | --- | --- |
 | 既存の常駐controller | `enabled: false` を保存し、worker不在を確認して停止済み |
+| 新しい常駐controller | 配置・GitHub再認証・runner登録/onlineを確認。受付の初期設定済み、実行は `enabled: false` |
 | 限定CPU実E2E | #95 / 旧PR #100で確認済み。記録とA/B成果物は統合PR #108に保持 |
 | 公開版の再現修正 | 旧PR #104の修正・記録をPR #108へ統合。修正版イメージのbuildと未登録runner待機を確認済み。既存配置への置換は未実施 |
-| モデル設定の集約 | 旧PR #105の変更をPR #108へ統合。未merge・未配置 |
-| `enabled` の動的ON/OFF | 旧PR #106と実行開始境界の修正をPR #108へ統合。旧配置へ未反映 |
-| GPU実験の自動起動 | Issue指定の実験コンテナでCodexを起動し、同じセッションで実験・解析・PR作成する経路を追加。未配置・実GPU常駐E2Eは未実施 |
-| GPU作業用コンテナ | PR #109で専用環境・入力を準備し、手動の1画像4条件pilotが完了。Codexの版・研究UID・workspaceの確認と、新しい管理設定の配置は別途必要 |
+| モデル設定の集約 | 旧PR #105の変更をPR #108へ統合。未merge、新管理へ配置済み |
+| `enabled` の動的ON/OFF | 新管理へ配置。初回E2Eを一度claimした後、OFFへ戻した |
+| GPU実験の自動起動 | 実Issue配送・承認・claim後にCodex通信で停止。GPU数値結果と結果PRまでの完走は未確認 |
+| GPU作業用コンテナ | PR #109の手動pilot環境を保持。別の再利用用実験コンテナにCodex0.160.0・UID10002・研究依存を準備し、実管理側のDocker prepare/readyを確認 |
 | GPU空き通知 | 作業コンテナ内の独立した補助プロセス。controllerのOFFとは独立 |
 
 過去のCPU成功を新版の実E2EやGPU実行の成功へ読み替えない。
 GPU費用pilotの結果は [PR #109](https://github.com/ken2129/c3_neural_compression/pull/109)、
 研究本体の計画は [Issue #24](https://github.com/ken2129/c3_neural_compression/issues/24) を参照する。
 旧Issue #107はその計画へ統合した。全体の実装レビュー先は
-[PR #108](https://github.com/ken2129/c3_neural_compression/pull/108) で、mainへのmergeと実配置は未実施。
+[PR #108](https://github.com/ken2129/c3_neural_compression/pull/108) で、mainへのmergeは未実施。
+[Issue111の初回E2E記録](research/2026-11-15_native_container_e2e.md)では、実配置と失敗、回収、未確認事項を区別している。
 
 ### 整理後の入口
 
@@ -70,8 +72,8 @@ flowchart TD
 ```
 
 この図の常駐経路は、導入・runner登録・受付設定が済んでいる場合の構成。
-現在の旧controllerは停止している。新しい実験コンテナ経路は未配置。
-空き通知自体は起動命令ではなく、GPU agentが承認済み依頼のために空きを待つ。
+現在の旧controllerは停止し、新controllerの実行もOFFである。実験コンテナ経路は配置済みだが初回E2Eは未完走。
+空き通知自体は起動命令ではなく、実験側supervisorが承認済み依頼のために空きを待つ。
 
 1. 普通の計画Issueを作っても実行しない。
 2. 実行候補には `[実行承認済み]` のタイトル、本文末尾の正式な

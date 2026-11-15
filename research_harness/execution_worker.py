@@ -21,12 +21,13 @@ import sys
 import tempfile
 import time
 
-from .app_server_adapter import BoundedStdioTransport,VERSION,fixed_app_server_request
+from .app_server_adapter import (BoundedStdioTransport,VERSION,fixed_app_server_request,
+                                safe_app_server_diagnostic)
 from .direct_pr_service import DirectPRResult
 from .execution_contract import CONTROL_ROOT,alias,validate_containers,auth_identity
 from .execution_process import Control,cleanup_family,family,gpu_observation,idle,subreaper,tree_bytes
 from .goal_plan import validate_goal_plan,direct_pr_scope
-from .goal_runner import GoalAppServerRunner,GoalRequest
+from .goal_runner import GoalAppServerRunner,GoalRequest,safe_goal_diagnostic
 from .model_deployment import validate_chatgpt_auth
 from .restart_boundary import RestartEpoch
 from .schema import ContractError,canonical,fields,loads
@@ -219,7 +220,7 @@ def run_job(policy,plan,binding,credentials,control,*,runner_factory=GoalAppServ
     lease=Lease(control,binding,deadline-20)
     def interrupted(*_):raise ContractError('execution interrupted')
     signal.signal(signal.SIGTERM,interrupted);signal.signal(signal.SIGINT,interrupted)
-    process=transport=candidate=None;failure=None;cleanup=False;selected=None;gpu_lock=None
+    process=transport=candidate=None;failure=None;failure_diagnostic=None;cleanup=False;selected=None;gpu_lock=None
     initial=tree_bytes(workspace);last_sample=0
     def check():
         nonlocal last_sample
@@ -229,7 +230,7 @@ def run_job(policy,plan,binding,credentials,control,*,runner_factory=GoalAppServ
         records=family();budget=plan['resource_budget']
         growth=max(0,tree_bytes(workspace)-initial)
         for name in ('worker-home','codex-home'):
-            if Path('/work',name).exists():growth+=tree_bytes(Path('/work',name))
+            if Path('/work',name).exists():growth+=tree_bytes(Path('/work',name),allow_symlinks=True)
         if (sum(row[2] for row in records.values())>budget['memory_bytes']
                 or sum(row[3] for row in records.values())>budget['max_processes']
                 or growth>budget['max_work_bytes']):raise ContractError('execution sampled resource limit')
@@ -284,7 +285,12 @@ def run_job(policy,plan,binding,credentials,control,*,runner_factory=GoalAppServ
             max_capture_bytes=min(1024*1024,plan['resource_budget']['max_output_bytes']))
         candidate=runner_factory(enabled=True).run(request,transport,admit=lambda request:None,recheck=check)
         check()
-    except BaseException as exc:failure=type(exc).__name__
+    except BaseException as exc:
+        failure=type(exc).__name__
+        # Keep only constructor-owned, closed-vocabulary metadata. Never keep
+        # exception text, raw protocol frames, prompts or app-server stderr.
+        failure_diagnostic=dict(goal=safe_goal_diagnostic(exc),
+                                app_server=safe_app_server_diagnostic(exc))
     finally:
         signal.signal(signal.SIGTERM,signal.SIG_IGN)
         signal.signal(signal.SIGINT,signal.SIG_IGN)
@@ -313,7 +319,9 @@ def run_job(policy,plan,binding,credentials,control,*,runner_factory=GoalAppServ
         private=dict(value,codex_session=dict(thread_id=candidate.thread_id,turn_id=candidate.turn_id))
     else:
         value.update(op='worker_failure',reason='EXECUTION_FAILED')
-        private=dict(value,private_failure_class=failure)
+        private=dict(value,private_failure_class=failure,
+                     private_failure_diagnostic=failure_diagnostic)
+    private['elapsed_seconds']=time.monotonic()-started
     private['execution']=dict(container_id=policy['container_id'],execution_container=policy['alias'],
         runtime_source_sha=policy['runtime_source_sha'],workspace=str(workspace),gpu_uuid=selected,
         source_sha=policy['source_sha'],model=plan['model'])

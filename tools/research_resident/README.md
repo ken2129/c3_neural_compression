@@ -11,8 +11,11 @@ limitations, start with [研究自動化システム](../../docs/research_automa
 The optional [Issue-selected execution container path](EXECUTION.md) runs Codex
 inside a registered experiment container on the same host. It uses native tools
 and one session for research, experiments, analysis and PR creation. Containers
-can be reused or created from a prepared pinned image. This remains uninstalled;
-production stays OFF. Local Docker control is a separate explicit opt-in.
+can be reused or created from a prepared pinned image. Runtime `8dcbd973` was
+installed on 2026-11-15; the first real native E2E stopped at Codex communication
+after claim, with cleanup verified. Execution is OFF. See the
+[observed result and limits](../../docs/research/2026-11-15_native_container_e2e.md).
+Local Docker control is a separate explicit opt-in.
 
 ## Connection to dot's PR93
 
@@ -44,7 +47,11 @@ The runner's outbound Actions connection is separate from Issue discovery.
 Actions success means delivery only; the manager ledger and actual PR are
 independent evidence. Receipt files contain no Issue text or commands.
 
-## One container; three permanent trust roles
+## Legacy CPU path: one container; three permanent trust roles
+
+This subsection describes the existing CPU worker path. For the registered
+experiment container, Docker authority and remote worker UID are instead
+described in [EXECUTION.md](EXECUTION.md).
 
 PID1 is a root broker limited to SETUID/SETGID. The manager is permanent UID10001,
 and the registered runner is permanent UID10003, both without capabilities.

@@ -4,7 +4,7 @@
 [研究自動化システム](docs/research_automation.md)を入口にしてください。
 [Codex が実装・CPU処理から通常PRまで担当する opt-in 経路](tools/research_goal/DIRECT_PR.md)と
 [常駐runtimeの手順](tools/research_resident/README.md)があります。
-限定CPU実E2Eの実績があります。Issue指定の実験コンテナ内でCodexを動かす経路も追加しましたが、公開修正版の配置と実GPUでの経路検証は未完了です。
+限定CPU実E2Eの実績があります。実験コンテナ経路も配置し、初回の実E2Eで配送・claim・失敗後の回収まで確認しましたが、GPU数値結果・結果PRまでの完走は未確認です。[初回E2E記録](docs/research/2026-11-15_native_container_e2e.md)を参照してください。
 導入・認証・実験承認が必要で、既定OFFです。
 
 This repository contains code for reproducing results in the paper

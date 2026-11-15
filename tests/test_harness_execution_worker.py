@@ -126,4 +126,22 @@ class NativeWorkerTests(unittest.TestCase):
         with self.assertRaises(ExecutionCleanupUnverified):session.prepare()
         self.assertFalse(Path('/work/worker-home').exists())
 
+    def test_protocol_failure_keeps_safe_private_diagnostic_without_leaking_raw_output(self):
+        self.profile['execution_containers']['c3-work']['environment']['C3_TEST_MODE']='bad_protocol'
+        session=self.session();session.prepare();reports=[]
+        with self.assertRaisesRegex(Exception,'execution failed after verified cleanup'):
+            session.run(binding(self.plan),lambda:None,self.credentials,persist=reports.append)
+        record=json.loads(next((self.control/'runs').glob('*.json')).read_text())
+        self.assertEqual(record['private_failure_class'],'AppServerBlocked')
+        detail=record['private_failure_diagnostic']['app_server']
+        self.assertEqual(detail['reason'],'APP_SERVER_JSON_FRAME_INVALID')
+        self.assertGreater(record['elapsed_seconds'],0)
+        self.assertNotIn('OFFLINE_PRIVATE_DIAGNOSTIC',json.dumps(record))
+        self.assertNotIn('OFFLINE_PRIVATE_DIAGNOSTIC',json.dumps(reports))
+        self.assertNotIn('private_failure_diagnostic',reports[0])
+        self.assertNotIn('app_server',reports[0])
+        self.assertTrue(session.verified)
+        self.assertFalse(Path('/work/codex-home').exists())
+        self.assertFalse(Path('/work/worker-home').exists())
+
 if __name__=='__main__':unittest.main()

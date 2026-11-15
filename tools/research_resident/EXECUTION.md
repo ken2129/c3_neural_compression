@@ -5,9 +5,13 @@ Issue受付・承認・ON/OFF・実行台帳・コンテナの準備と監督を
 実験用コンテナでCodexが通常のシェル・ファイル操作を使って研究する。
 GPU実験を先に固定レシピで実行してから解析用Codexを起動する旧案は置き換えた。
 
-**コードは未配置。実Codex・実GPU・実GitHubを通す新経路のE2Eは未実施。**
+**2026-11-15に公開runtime `8dcbd9731eef44a6cf200201d4e119a513889a39` を配置した。**
+初回と再認証後の実E2Eは配送・claimの後、Codexとの通信で停止した。GPU数値結果・結果PRは
+得られておらず、運用可能と判断したものではない。
+[初回E2Eと回収の記録](../../docs/research/2026-11-15_native_container_e2e.md)を参照する。
 以前のCPU E2EとPR #109の手動GPU pilotは、新経路の成功証明ではない。
-旧controllerは停止・OFFを維持する。
+旧controllerは停止し、新controllerの実行スイッチもOFFへ戻した。受付の初期設定は
+完了しているので、日常の実行ON/OFFは引き続き `goal-runtime.json` の `enabled` を使う。
 
 ```text
 同じマシン
@@ -173,6 +177,16 @@ capabilityを持つ別の使い捨てCPUコンテナで実行し、通常・`-O`
 残る2件は既存の非特権fork制限・DAC拒否観測の環境条件によるskipである。
 試験用コンテナにGPU、ネットワーク、Docker socket、host bindは渡していない。
 
-Docker操作はargv/inspectのfixture、モデル・GPU・GitHub公開もfixtureである。
-新管理イメージbuild、実Dockerでの配置、実Codex、実GPU、実結果PRはまだ検証していない。
-これらを1件の小さな実E2Eで確認してから、運用可能という判断をする。
+2026-11-15のruntime容量監視・私有診断保存の修正では、全1,198件を通常・`-O`とも実行し、
+各1,189成功・9skip・失敗なし。skipのうち7件はUID切替用capabilityを持つ
+別の隔離CPUコンテナで通常・`-O`とも成功した。残る2件は既存の環境条件によるskip。
+通信失敗の固定理由・段階だけを実験側の私有記録へ保存し、raw出力・例外本文・認証を
+保存しない。配送結果や公開用データにもこの私有診断を追加しない。この修正は未配置。
+Codexが作る正常なarg0 aliasは、私有runtime home内でリンク自体の容量だけを数え、
+リンク先をたどらない。研究workspaceのリンクと、runtime内のFIFO等の特殊ファイルは
+従来どおり拒否する。認証・モデルなしの実Codex初期化で、旧監視の停止と修正後の通過を確認した。
+
+上記の自動試験のDocker操作・モデル・GPU・GitHub公開はfixtureである。
+実機では管理イメージbuild、runner登録・online、実Dockerでの実験コンテナprepare/ready、
+実Issue配送・正式承認・一度だけclaim・失敗後の回収まで確認した。
+実GPUの数値結果と実結果PRまでの完走は、再承認した小さなE2Eで確認する必要がある。

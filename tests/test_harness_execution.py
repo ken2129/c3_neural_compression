@@ -16,6 +16,7 @@ from research_harness.execution_docker import LocalDocker,validate_container
 from research_harness.goal_plan import validate_goal_plan,require_installed_goal,direct_pr_scope
 from research_harness.goal_runner import GoalRequest,goal_prompt,GoalAppServerRunner
 from research_harness.schema import ContractError
+from research_harness.execution_process import tree_bytes,AgentStop
 from test_harness_direct_pr import direct_plan,direct_profile,frames,Transport,SOURCE_SHA
 
 
@@ -38,6 +39,25 @@ def inspect_fixture(spec=None):
         Config=dict(Labels={}),State=dict(Running=True),Mounts=[],
         HostConfig=dict(Privileged=False,PidMode='',IpcMode='private',NetworkMode='bridge',
             Devices=[],DeviceCgroupRules=[],CapAdd=[],Memory=1024**3,MemorySwap=1024**3,PidsLimit=64,NanoCpus=10**9))
+
+
+class ExecutionStorageTests(unittest.TestCase):
+    def test_codex_runtime_aliases_count_link_bytes_without_following_targets(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base=Path(directory);home=base/'home';home.mkdir()
+            outside=base/'private';outside.mkdir();(outside/'large').write_bytes(b'x'*65536)
+            (home/'state').write_bytes(b'fixture')
+            (home/'file-link').symlink_to(outside/'large')
+            (home/'dir-link').symlink_to(outside,target_is_directory=True)
+            (home/'broken-link').symlink_to(base/'missing')
+            expected=len(b'fixture')+sum(p.lstat().st_size for p in home.iterdir() if p.is_symlink())
+            self.assertEqual(tree_bytes(home,allow_symlinks=True),expected)
+            with self.assertRaises(AgentStop):tree_bytes(home)
+
+    def test_runtime_special_files_remain_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);os.mkfifo(root/'pipe')
+            with self.assertRaises(AgentStop):tree_bytes(root,allow_symlinks=True)
 
 
 class ExecutionContractTests(unittest.TestCase):

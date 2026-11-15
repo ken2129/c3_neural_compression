@@ -72,14 +72,23 @@ class Control:
 
 
 
-def tree_bytes(root):
+def tree_bytes(root, *, allow_symlinks=False):
+    """Count entries without following links; research workspaces stay strict.
+
+    Codex creates command aliases below its private runtime home. Those links
+    occupy disk space themselves, but their targets must never be traversed or
+    charged to this job. Special files remain rejected in either mode.
+    """
     size = 0
     for base, directories, files in os.walk(root, followlinks=False):
         for name in directories + files:
             path = Path(base, name); info = path.lstat()
-            if stat.S_ISLNK(info.st_mode) or not (stat.S_ISREG(info.st_mode) or stat.S_ISDIR(info.st_mode)):
+            if stat.S_ISLNK(info.st_mode):
+                if not allow_symlinks:raise AgentStop('RESOURCE_LIMIT')
+                size += info.st_size
+            elif not (stat.S_ISREG(info.st_mode) or stat.S_ISDIR(info.st_mode)):
                 raise AgentStop('RESOURCE_LIMIT')
-            if stat.S_ISREG(info.st_mode):
+            elif stat.S_ISREG(info.st_mode):
                 size += info.st_size
     return size
 

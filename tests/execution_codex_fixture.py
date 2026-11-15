@@ -15,6 +15,14 @@ def receive():return json.loads(sys.stdin.readline())
 def event(method,**params):send(dict(method=method,params=dict(threadId='native-thread',turnId='native-turn',**params)))
 
 initialize=receive()
+# Real Codex v0.160 creates arg0 aliases while starting, before any model turn.
+aliases=Path(os.environ['CODEX_HOME'])/'tmp/arg0/fixture';aliases.mkdir(parents=True)
+(aliases/'apply_patch').symlink_to(sys.executable)
+if os.environ.get('C3_TEST_MODE')=='bad_protocol':
+    print('OFFLINE_PRIVATE_DIAGNOSTIC',flush=True)
+    print('OFFLINE_PRIVATE_DIAGNOSTIC',file=sys.stderr,flush=True)
+    time.sleep(60)
+    raise SystemExit()
 send(dict(id=initialize['id'],result=dict(codexHome=os.environ['CODEX_HOME'],platformOs='linux',platformFamily='unix')))
 receive();thread=receive();cwd=thread['params']['cwd'];model=thread['params']['model']
 send(dict(id=thread['id'],result=dict(thread=dict(id='native-thread',ephemeral=True,cliVersion='0.160.0',cwd=cwd,turns=[]),
