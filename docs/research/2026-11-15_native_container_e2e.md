@@ -1,4 +1,4 @@
-# 実験コンテナ経路のE2Eと起動監視の修正（未完走）
+# 実験コンテナ経路のE2Eと起動・公開照合の修正
 
 [Issue111](https://github.com/ken2129/c3_neural_compression/issues/111)で、新しい管理・実験コンテナ経路を1回だけ実行した。
 実GitHubのIssueイベント、Actions、正式承認、一度だけclaimまでは進み、実験側workerは
@@ -62,7 +62,7 @@ OFFで待機する後続の同Issue通知は、追加の研究実行として扱
 
 新しい修正は既存の安全な診断exporterを使い、固定理由・protocol段階・elapsedだけを
 実験側の私有記録へ保存する。raw protocol、stderr、例外本文、認証は保存せず、配送結果・公開用結果にも
-私有診断を追加しない。**この診断修正はまだ稼働imageへ配置していない。**
+私有診断を追加しない。この診断修正は、後述の `d1c30c40` として稼働imageへ配置した。
 
 ## 再認証後の1回と、モデルを使わない原因再現
 
@@ -82,7 +82,7 @@ Codex0.160.0は起動時に私有homeへ4つの正常なsymlinkを作り、旧 `
 修正関数を診断プロセス内だけに読み込んだ同じ実Codex初期化・thread-startは通過した。
 稼働ファイルやclaimは書き換えず、model turn・GPU計算も行っていない。
 これは起動を妨げる実装バグの再現・修正であり、実モデル・GPU経路の完走証明ではない。
-**容量監視の修正も、まだ稼働imageへ配置していない。**
+容量監視の修正も、後述の `d1c30c40` として稼働imageへ配置した。
 
 ## 修正のCPU回帰試験
 
@@ -97,3 +97,65 @@ Codex0.160.0は起動時に私有homeへ4つの正常なsymlinkを作り、旧 `
 
 初回の停止後は実行OFFへ戻した。ChatGPT再認証後の再検証は別の実行記録で行い、初回と混ぜない。
 初回claimを消して再実行したり、この記録を完走成功・結果PRの代わりに扱ったりしない。
+
+## 修正版への更新
+
+2026-11-15に、PR108の公開runtime `d1c30c40a3e8b069ade70495d55a0edf00a70fa0` を
+管理image `sha256:041709a6069f9a6cc8727eb8e8131e45b0a8afa03ec47bf8c9ea4da897e5aa46` として配置した。
+管理コンテナは `8d5af9d78c76…` に置き換わったが、同じ専用control/runner volumeを使用し、
+認証・runner登録ID22・Issue111/112のBLOCKED記録とclaimを保持した。
+停止前後のSQLite・claimはbyte一致を確認し、実行OFF・manager READYで起動した。
+新しい管理IDに合わせた配置manifestと初期化済みmarkerの更新は、信頼する運用操作として行った。
+台帳の初期化・claimのリセット・古いIssueの再実行は行っていない。
+旧imageも撤回用に保持し、ホスト常駐ファイル・他者コンテナは変更していない。
+
+本人が同条件の1回を改めて承認したため、新しい[Issue113](https://github.com/ken2129/c3_neural_compression/issues/113)を準備した。
+[未編集owner記録](https://github.com/ken2129/c3_neural_compression/issues/113#issuecomment-6891684033)は
+新しい依頼のhashと期限に結び付けた。
+
+## Issue113: 実GPUから結果PRまで
+
+修正後のruntime `d1c30c40` で1回だけ実行し、[結果PR114](https://github.com/ken2129/c3_neural_compression/pull/114)を得た。
+管理コンテナ更新後のrunner session競合は約2分で解消したが、Actions配送はその後もしばらくqueuedだった。
+最初の配送待ち監視は、OFF・台帳2件だけ・実験側claim2件だけ・認証homeなしのまま終了した。
+状態コメントを追加した後、既存の[openedイベントの実配送](https://github.com/ken2129/c3_neural_compression/actions/runs/43694502241)を受け取った。
+通知の配送待ちは実験やモデルの再試行ではなく、Issue113のclaim・GPU計算は各1回だけである。
+
+claim後は直ちにOFFへ戻し、実行中の仕事が続行することも確認した。
+実験側の私有完了記録は同一thread/turnの組を1つ記録し、モデル `gpt-6.1-sol`、
+`completed`、経過185.38秒、PR114を返した。管理台帳は `WORKER_FINISHED`。
+回収は `cleanup_verified: true`、ECHILD、排他lock解放、一時worker/model認証homeの削除を確認した。
+管理・実験コンテナと無関係なコンテナは継続しており、実行はOFFである。
+
+公開物は承認scope内の `check.py`、`result.json`、`report.md` の3件だけ。
+PRの親は承認されたmain `6fd11016d64f88721eb08caff2bb8b0988f3d847`、
+headは `69141419e507e740c055673e8eef29f74339f61e`。通常PRで、mergeしていない。
+外側からGitHubの差分・完全tree・blob SHA/modeを照合し、公開blob自体も読んだ。
+スクリプトの構文、GPU限定・同期・NumPy参照比較の実装と、JSONの数値条件・レポート整合を確認した。
+外側でGPU実験を再実行したものではない。
+
+| 観測 | 値 |
+| --- | --- |
+| GPU | GTX1080 1枚、backend `gpu`、出力もGPU配置 |
+| 計算 | seed113、float32の32×32行列積、NumPy float64参照 |
+| 最大絶対誤差 / 許容値 | `5.270694112269325e-07` / `1e-4` |
+| 計算時間 | `0.5754531295970082` 秒。初回compileから同期まで。転送とCPU参照を除く |
+| 全体 | 185.38秒。Issue配送の待ち時間は含まない |
+
+この結果は小規模な実行経路の確認であり、C3学習・圧縮性能・長時間運用・他の形状やマシンは未検証。
+初回と再認証後の失敗、runner再接続・配送待ち、人手による認証とON/OFFはこの記録に保持する。
+
+## 結果PRの公開後照合で見つかった改行差
+
+実験側CodexはPR公開後のヘルパー照合が失敗したことを申告し、既存PRを読み取りだけで独立確認してから完了した。
+外側でもGitHub Git database APIのcommit本文が、送信した本文の末尾LF1文字だけを除いて返ることを確認した。
+PR本文・親commit・3ファイルのblob/modeには差がなかった。
+したがって、**結果PRまで到達したが、公開ヘルパーの無介入での最終照合はこの実行では通っていない。**
+
+修正はcommit本文の完全一致に加え、末尾LF1文字だけが除かれた応答も受け入れる。
+PR本文、他の文字、tree、親、actor等の検査は維持し、余計なLF・空白・CR・本文変更は拒否する。
+既存intentからの再呼出しは読み取りだけで、失敗時にPRやbranchを作り直さない。
+fixtureも実GitHubと同じ末尾LFの省略を既定にした。
+全1,200件を通常・`-O`で確認し、各1,191成功・9skip・失敗なし（23.179秒 / 28.154秒）。
+skipの7件は直前の起動監視修正版で実UID用capabilityのあるCPUコンテナでも成功しており、残る2件は既存環境条件。
+この追加修正の配置と、既存PR114に対する読み取り照合は別途記録する。追加GPU実験は行わない。

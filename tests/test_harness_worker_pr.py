@@ -51,6 +51,7 @@ class FakeGitHub:
         self.extra_diff = False
         self.tree_mode = None
         self.pr_readback_overrides = {}
+        self.commit_message_readback = (self.p.title + '\n\n' + self.p.body).removesuffix('\n')
 
     def request(self, method, path, payload=None, *, missing_ok=False):
         suffix = path.removeprefix(f'/repos/{REPOSITORY}/')
@@ -68,7 +69,7 @@ class FakeGitHub:
             if suffix == 'git/commits/' + BASE:
                 return dict(sha=BASE, tree=dict(sha=BASE_TREE))
             if suffix == 'git/commits/' + HEAD:
-                return dict(sha=HEAD, message=self.p.title + '\n\n' + self.p.body,
+                return dict(sha=HEAD, message=self.commit_message_readback,
                             parents=[dict(sha=BASE)], tree=dict(sha=TREE))
             if suffix.startswith('compare/'):
                 changed = [dict(filename=p, status='modified', sha=s) for p, _, _, s in self.p.files]
@@ -328,6 +329,34 @@ class WorkerPRTests(unittest.TestCase):
                     self.publish(client=client, intent_path=intent)
                 self.assertEqual(client.writes, before)
                 self.assertEqual(client.pr_readback_overrides, {field: value})
+
+    def test_commit_readback_accepts_only_optional_final_lf(self):
+        expected = self.publication.title + '\n\n' + self.publication.body
+        for index, message in enumerate((expected, expected.removesuffix('\n'))):
+            with self.subTest(message=repr(message[-40:])):
+                intent = self.root / f'commit-newline-{index}.json'
+                client = FakeGitHub(self.publication, intent)
+                client.commit_message_readback = message
+                result = self.publish(client=client, intent_path=intent)
+                self.assertEqual(result['status'], 'PUBLISHED')
+                self.assertEqual(client.writes[2][1]['message'], expected)
+                self.assertEqual(client.pr['body'], self.publication.body)
+                before = list(client.writes)
+                self.assertEqual(self.publish(client=client, intent_path=intent), result)
+                self.assertEqual(client.writes, before)
+
+    def test_other_commit_message_changes_rejected_without_retry(self):
+        self.publish()
+        expected = self.publication.title + '\n\n' + self.publication.body
+        before = list(self.client.writes)
+        for message in (expected + '\n', expected + ' ', expected[:-1] + '\r',
+                        expected.replace('\n\n', '\n', 1), expected[:-2],
+                        expected + 'Changed.', None, {}):
+            with self.subTest(message=repr(message)):
+                self.client.commit_message_readback = message
+                with self.assertRaisesRegex(ContractError, 'publication commit does not match intent'):
+                    self.publish()
+                self.assertEqual(self.client.writes, before)
 
     def test_wrong_authenticated_actor_or_moved_base_prevents_writes(self):
         self.client.actor = dict(login='ken2129', id=OWNER_ID)

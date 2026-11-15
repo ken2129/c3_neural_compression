@@ -4,7 +4,7 @@
 [研究自動化システム](docs/research_automation.md)を入口にしてください。
 [Codex が実装・CPU処理から通常PRまで担当する opt-in 経路](tools/research_goal/DIRECT_PR.md)と
 [常駐runtimeの手順](tools/research_resident/README.md)があります。
-限定CPU実E2Eの実績があります。実験コンテナ経路も配置し、初回の実E2Eで配送・claim・失敗後の回収まで確認しましたが、GPU数値結果・結果PRまでの完走は未確認です。[初回E2E記録](docs/research/2026-11-15_native_container_e2e.md)を参照してください。
+限定CPU実E2Eに加え、Issue #113で実験コンテナ内Codexによる小規模GPU計算・解析・[結果PR #114](https://github.com/ken2129/c3_neural_compression/pull/114)まで到達しました。公開後照合の改行差は読み取りで確認し、修正を追加しています。実行はOFFです。[失敗・修正・実GPU結果の記録](docs/research/2026-11-15_native_container_e2e.md)を参照してください。
 導入・認証・実験承認が必要で、既定OFFです。
 
 This repository contains code for reproducing results in the paper

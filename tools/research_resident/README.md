@@ -11,9 +11,12 @@ limitations, start with [研究自動化システム](../../docs/research_automa
 The optional [Issue-selected execution container path](EXECUTION.md) runs Codex
 inside a registered experiment container on the same host. It uses native tools
 and one session for research, experiments, analysis and PR creation. Containers
-can be reused or created from a prepared pinned image. Runtime `8dcbd973` was
-installed on 2026-11-15; the first real native E2E stopped at Codex communication
-after claim, with cleanup verified. Execution is OFF. See the
+can be reused or created from a prepared pinned image. Runtime `d1c30c40` with corrected startup link accounting was installed on
+2026-11-15, preserving the same private volumes, registration and claim history.
+The preceding native E2Es stopped at Codex communication after claim, with cleanup
+verified. Issue113 then reached a real GPU result and PR114 in one session.
+Publication readback encountered a single trailing-LF difference; the existing PR
+was independently read and the helper has a regression fix. Execution is OFF. See the
 [observed result and limits](../../docs/research/2026-11-15_native_container_e2e.md).
 Local Docker control is a separate explicit opt-in.
 

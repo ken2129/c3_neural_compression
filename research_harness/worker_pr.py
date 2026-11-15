@@ -302,8 +302,11 @@ def _reconcile(client, publication, config):
         raise ContractError('unexpected branch identity')
     head = _sha(ref['object'].get('sha'))
     commit = client.request('GET', _endpoint('git/commits/' + head))
+    message = p.title + '\n\n' + p.body
+    # GitHub's Git database can omit the final LF on commit readback. Accept
+    # only that single-byte difference; the PR body and all other bytes stay exact.
     if (type(commit) is not dict or commit.get('sha') != head or
-            commit.get('message') != p.title + '\n\n' + p.body or
+            commit.get('message') not in (message, message.removesuffix('\n')) or
             type(commit.get('parents')) is not list or len(commit['parents']) != 1 or
             commit['parents'][0].get('sha') != p.base_sha):
         raise ContractError('publication commit does not match intent')

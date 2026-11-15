@@ -4,7 +4,7 @@
 研究手法・資源利用・成果物の方針は [実験ポリシー](experiment_policy.md)、
 個別実験の条件は各Issueを正本とする。
 
-以下は **2026-11-15の確認時点**。実験コンテナ経路のruntime `8dcbd973` を新環境へ配置し、初回E2EはCodex通信で停止した。PRの実装、テスト済み範囲、
+以下は **2026-11-15の確認時点**。初回と再認証後のE2E停止を受け、起動監視を修正したruntime `d1c30c40` を同じ専用volumeで配置した。PRの実装、テスト済み範囲、
 実際に配置した機能を分けて読む。ここに書かれた計画から実験が自動承認されることはない。
 
 ## 現在どこまで動くか
@@ -14,10 +14,10 @@
 | 既存の常駐controller | `enabled: false` を保存し、worker不在を確認して停止済み |
 | 新しい常駐controller | 配置・GitHub再認証・runner登録/onlineを確認。受付の初期設定済み、実行は `enabled: false` |
 | 限定CPU実E2E | #95 / 旧PR #100で確認済み。記録とA/B成果物は統合PR #108に保持 |
-| 公開版の再現修正 | 旧PR #104の修正・記録をPR #108へ統合。修正版イメージのbuildと未登録runner待機を確認済み。既存配置への置換は未実施 |
+| 公開版の再現修正 | 旧PR #104の修正・記録をPR #108へ統合。修正版イメージのbuildと未登録runner待機を確認済み。専用の新管理環境へ配置済み（旧controllerは停止のまま） |
 | モデル設定の集約 | 旧PR #105の変更をPR #108へ統合。未merge、新管理へ配置済み |
 | `enabled` の動的ON/OFF | 新管理へ配置。初回E2Eを一度claimした後、OFFへ戻した |
-| GPU実験の自動起動 | 実Issue配送・承認・claim後にCodex通信で停止。GPU数値結果と結果PRまでの完走は未確認 |
+| GPU実験の自動起動 | #113で配送・承認・claim→実験側Codex→GPU計算・解析→結果PR #114→回収を確認。公開後照合には改行差があり読み取り確認し、修正を追加 |
 | GPU作業用コンテナ | PR #109の手動pilot環境を保持。別の再利用用実験コンテナにCodex0.160.0・UID10002・研究依存を準備し、実管理側のDocker prepare/readyを確認 |
 | GPU空き通知 | 作業コンテナ内の独立した補助プロセス。controllerのOFFとは独立 |
 
@@ -26,7 +26,7 @@ GPU費用pilotの結果は [PR #109](https://github.com/ken2129/c3_neural_compre
 研究本体の計画は [Issue #24](https://github.com/ken2129/c3_neural_compression/issues/24) を参照する。
 旧Issue #107はその計画へ統合した。全体の実装レビュー先は
 [PR #108](https://github.com/ken2129/c3_neural_compression/pull/108) で、mainへのmergeは未実施。
-[Issue111の初回E2E記録](research/2026-11-15_native_container_e2e.md)では、実配置と失敗、回収、未確認事項を区別している。
+[Issue111/112の失敗・Issue113の実GPU結果と修正記録](research/2026-11-15_native_container_e2e.md)では、実配置と失敗、回収、未確認事項を区別している。
 
 ### 整理後の入口
 
@@ -72,7 +72,7 @@ flowchart TD
 ```
 
 この図の常駐経路は、導入・runner登録・受付設定が済んでいる場合の構成。
-現在の旧controllerは停止し、新controllerの実行もOFFである。実験コンテナ経路は配置済みだが初回E2Eは未完走。
+現在の旧controllerは停止し、新controllerの実行もOFFである。実験コンテナ経路は配置済みで、#113はGPU計算・結果PRまで到達した。公開後照合の改行差と修正は記録を参照。
 空き通知自体は起動命令ではなく、実験側supervisorが承認済み依頼のために空きを待つ。
 
 1. 普通の計画Issueを作っても実行しない。
