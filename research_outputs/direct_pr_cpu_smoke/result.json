@@ -1,0 +1,13 @@
+{
+  "N": 1000,
+  "formula_sum": 500500,
+  "loop_sum": 500500,
+  "match": true,
+  "test_count": 5,
+  "tests_passed": true,
+  "test_failures": 0,
+  "test_errors": 0,
+  "test_skipped": 0,
+  "calculation_exit_code": 0,
+  "python_version": "3.11.17"
+}

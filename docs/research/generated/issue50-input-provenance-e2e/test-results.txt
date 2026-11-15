@@ -1,0 +1,12 @@
+test_deterministic_cli (test_provenance.ProvenanceTests.test_deterministic_cli) ... ok
+test_input_bytes_unchanged (test_provenance.ProvenanceTests.test_input_bytes_unchanged) ... ok
+test_known_bytes_and_sha (test_provenance.ProvenanceTests.test_known_bytes_and_sha) ... ok
+test_matching_manifest (test_provenance.ProvenanceTests.test_matching_manifest) ... ok
+test_missing_fixture (test_provenance.ProvenanceTests.test_missing_fixture) ... ok
+test_same_length_modified_fixture (test_provenance.ProvenanceTests.test_same_length_modified_fixture) ... ok
+test_source_sha_mismatch (test_provenance.ProvenanceTests.test_source_sha_mismatch) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.006s
+
+OK

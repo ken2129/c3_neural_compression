@@ -1,0 +1,350 @@
+{
+  "provenance": {
+    "binary_version": "0.160.0",
+    "provider": "loopback scripted Responses; no model or authentication",
+    "sandbox": "read-only (cloud policy); externalSandbox untested",
+    "result": "failure; no command requested or executed",
+    "normalization": "temporary cwd/CODEX_HOME, host/install identifiers and generated session/item IDs only"
+  },
+  "frames": [
+    {
+      "id": 1,
+      "result": {
+        "userAgent": "c3-fixed-canary/0.160.0 (Debian 13.0.0; x86_64) unknown (c3-fixed-canary; 1)",
+        "codexHome": "/work/codex-home",
+        "platformFamily": "unix",
+        "platformOs": "linux"
+      }
+    },
+    {
+      "method": "remoteControl/status/changed",
+      "params": {
+        "status": "disabled",
+        "serverName": "fixture-host",
+        "installationId": "fixture-installation",
+        "environmentId": null
+      },
+      "emittedAtMs": 1792234231066
+    },
+    {
+      "id": 2,
+      "result": {
+        "thread": {
+          "id": "recorded-id-1",
+          "environments": [
+            {
+              "environmentId": "local",
+              "cwd": "/work/canary",
+              "runtimeWorkspaceRoots": [
+                "/work/canary"
+              ]
+            }
+          ],
+          "extra": null,
+          "sessionId": "recorded-id-1",
+          "forkedFromId": null,
+          "parentThreadId": null,
+          "preview": "",
+          "ephemeral": true,
+          "section": null,
+          "sectionEnteredAt": null,
+          "projectId": null,
+          "historyMode": "paginated",
+          "modelProvider": "mock_provider",
+          "model": "gpt-6.1-sol",
+          "reasoningEffort": null,
+          "createdAt": 1792234231,
+          "updatedAt": 1792234231,
+          "recencyAt": 1792234231,
+          "status": {
+            "type": "idle"
+          },
+          "path": null,
+          "cwd": "/work/canary",
+          "cliVersion": "0.160.0",
+          "originator": "c3-fixed-canary",
+          "source": "vscode",
+          "canAcceptDirectInput": true,
+          "threadSource": null,
+          "agentNickname": null,
+          "agentRole": null,
+          "gitInfo": null,
+          "name": null,
+          "daybreakEnabled": null,
+          "turns": []
+        },
+        "model": "gpt-6.1-sol",
+        "modelProvider": "mock_provider",
+        "serviceTier": null,
+        "disabledPluginIds": [],
+        "cwd": "/work/canary",
+        "runtimeWorkspaceRoots": [
+          "/work/canary"
+        ],
+        "instructionSources": [],
+        "approvalPolicy": "never",
+        "approvalsReviewer": "user",
+        "sandbox": {
+          "type": "readOnly",
+          "networkAccess": false
+        },
+        "activePermissionProfile": null,
+        "reasoningEffort": null,
+        "multiAgentMode": "explicitRequestOnly"
+      }
+    },
+    {
+      "method": "thread/started",
+      "params": {
+        "thread": {
+          "id": "recorded-id-1",
+          "environments": [
+            {
+              "environmentId": "local",
+              "cwd": "/work/canary",
+              "runtimeWorkspaceRoots": [
+                "/work/canary"
+              ]
+            }
+          ],
+          "extra": null,
+          "sessionId": "recorded-id-1",
+          "forkedFromId": null,
+          "parentThreadId": null,
+          "preview": "",
+          "ephemeral": true,
+          "section": null,
+          "sectionEnteredAt": null,
+          "projectId": null,
+          "historyMode": "paginated",
+          "modelProvider": "mock_provider",
+          "model": "gpt-6.1-sol",
+          "reasoningEffort": null,
+          "createdAt": 1792234231,
+          "updatedAt": 1792234231,
+          "recencyAt": 1792234231,
+          "status": {
+            "type": "idle"
+          },
+          "path": null,
+          "cwd": "/work/canary",
+          "cliVersion": "0.160.0",
+          "originator": "c3-fixed-canary",
+          "source": "vscode",
+          "canAcceptDirectInput": true,
+          "threadSource": null,
+          "agentNickname": null,
+          "agentRole": null,
+          "gitInfo": null,
+          "name": null,
+          "daybreakEnabled": null,
+          "turns": []
+        }
+      },
+      "emittedAtMs": 1792234231080
+    },
+    {
+      "id": 3,
+      "result": {
+        "turn": {
+          "id": "recorded-id-2",
+          "items": [],
+          "itemsView": "notLoaded",
+          "status": "inProgress",
+          "error": null,
+          "startedAt": null,
+          "completedAt": null,
+          "durationMs": null
+        }
+      }
+    },
+    {
+      "method": "thread/status/changed",
+      "params": {
+        "threadId": "recorded-id-1",
+        "status": {
+          "type": "active",
+          "activeFlags": []
+        }
+      },
+      "emittedAtMs": 1792234231085
+    },
+    {
+      "method": "turn/started",
+      "params": {
+        "threadId": "recorded-id-1",
+        "turn": {
+          "id": "recorded-id-2",
+          "items": [],
+          "itemsView": "notLoaded",
+          "status": "inProgress",
+          "error": null,
+          "startedAt": 1792234231,
+          "completedAt": null,
+          "durationMs": null
+        }
+      },
+      "emittedAtMs": 1792234231085
+    },
+    {
+      "method": "item/started",
+      "params": {
+        "item": {
+          "type": "userMessage",
+          "id": "recorded-id-3",
+          "clientId": null,
+          "content": [
+            {
+              "type": "text",
+              "text": "Perform only this bounded CPU canary in the explicitly admitted external sandbox. Do not inspect files, use the network, install anything, create background processes, change files, or delegate. Run exactly python3 -I -S -c \"print(sum(i*i for i in range(10000)))\" once. If blocked, report failure without changing permissions or retrying. Return only JSON: schema_version c3-cpu-canary-worker-v1, outcome success or failure, reported_checksum equal to the observed integer on success or null on failure. This report is only an untrusted candidate.",
+              "text_elements": []
+            }
+          ]
+        },
+        "threadId": "recorded-id-1",
+        "turnId": "recorded-id-2",
+        "startedAtMs": 1792234231093
+      },
+      "emittedAtMs": 1792234231093
+    },
+    {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "userMessage",
+          "id": "recorded-id-3",
+          "clientId": null,
+          "content": [
+            {
+              "type": "text",
+              "text": "Perform only this bounded CPU canary in the explicitly admitted external sandbox. Do not inspect files, use the network, install anything, create background processes, change files, or delegate. Run exactly python3 -I -S -c \"print(sum(i*i for i in range(10000)))\" once. If blocked, report failure without changing permissions or retrying. Return only JSON: schema_version c3-cpu-canary-worker-v1, outcome success or failure, reported_checksum equal to the observed integer on success or null on failure. This report is only an untrusted candidate.",
+              "text_elements": []
+            }
+          ]
+        },
+        "threadId": "recorded-id-1",
+        "turnId": "recorded-id-2",
+        "completedAtMs": 1792234231093
+      },
+      "emittedAtMs": 1792234231093
+    },
+    {
+      "method": "item/started",
+      "params": {
+        "item": {
+          "type": "agentMessage",
+          "id": "recorded-id-4",
+          "text": "{\"schema_version\": \"c3-cpu-canary-worker-v1\", \"outcome\": \"failure\", \"reported_checksum\": null}",
+          "phase": null,
+          "memoryCitation": null,
+          "delivery": null,
+          "questions": null
+        },
+        "threadId": "recorded-id-1",
+        "turnId": "recorded-id-2",
+        "startedAtMs": 1792234231107
+      },
+      "emittedAtMs": 1792234231107
+    },
+    {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "agentMessage",
+          "id": "recorded-id-4",
+          "text": "{\"schema_version\": \"c3-cpu-canary-worker-v1\", \"outcome\": \"failure\", \"reported_checksum\": null}",
+          "phase": null,
+          "memoryCitation": null,
+          "delivery": null,
+          "questions": null
+        },
+        "threadId": "recorded-id-1",
+        "turnId": "recorded-id-2",
+        "completedAtMs": 1792234231107
+      },
+      "emittedAtMs": 1792234231107
+    },
+    {
+      "method": "thread/tokenUsage/updated",
+      "params": {
+        "threadId": "recorded-id-1",
+        "turnId": "recorded-id-2",
+        "tokenUsage": {
+          "total": {
+            "totalTokens": 0,
+            "inputTokens": 0,
+            "cachedInputTokens": 0,
+            "cacheWriteInputTokens": 0,
+            "outputTokens": 0,
+            "reasoningOutputTokens": 0
+          },
+          "last": {
+            "totalTokens": 0,
+            "inputTokens": 0,
+            "cachedInputTokens": 0,
+            "cacheWriteInputTokens": 0,
+            "outputTokens": 0,
+            "reasoningOutputTokens": 0
+          },
+          "modelContextWindow": 258400
+        }
+      },
+      "emittedAtMs": 1792234231107
+    },
+    {
+      "method": "account/rateLimits/updated",
+      "params": {
+        "rateLimits": {
+          "limitId": "codex",
+          "limitName": null,
+          "normalModelSlug": null,
+          "primary": null,
+          "secondary": null,
+          "credits": null,
+          "individualLimit": null,
+          "spendControlReached": null,
+          "planType": null,
+          "rateLimitReachedType": null
+        }
+      },
+      "emittedAtMs": 1792234231107
+    },
+    {
+      "method": "thread/status/changed",
+      "params": {
+        "threadId": "recorded-id-1",
+        "status": {
+          "type": "idle"
+        }
+      },
+      "emittedAtMs": 1792234231107
+    },
+    {
+      "method": "turn/completed",
+      "params": {
+        "threadId": "recorded-id-1",
+        "turn": {
+          "id": "recorded-id-2",
+          "items": [
+            {
+              "type": "agentMessage",
+              "id": "recorded-id-4",
+              "text": "{\"schema_version\": \"c3-cpu-canary-worker-v1\", \"outcome\": \"failure\", \"reported_checksum\": null}",
+              "phase": null,
+              "memoryCitation": null,
+              "delivery": null,
+              "questions": null
+            }
+          ],
+          "itemsView": "summary",
+          "status": "completed",
+          "error": null,
+          "startedAt": 1792234231,
+          "completedAt": 1792234231,
+          "durationMs": 23
+        }
+      },
+      "emittedAtMs": 1792234231107
+    }
+  ]
+}

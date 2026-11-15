@@ -1,0 +1,249 @@
+{
+  "diagnostic": {
+    "container_id": "4fef8ea03bcac1b35a3cd434ed9fb5bd102eb31b2896ca0b13e9e4632f7ed6ef",
+    "exit_code": 143,
+    "image_id": "sha256:3dcff0a0d594e1803c6c8ca5d514dfa913b08239c0f9a984e7be4b50dde32b8e",
+    "restart_count": 0,
+    "result": {
+      "checks": {
+        "cancelled_result_absent": true,
+        "claim_count_two": true,
+        "cleanup_count_two": true,
+        "completed_result_saved": true,
+        "failure_handshake_order": true,
+        "inbox_four_finished": true,
+        "ledger_phases": true,
+        "manager_unchanged": true,
+        "no_reported_pr": true,
+        "pid1_unchanged": true,
+        "private_codex_auth_json": true,
+        "private_goal_runtime_json": true,
+        "private_worker_github_token": true,
+        "private_worker_pr_json": true,
+        "receipt_ack_statuses": true,
+        "runner_unchanged": true,
+        "worker_zero": true,
+        "workspace_empty": true
+      },
+      "fixture_only": true,
+      "github_api_used": false,
+      "ipc_trace": [
+        "approved_false",
+        "goal_failure",
+        "failure_ack",
+        "job_finished",
+        "cleaned"
+      ],
+      "job_reports": [
+        {
+          "dispatched": false,
+          "issue": 920001,
+          "phase": "BLOCKED",
+          "reason": "changed"
+        },
+        {
+          "dispatched": true,
+          "duplicate": false,
+          "issue": 920002,
+          "outcome": "completed",
+          "phase": "WORKER_FINISHED",
+          "pr_url": null
+        },
+        {
+          "dispatched": false,
+          "duplicate": true,
+          "issue": 920001,
+          "phase": "BLOCKED"
+        },
+        {
+          "dispatched": false,
+          "duplicate": true,
+          "issue": 920002,
+          "outcome": "completed",
+          "phase": "WORKER_FINISHED",
+          "pr_url": null
+        }
+      ],
+      "manager_pid": 8,
+      "model_started": false,
+      "phase": "RESIDENT_DIAGNOSTIC_PASSED",
+      "pid1_start_ticks": 725227348,
+      "runner_pid": 7
+    },
+    "result_sha256": "576e9a318f6c064c431e5c4f8d0b2b6b413efd8b6381783fc89ba85ca1ff9a2c",
+    "source_sha": "2aa0f678095b6f7d11095b2da79465b087bdca88",
+    "state": "exited"
+  },
+  "equal_git_tree_sha": "193ad301acd23cbb777a1a54b87110b2482db5b8",
+  "existing_service_cutover": false,
+  "existing_service_preservation": {
+    "checks": {
+      "identity_unchanged": true,
+      "roles_unchanged": true,
+      "runner_registration_metadata_unchanged": true,
+      "state_counts_unchanged": true
+    },
+    "container_id": "5d84a79805f98a9c148277447adec0ecebaf5396d146972262df2e0b4dc81f5d",
+    "image_id": "sha256:eda225e7cf757f093a84d8cc61ac48fceddc1613140c4e35896a7c655272a7d4",
+    "restart_count": 0,
+    "roles": [
+      {
+        "comm": "python",
+        "pid": 1,
+        "start_ticks": 598776654,
+        "uid": 0
+      },
+      {
+        "comm": "Runner.Listener",
+        "pid": 7,
+        "start_ticks": 598776698,
+        "uid": 10003
+      },
+      {
+        "comm": "python",
+        "pid": 8,
+        "start_ticks": 598776698,
+        "uid": 10001
+      }
+    ],
+    "started_at": "2026-10-24T09:34:03.003555664Z",
+    "state": {
+      "blocked": false,
+      "inbox": {
+        "FINISHED": 10
+      },
+      "service": {
+        "WORKER_FINISHED": 2
+      },
+      "work_empty": true
+    }
+  },
+  "first_build": {
+    "context_sha256": "07614e755c1400be12f9d8d97fa9b35d85ae27da1fb94cfccce9c155b560e323",
+    "deployment_id": "bfdc81332926833d1bd7c6a894a03ece",
+    "disk_growth_bytes": 546136064,
+    "exit_code": 130,
+    "input_source_sha": "6fd11016d64f88721eb08caff2bb8b0988f3d847",
+    "runner_sha256": "08e9ccb3604d2462c24b5e33604dc30810296ca15cc65f23cffd4317eb144c37",
+    "runner_version": "2.338.1",
+    "seconds": 600.6,
+    "source_sha": "2aa0f678095b6f7d11095b2da79465b087bdca88",
+    "stopped": "TIME_LIMIT"
+  },
+  "gpu_jobs_modified": false,
+  "initial_test_environment_failure": {
+    "cause": "test tmpfs noexec; rerun with executable test tmpfs, no runtime changes",
+    "errors": 2,
+    "failures": 5,
+    "skips": 1,
+    "tests": 1112
+  },
+  "merge_performed": false,
+  "observation_kind": "operator read-only observations and new isolated tests; not independently signed",
+  "production_startup": {
+    "after_stop": {
+      "exit_code": 143,
+      "restart_count": 0,
+      "status": "exited"
+    },
+    "container_id": "426eeff47cb4bdae928e7d3813eb333de1f3a1b12742d5f0bb3781127720b8a1",
+    "credentials_copied": false,
+    "fresh_runner_volume": {
+      "credentials_present": false,
+      "gid": 10003,
+      "mode": "0o700",
+      "registered": false,
+      "uid": 10003
+    },
+    "initial_observer_failure": "waiting phase was on stderr; stdout-only observer timed out and stopped its own new container",
+    "manager_started": false,
+    "model_started": false,
+    "phase": "PRODUCTION_STARTUP_WAITING_FOR_RUNNER",
+    "probe": {
+      "no_registration": true,
+      "resources": {
+        "cpu_period": 100000,
+        "cpu_quota": 100000,
+        "memory": 1073741824,
+        "pids": 64,
+        "swap": 0,
+        "work_bytes": 268435456
+      },
+      "runner_image_private": true
+    },
+    "production_image": "sha256:c26c26168b575c974f6b4f1a4d2144a8a0a5458485e1c82aaab0c79c4bbee266",
+    "production_start_count": 2,
+    "restart_count_before_stop": 0,
+    "runner_registered": false,
+    "running_before_stop": true,
+    "source_sha": "7b18350af315ec1537bf13dc5f13ea28e736f21b",
+    "volumes": [
+      "uchishiba-c3-issue101-startup-20261107_goal-control",
+      "uchishiba-c3-issue101-startup-20261107_runner-state"
+    ]
+  },
+  "public_build": {
+    "base_image_id": "sha256:cf2dad23925ed51a00735f57606b2998aedf4705a1634cb9ae1053b5c145d5ba",
+    "base_repo_digests": [
+      "python@sha256:a83ba18aef0f865b1a4a611c2cf460fe446f2795673bbb9fe43be570439e3b39"
+    ],
+    "context_sha256": "93d32585e9297fe8384418877f1b76af682db43f82fd551f46eab7f357693eca",
+    "deployment_id": "f2e12fff10527a3c8d8e87725b26d64b",
+    "disk_growth_bytes": 2224779264,
+    "exit_code": 0,
+    "image_bytes": 2216412046,
+    "image_id": "sha256:c26c26168b575c974f6b4f1a4d2144a8a0a5458485e1c82aaab0c79c4bbee266",
+    "input_source_sha": "6fd11016d64f88721eb08caff2bb8b0988f3d847",
+    "runner_sha256": "08e9ccb3604d2462c24b5e33604dc30810296ca15cc65f23cffd4317eb144c37",
+    "runner_version": "2.338.1",
+    "seconds": 88.131,
+    "source_sha": "7b18350af315ec1537bf13dc5f13ea28e736f21b",
+    "stopped": null
+  },
+  "public_source_sha": "7b18350af315ec1537bf13dc5f13ea28e736f21b",
+  "real_credential_transfer": false,
+  "real_model_run": false,
+  "real_runner_registration": false,
+  "schema": "c3-issue101-reproduction-evidence-v1",
+  "source_image_correspondence": {
+    "new_image": {
+      "files_checked": 51,
+      "mismatches": [],
+      "source_marker_matches": true,
+      "source_sha": "7b18350af315ec1537bf13dc5f13ea28e736f21b"
+    },
+    "old_deployed": {
+      "files_checked": 51,
+      "mismatches": [],
+      "source_marker_matches": true,
+      "source_sha": "13d200cf2c019a1dcad84c1cbe74e850e4e82ca2"
+    }
+  },
+  "tested_local_sha": "2aa0f678095b6f7d11095b2da79465b087bdca88",
+  "tests": {
+    "normal": {
+      "errors": 0,
+      "failures": 0,
+      "seconds": 23.969,
+      "skips": [
+        {
+          "reason": "requires Linux with root-owned PID1; user-owned bash PID1 is not a broker",
+          "test": "test_harness_resident.ResidentRealLinuxTests.test_real_procfs_self_observation_matches_broker_anchor_when_pid1_links_are_denied"
+        }
+      ],
+      "tests": 1112
+    },
+    "optimized": {
+      "errors": 0,
+      "failures": 0,
+      "seconds": 23.965,
+      "skips": [
+        {
+          "reason": "requires Linux with root-owned PID1; user-owned bash PID1 is not a broker",
+          "test": "test_harness_resident.ResidentRealLinuxTests.test_real_procfs_self_observation_matches_broker_anchor_when_pid1_links_are_denied"
+        }
+      ],
+      "tests": 1112
+    }
+  }
+}

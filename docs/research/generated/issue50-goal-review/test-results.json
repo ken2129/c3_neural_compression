@@ -1,0 +1,116 @@
+{
+  "errors": 0,
+  "failures": 0,
+  "outcomes": [
+    {
+      "outcome": "pass",
+      "test": "__main__.AuditTests.test_approved_snapshot_cli_and_determinism"
+    },
+    {
+      "outcome": "pass",
+      "test": "__main__.AuditTests.test_cli_rejects_coherently_modified_json_csv"
+    },
+    {
+      "outcome": "pass",
+      "test": "__main__.AuditTests.test_cli_rejects_missing_input"
+    },
+    {
+      "outcome": "pass",
+      "test": "__main__.AuditTests.test_cli_rejects_modified_markdown"
+    },
+    {
+      "outcome": "pass",
+      "test": "__main__.AuditTests.test_disjoint_overlap"
+    },
+    {
+      "outcome": "pass",
+      "test": "__main__.AuditTests.test_duplicate_csv"
+    },
+    {
+      "outcome": "pass",
+      "test": "__main__.AuditTests.test_duplicate_json"
+    },
+    {
+      "outcome": "pass",
+      "test": "__main__.AuditTests.test_each_input_digest_is_checked"
+    },
+    {
+      "outcome": "pass",
+      "test": "__main__.AuditTests.test_image_count_mismatch"
+    },
+    {
+      "outcome": "pass",
+      "test": "__main__.AuditTests.test_jpeg_ap_mismatch"
+    },
+    {
+      "outcome": "pass",
+      "test": "__main__.AuditTests.test_jpeg_null_and_csv_only_sensitivity"
+    },
+    {
+      "outcome": "pass",
+      "test": "__main__.AuditTests.test_jpeg_zero_bpp"
+    },
+    {
+      "outcome": "pass",
+      "test": "__main__.AuditTests.test_metric_mismatch"
+    },
+    {
+      "outcome": "pass",
+      "test": "__main__.AuditTests.test_missing_csv_point"
+    },
+    {
+      "outcome": "pass",
+      "test": "__main__.AuditTests.test_missing_jpeg"
+    },
+    {
+      "outcome": "pass",
+      "test": "__main__.AuditTests.test_missing_json_point"
+    },
+    {
+      "outcome": "pass",
+      "test": "__main__.AuditTests.test_missing_metric"
+    },
+    {
+      "outcome": "pass",
+      "test": "__main__.AuditTests.test_negative_rate"
+    },
+    {
+      "outcome": "pass",
+      "test": "__main__.AuditTests.test_no_input_mutation"
+    },
+    {
+      "outcome": "pass",
+      "test": "__main__.AuditTests.test_nonfinite"
+    },
+    {
+      "outcome": "pass",
+      "test": "__main__.AuditTests.test_order_independence_and_determinism"
+    },
+    {
+      "outcome": "pass",
+      "test": "__main__.AuditTests.test_overlap_and_precision_deltas"
+    },
+    {
+      "outcome": "pass",
+      "test": "__main__.AuditTests.test_overlap_mismatch"
+    },
+    {
+      "outcome": "pass",
+      "test": "__main__.AuditTests.test_pairwise_overlap_mismatch"
+    },
+    {
+      "outcome": "pass",
+      "test": "__main__.AuditTests.test_reversed_sensitivity"
+    },
+    {
+      "outcome": "pass",
+      "test": "__main__.AuditTests.test_unexpected_precision"
+    },
+    {
+      "outcome": "pass",
+      "test": "__main__.AuditTests.test_valid_counts_and_groups"
+    }
+  ],
+  "skipped": 0,
+  "tests_run": 27
+}

@@ -1,0 +1,28 @@
+FROM python:3.11-slim-bookworm
+ARG SOURCE_SHA
+ARG INPUT_SOURCE_SHA
+ARG DEPLOYMENT_ID
+RUN groupadd --gid 10001 control && useradd --uid 10001 --gid 10001 --no-create-home control \
+ && groupadd --gid 10002 worker && useradd --uid 10002 --gid 10002 --no-create-home --shell /bin/bash worker \
+ && groupadd --gid 10003 actions && useradd --uid 10003 --gid 10003 --no-create-home actions \
+ && mkdir -p /control/gh /control/home /runner/bin /opt/service /opt/c3-runtime /opt/codex/bin /opt/c3/bin /opt/goal-inputs /control-ipc \
+ && chown -R 10001:10001 /control /control-ipc && chmod 0700 /control /control/gh /control/home && chmod 0711 /control-ipc \
+ && chown -R 10003:10003 /runner && chmod 0700 /runner \
+ && printf '%s\n' "$SOURCE_SHA" > /opt/service/source-sha \
+ && printf 'c3-dedicated-pid1-goal-v1\n' > /opt/c3-runtime/dedicated-pid1-goal \
+ && (test -x /usr/bin/python3 || ln -s /usr/local/bin/python3 /usr/bin/python3)
+COPY research_harness/ /opt/service/research_harness/
+COPY tools/research_goal/launcher.py /opt/service/goal_launcher.py
+COPY tools/research_resident/launcher.py /opt/service/resident_launcher.py
+COPY tools/research_resident/diagnostic.py /opt/service/resident_diagnostic.py
+COPY tools/research_resident/submit_issue_event.py /opt/c3/bin/submit-issue-event
+COPY tools/research_resident/diagnostic_process.py /opt/codex/bin/codex
+COPY --chown=10003:10003 tools/research_resident/diagnostic_process.py /runner/bin/Runner.Listener
+COPY goal-inputs.json /opt/c3-runtime/goal-inputs.json
+RUN chmod 0555 /opt/codex/bin/codex /opt/c3/bin/submit-issue-event /runner/bin/Runner.Listener \
+ && chmod 0444 /opt/c3-runtime/goal-inputs.json \
+ && for f in .runner .credentials .credentials_rsaparams .registration-ready; do printf 'DIAGNOSTIC ONLY\n' > "/runner/$f"; done \
+ && chown 10003:10003 /runner/.runner /runner/.credentials /runner/.credentials_rsaparams /runner/.registration-ready \
+ && chmod 0600 /runner/.runner /runner/.credentials /runner/.credentials_rsaparams /runner/.registration-ready
+LABEL c3.purpose="dedicated-resident-diagnostic" c3.source-sha="$SOURCE_SHA" c3.input-source-sha="$INPUT_SOURCE_SHA" c3.deployment-id="$DEPLOYMENT_ID"
+ENTRYPOINT ["python","-I","-B","/opt/service/resident_diagnostic.py"]
