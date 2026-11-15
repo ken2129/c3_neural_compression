@@ -1,0 +1,34 @@
+{
+  "passed": true,
+  "backend": "gpu",
+  "device": {
+    "platform": "gpu",
+    "kind": "NVIDIA GeForce GTX 1080",
+    "logical_id": 0
+  },
+  "gpu_count": 1,
+  "matrix_shapes": {
+    "a": [
+      32,
+      32
+    ],
+    "b": [
+      32,
+      32
+    ]
+  },
+  "input_dtype": "float32",
+  "reference_dtype": "float64",
+  "seed": 113,
+  "absolute_tolerance": 0.0001,
+  "max_absolute_error": 5.270694112269325e-07,
+  "elapsed_calculation_seconds": 0.5754531295970082,
+  "timing_scope": "first matmul dispatch through block_until_ready; includes compilation; excludes input transfer and CPU reference",
+  "versions": {
+    "python": "3.10.22",
+    "jax": "0.4.24",
+    "jaxlib": "0.4.24",
+    "numpy": "1.25.2"
+  },
+  "preallocation": false
+}
