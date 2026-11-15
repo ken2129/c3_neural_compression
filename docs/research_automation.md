@@ -1,6 +1,8 @@
 # 研究自動化システム
 
 構成、Issueから実行までの流れ、設定、現在の配置と未対応部分を説明する入口。
+契約フィールド・状態遷移・権限・資源・認証・障害対応の仕様は
+[研究自動化システム 詳細仕様](research_automation_spec.md)を参照する。
 研究手法・資源利用・成果物の方針は [実験ポリシー](experiment_policy.md)、
 個別実験の条件は各Issueを正本とする。
 
@@ -97,9 +99,10 @@ PRの実在、研究としての成功、Slack通知はそれぞれ別の状態�
 | manager / UID10001 | 設定・認証・承認検証・SQLite台帳 |
 | worker / UID10002 | 仕事ごとに起動するCodexと、その処理・結果PR作成 |
 | runner / UID10003 | Actionsとの接続、固定形式のイベント配送 |
-| 別のGPU作業コンテナのagent | 登録済みレシピだけを実行し、資源監視・自身の子孫回収・許可された結果回収を担当 |
+| 実験コンテナのsupervisor | Codexの起動、資源監視、そのjobの子孫・一時認証回収と結果返却を担当 |
 
-ホストへの常駐プログラム、Docker socket、広いホストmountを実行入口にしない。
+ホストへの常駐プログラムや広いホストmountを実行入口にしない。
+Docker socketは管理側の固定root brokerだけへ渡し、runner・Codex・実験コンテナには渡さない。
 workerへ管理台帳やmanager用GitHub認証は渡さない。worker自身の認証・外向き通信の
 扱いには既存の制限と明示consentがあり、プロンプトだけを隔離の根拠にしない。
 
@@ -146,7 +149,7 @@ PR #106だけでは、この境界の途中でOFFになると依頼をBLOCKEDと
 | `/runner` | runner本体と登録情報。managerの設定やworkerの成果物とは分離 |
 
 PR #105以降のdirect-PR経路ではモデル名は共通設定から解決する。
-現在確認した旧配置のモデルは `gpt-6.1-sol`、Codex CLIの固定版は `0.160.0`。
+2026-11-15に確認した新管理配置のモデルは `gpt-6.1-sol`、Codex CLIの固定版は `0.160.0`。
 これらはこのシステムの採用値であり、Codex製品全体の既定値ではない。
 認証・Webhookの値はドキュメントや公開Issueへ載せない。
 
@@ -167,8 +170,9 @@ Codexは実験側に置く。通常のshell/file toolsでコードを調査・�
 同じ仕事の子孫だけを回収し、研究workspace・既存成果物・無関係なプロセスを残す。
 回収が不明なら次の仕事を始めない。
 
-設定・初回準備・再利用・新規作成・資源制限・認証更新・検証範囲は
-[実験コンテナ経路](../tools/research_resident/EXECUTION.md) を正本とする。
+設定・再利用・新規作成・資源制限・認証更新・検証範囲は
+[詳細仕様](research_automation_spec.md)、導入時の実装説明は
+[実験コンテナ経路](../tools/research_resident/EXECUTION.md)を参照する。
 Docker操作権限を管理側へ与えるため、新しい配置では明示的なopt-inが必要。
 既存のcontrollerやホスト設定を自動変更する実装ではない。SSH鍵やマシン間通信は使わない。
 再利用先の監視をcgroup hard limitや任意コードの完全隔離と呼ばない。
@@ -187,13 +191,14 @@ Macの接続を閉じても作業コンテナが動いている間は継続す�
 ## 更新・停止・状態確認
 
 アプリコードは読み取り専用イメージに入り、runtime/source/image・導入ID・コンテナIDと
-台帳の対応を検証する。既存volumeを新しいコンテナへ付け直すだけの更新には対応しない。
-現行installerは、新しい導入ID・専用control/runner volume・runner登録を使う。
-導入を簡単に更新・移行する手順は今後の整備事項。
+台帳の対応を検証する。現行installerは、新しい導入ID・専用control/runner volumeを使う。
+2026-11-15には信頼する運用操作として、同じ専用volumeと履歴を保持した管理image更新を行った。
+実IDに合わせた配置記録の更新と台帳・claimの一致確認が必要で、volumeを付け直すだけではない。
+一般化された更新・移行CLIは未整備であり、確認事項は[詳細仕様](research_automation_spec.md)にまとめる。
 
 - 旧実行記録・登録を無断で消したり書き換えたりして、更新の検査を通さない。
 - 認証の移送・runner登録・新配置は具体的な対象を決め、OFFで起動確認してから扱う。
-- 新旧を同時に実行可能にしない。失敗時に元へ戻せる旧コンテナ・volumeを保持する。
+- 新旧を同時に実行可能にしない。失敗時に調査・撤回できる旧image・私有配置記録・volumeを保持する。
 - 旧版はOFF待機できないため、現在は設定falseに加えてcontrollerを停止している。
   ON/OFF修正のPRがあることと、その機能を配置済みであることを混同しない。
 
@@ -212,14 +217,15 @@ Macの接続を閉じても作業コンテナが動いている間は継続す�
 
 | 優先する課題 | 現在の扱い |
 | --- | --- |
-| OFFと開始が重なる競合 | 本変更で修正・回帰試験。実配置は別 |
-| GPU研究経路・長時間資源・入力/依存 | 実験側Codexの経路へ修正。Docker権限の明示配置・実環境E2Eは未実施 |
+| OFFと開始が重なる競合 | 修正・配置済み。回帰試験と、Issue113のclaim後OFFでの継続を確認 |
+| GPU研究経路・長時間資源・入力/依存 | Docker権限を明示配置し、小規模GPU E2Eを確認。長時間C3実験・依存/入力拡大は未検証 |
 | 簡単なIssue操作による実行開始 | 未実装。現在のowner承認との整合を含めて設計する |
-| イメージ更新と状態の引継ぎ | 新規導入経路のみ。更新/移行手順が不足 |
+| イメージ更新と状態の引継ぎ | 運用者による履歴保持更新の実績あり。一般化された更新/移行CLIは不足 |
 | GPU監視のコード管理・再起動時の扱い | 補助プロセスの管理を整理する必要あり |
 | モデル・マシン間の汎用化 | Issue #110。まずLinuxの1台で登録済みコンテナを指定・再利用する |
 
 - [常駐runtimeの導入・役割・回収](../tools/research_resident/README.md)
+- [研究自動化システム 詳細仕様](research_automation_spec.md)
 - [公開修正と再現確認の範囲](../tools/research_resident/ISSUE101_REPRODUCTION.md)
 - [Codexによるdirect-PR経路](../tools/research_goal/DIRECT_PR.md)
 - [Issue形式](research_issue_intake.md)・[owner承認形式](research_owner_approval.md)
