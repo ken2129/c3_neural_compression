@@ -1,5 +1,9 @@
 # 実験コンテナ経路のE2Eと起動・公開照合の修正
 
+Issue113で、小規模な実GPU計算・解析・結果PR114・回収まで到達した。実行はOFF。
+公開後照合の末尾LF差も修正・配置し、既存PR114に対する修正版ヘルパーの読み取り照合が成功した。
+以下は初回2件の失敗、修正、限定された成功範囲を保持した記録である。
+
 [Issue111](https://github.com/ken2129/c3_neural_compression/issues/111)で、新しい管理・実験コンテナ経路を1回だけ実行した。
 実GitHubのIssueイベント、Actions、正式承認、一度だけclaimまでは進み、実験側workerは
 `AppServerBlocked` で失敗した。**GPUの数値結果・結果PRは得られていない。**
@@ -158,4 +162,14 @@ PR本文、他の文字、tree、親、actor等の検査は維持し、余計な
 fixtureも実GitHubと同じ末尾LFの省略を既定にした。
 全1,200件を通常・`-O`で確認し、各1,191成功・9skip・失敗なし（23.179秒 / 28.154秒）。
 skipの7件は直前の起動監視修正版で実UID用capabilityのあるCPUコンテナでも成功しており、残る2件は既存環境条件。
-この追加修正の配置と、既存PR114に対する読み取り照合は別途記録する。追加GPU実験は行わない。
+追加修正の公開runtime `a6a19aeca812f7a50d93b37daabb81977921631b` を、管理image
+`sha256:db61132a9e238ea2a9358fa717e7c60e8bd8455404bfa9839329c6129cd2ef4d` としてOFFで配置した。
+現在の管理IDは `3f325f47953c…`。同じ専用volume・認証・runner登録を使い、
+過去2件のBLOCKEDとIssue113のWORKER_FINISHEDを含むSQLite・3件のclaimをbyte一致で保持した。
+旧imageは保持している。初期化・claimリセット・追加のGPU実験は行っていない。
+
+配置済みの修正版 `prepare_publication` と `_reconcile` に、GitHubから読んだ公開3blob・PR本文と
+Issue113から再構築した正式planを渡した。plan digest・publication digestは記録と一致した。
+APIクライアントはGET以外を拒否し、9回のGETだけでPR114を `PUBLISHED` と照合できた。
+モデルturn・GPU計算・公開mutationはすべて0回。既存の私有台帳は書き換えていない。
+これは既存PRに対する修正版の実API照合であり、修正後に新規PR作成からGPU E2Eを再実行したという意味ではない。
