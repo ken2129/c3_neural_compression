@@ -22,8 +22,8 @@ Codexによる研究・実験・結果PRまでを処理するシステムの仕�
 状態遷移、権限/認証、結果PR、GPU/資源を図で確認できる。
 [編集用draw.ioファイル](diagrams/research_automation/research_automation.drawio)とSVGプレビューを同梱する。
 
-Dockerや権限の前提から読む場合は、[図で理解するハーネス（入門3枚）](research_automation_harness.md)を参照する。
-ハーネスの居場所、Docker socket、Codexが管理側を直接操作できない理由、実験中の監督を説明する。
+プログラム・権限・Dockerの前提から読む場合は、[図で理解するハーネス（前提知識6枚＋構成3枚）](research_automation_harness.md)を参照する。
+プロセス、OSユーザー、コンテナ、mount、socket、通常の子プロセス起動を順に説明し、現在の権限設計と監督へつなげる。
 
 <details>
 <summary>目次（全20節）</summary>
