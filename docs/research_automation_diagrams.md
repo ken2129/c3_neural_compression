@@ -4,6 +4,8 @@
 対象は、同じLinuxホスト上の管理用コンテナと、`execution_container`で指定した実験用コンテナ。
 互換CPU経路や過去のcanaryは図の対象外とし、実装済みの構成と未実装の追加案を区別する。
 
+Docker socketやコンテナの分離から理解したい場合は、まず[図で理解するハーネス（入門3枚）](research_automation_harness.md)を参照する。
+
 **[編集用draw.ioファイルを開く](diagrams/research_automation/research_automation.drawio)**
 
 GitHubのファイルページからDownload rawで保存し、draw.io / diagrams.netの

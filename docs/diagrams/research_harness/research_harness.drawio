@@ -1,0 +1,1188 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" agent="C3 documentation" version="30.2.4" type="device">
+  <diagram id="01-location" name="01  ハーネスはどこにある？">
+    <mxGraphModel dx="2000" dy="1400" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2000" pageHeight="1400" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="host" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=left;verticalAlign=top;fontStyle=1;spacing=12;strokeWidth=2;fillColor=#F0F4F8;strokeColor=#718298;rounded=1;arcSize=12;spacingTop=14;container=1;collapsible=0;recursiveResize=0;" vertex="1" parent="1" tooltip="同じLinuxホスト：leo&#10;Docker Engineはホスト側のプログラム。3つ目のコンテナではない。">
+          <mxGeometry as="geometry" x="45" y="300" width="1910" height="835" />
+        </mxCell>
+        <mxCell id="management" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=left;verticalAlign=top;fontStyle=1;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;spacingTop=14;container=1;collapsible=0;recursiveResize=0;" vertex="1" parent="host" tooltip="管理用コンテナ&#10;ハーネス：依頼の受付・実行判断・Docker操作">
+          <mxGeometry as="geometry" x="35" y="90" width="830" height="490" />
+        </mxCell>
+        <mxCell id="experiment" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=left;verticalAlign=top;fontStyle=1;spacing=12;strokeWidth=2;fillColor=#E8F6F6;strokeColor=#087E8B;rounded=1;arcSize=12;spacingTop=14;container=1;collapsible=0;recursiveResize=0;" vertex="1" parent="host" tooltip="実験用コンテナ&#10;固定の監督プログラムとCodexを、別のOSユーザーで動かす">
+          <mxGeometry as="geometry" x="1045" y="90" width="830" height="490" />
+        </mxCell>
+        <mxCell id="decision" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#2864A5;strokeWidth=2;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="manager" target="broker">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="450" y="567.5" />
+            <mxPoint as="targetPoint" x="520" y="567.5" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="to-window" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#9D640D;strokeWidth=2;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="broker" target="socket">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="692.5" y="635" />
+            <mxPoint as="targetPoint" x="632.5" y="715" />
+            <Array as="points">
+              <mxPoint x="692.5" y="675" />
+              <mxPoint x="632.5" y="675" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="to-engine" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#9D640D;strokeWidth=2;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="socket" target="engine">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="632.5" y="820" />
+            <mxPoint as="targetPoint" x="720" y="1032.5" />
+            <Array as="points">
+              <mxPoint x="632.5" y="1032.5" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="exec" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#2864A5;strokeWidth=2;endArrow=block;endFill=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="engine" target="supervisor">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1000.0" y="965" />
+            <mxPoint as="targetPoint" x="1130" y="567.5" />
+            <Array as="points">
+              <mxPoint x="1000" y="930" />
+              <mxPoint x="1000" y="567.5" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="spawn" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#087E8B;strokeWidth=2;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="supervisor" target="codex">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1460" y="567.5" />
+            <mxPoint as="targetPoint" x="1515" y="567.5" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="heading" value="01  ハーネスはどこにある？" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=34;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="48" y="28" width="1840" height="50" />
+        </mxCell>
+        <mxCell id="subtitle" value="ハーネス = 承認・準備・起動・監視・回収を担当する固定プログラム。両コンテナに分かれて存在する。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=19;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="86" width="1890" height="48" />
+        </mxCell>
+        <mxCell id="footer" value="ハーネス入門 1 / 03  |  実装基準: PR108 @ 21af4c2d  |  配置例: leo（2026-11-16記録）" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=14;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="1324" width="1890" height="24" />
+        </mxCell>
+        <mxCell id="source" value="根拠: spec §2–3, 11 / execution_docker.LocalDocker / execution_worker / resident launcher" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=14;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="1352" width="1890" height="26" />
+        </mxCell>
+        <mxCell id="definition" value="ロボットのアイコンだけがCodex。manager・broker・supervisorは、モデルではなく決められたコードを実行する。&#10;コンテナは、同じマシン上でファイルとプロセスを分離する実行環境。図の大きな箱がコンテナの境界。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=22;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#F0F4F8;strokeColor=#718298;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="65" y="160" width="1870" height="100" />
+        </mxCell>
+        <mxCell id="host-icon" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="host">
+          <mxGeometry as="geometry" x="14" y="13" width="40" height="40" />
+        </mxCell>
+        <mxCell id="host-icon-1" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#718298;rounded=1;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="host-icon">
+          <mxGeometry as="geometry" x="5.0" y="3.3333333333333144" width="30.0" height="33.333333333333336" />
+        </mxCell>
+        <mxCell id="host-icon-2" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#718298;rounded=1;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="host-icon">
+          <mxGeometry as="geometry" x="8.333333333333329" y="7.5" width="23.333333333333336" height="5.833333333333334" />
+        </mxCell>
+        <mxCell id="host-icon-3" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#718298;strokeColor=#718298;rounded=0;arcSize=12;shape=ellipse;rotation=0;" vertex="1" parent="host-icon">
+          <mxGeometry as="geometry" x="10.833333333333329" y="9.166666666666686" width="2.5" height="2.5" />
+        </mxCell>
+        <mxCell id="host-icon-4" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#718298;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0.0;" vertex="1" parent="host-icon">
+          <mxGeometry as="geometry" x="19.16666666666667" y="9.416666666666686" width="8.333333333333334" height="2.0" />
+        </mxCell>
+        <mxCell id="host-icon-5" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#718298;rounded=1;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="host-icon">
+          <mxGeometry as="geometry" x="8.333333333333329" y="17.5" width="23.333333333333336" height="5.833333333333334" />
+        </mxCell>
+        <mxCell id="host-icon-6" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#718298;strokeColor=#718298;rounded=0;arcSize=12;shape=ellipse;rotation=0;" vertex="1" parent="host-icon">
+          <mxGeometry as="geometry" x="10.833333333333329" y="19.166666666666686" width="2.5" height="2.5" />
+        </mxCell>
+        <mxCell id="host-icon-7" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#718298;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0.0;" vertex="1" parent="host-icon">
+          <mxGeometry as="geometry" x="19.16666666666667" y="19.416666666666686" width="8.333333333333334" height="2.0" />
+        </mxCell>
+        <mxCell id="host-icon-8" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#718298;rounded=1;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="host-icon">
+          <mxGeometry as="geometry" x="8.333333333333329" y="27.5" width="23.333333333333336" height="5.833333333333334" />
+        </mxCell>
+        <mxCell id="host-icon-9" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#718298;strokeColor=#718298;rounded=0;arcSize=12;shape=ellipse;rotation=0;" vertex="1" parent="host-icon">
+          <mxGeometry as="geometry" x="10.833333333333329" y="29.166666666666686" width="2.5" height="2.5" />
+        </mxCell>
+        <mxCell id="host-icon-10" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#718298;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0.0;" vertex="1" parent="host-icon">
+          <mxGeometry as="geometry" x="19.16666666666667" y="29.416666666666686" width="8.333333333333334" height="2.0" />
+        </mxCell>
+        <mxCell id="host-title" value="同じLinuxホスト：leo" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=22;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="host">
+          <mxGeometry as="geometry" x="66" y="9" width="1830" height="32" />
+        </mxCell>
+        <mxCell id="host-body" value="Docker Engineはホスト側のプログラム。3つ目のコンテナではない。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=15;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="host">
+          <mxGeometry as="geometry" x="66" y="40" width="1830" height="22" />
+        </mxCell>
+        <mxCell id="management-icon" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="management">
+          <mxGeometry as="geometry" x="14" y="13" width="40" height="40" />
+        </mxCell>
+        <mxCell id="management-icon-1" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#2864A5;rounded=1;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="management-icon">
+          <mxGeometry as="geometry" x="2.5" y="10.0" width="35.0" height="25.0" />
+        </mxCell>
+        <mxCell id="management-icon-2" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#2864A5;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="management-icon">
+          <mxGeometry as="geometry" x="6.666666666666671" y="5.0" width="10.0" height="5.0" />
+        </mxCell>
+        <mxCell id="management-icon-3" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#2864A5;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="management-icon">
+          <mxGeometry as="geometry" x="23.333333333333343" y="5.0" width="10.0" height="5.0" />
+        </mxCell>
+        <mxCell id="management-icon-4" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="management-icon">
+          <mxGeometry as="geometry" x="1.6666666666666714" y="21.5" width="15.0" height="2.0" />
+        </mxCell>
+        <mxCell id="management-icon-5" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="management-icon">
+          <mxGeometry as="geometry" x="9.166666666666671" y="21.5" width="15.0" height="2.0" />
+        </mxCell>
+        <mxCell id="management-icon-6" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="management-icon">
+          <mxGeometry as="geometry" x="16.66666666666667" y="21.5" width="15.0" height="2.0" />
+        </mxCell>
+        <mxCell id="management-icon-7" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="management-icon">
+          <mxGeometry as="geometry" x="24.16666666666667" y="21.5" width="15.0" height="2.0" />
+        </mxCell>
+        <mxCell id="management-title" value="管理用コンテナ" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=22;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="management">
+          <mxGeometry as="geometry" x="66" y="9" width="750" height="32" />
+        </mxCell>
+        <mxCell id="management-body" value="ハーネス：依頼の受付・実行判断・Docker操作" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=15;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="management">
+          <mxGeometry as="geometry" x="66" y="40" width="750" height="22" />
+        </mxCell>
+        <mxCell id="experiment-icon" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="experiment">
+          <mxGeometry as="geometry" x="14" y="13" width="40" height="40" />
+        </mxCell>
+        <mxCell id="experiment-icon-1" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#087E8B;rounded=1;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="experiment-icon">
+          <mxGeometry as="geometry" x="2.5" y="10.0" width="35.0" height="25.0" />
+        </mxCell>
+        <mxCell id="experiment-icon-2" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#087E8B;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="experiment-icon">
+          <mxGeometry as="geometry" x="6.6666666666667425" y="5.0" width="10.0" height="5.0" />
+        </mxCell>
+        <mxCell id="experiment-icon-3" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#087E8B;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="experiment-icon">
+          <mxGeometry as="geometry" x="23.333333333333258" y="5.0" width="10.0" height="5.0" />
+        </mxCell>
+        <mxCell id="experiment-icon-4" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="experiment-icon">
+          <mxGeometry as="geometry" x="1.6666666666667425" y="21.5" width="15.0" height="2.0" />
+        </mxCell>
+        <mxCell id="experiment-icon-5" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="experiment-icon">
+          <mxGeometry as="geometry" x="9.166666666666742" y="21.5" width="15.0" height="2.0" />
+        </mxCell>
+        <mxCell id="experiment-icon-6" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="experiment-icon">
+          <mxGeometry as="geometry" x="16.666666666666742" y="21.5" width="15.0" height="2.0" />
+        </mxCell>
+        <mxCell id="experiment-icon-7" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="experiment-icon">
+          <mxGeometry as="geometry" x="24.166666666666742" y="21.5" width="15.0" height="2.0" />
+        </mxCell>
+        <mxCell id="experiment-title" value="実験用コンテナ" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=22;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="experiment">
+          <mxGeometry as="geometry" x="66" y="9" width="750" height="32" />
+        </mxCell>
+        <mxCell id="experiment-body" value="固定の監督プログラムとCodexを、別のOSユーザーで動かす" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=15;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="experiment">
+          <mxGeometry as="geometry" x="66" y="40" width="750" height="22" />
+        </mxCell>
+        <mxCell id="manager" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;" vertex="1" parent="management" tooltip="① 始めてよいか判断&#10;manager / UID10001&#10;Issue・承認・ON/OFFを確認">
+          <mxGeometry as="geometry" x="40" y="110" width="330" height="135" />
+        </mxCell>
+        <mxCell id="manager-icon" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="manager">
+          <mxGeometry as="geometry" x="14" y="13" width="40" height="40" />
+        </mxCell>
+        <mxCell id="manager-icon-1" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#2864A5;rounded=0;arcSize=12;shape=ellipse;rotation=0;" vertex="1" parent="manager-icon">
+          <mxGeometry as="geometry" x="2.5" y="2.5" width="35.0" height="35.0" />
+        </mxCell>
+        <mxCell id="manager-icon-2" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=45.0;" vertex="1" parent="manager-icon">
+          <mxGeometry as="geometry" x="8.446699141100908" y="23.33333333333337" width="10.606601717798213" height="2.5" />
+        </mxCell>
+        <mxCell id="manager-icon-3" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=-49.899092453787766;" vertex="1" parent="manager-icon">
+          <mxGeometry as="geometry" x="13.816881376354814" y="19.16666666666663" width="20.699570580623703" height="2.5" />
+        </mxCell>
+        <mxCell id="manager-title" value="① 始めてよいか判断" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=20;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="manager">
+          <mxGeometry as="geometry" x="66" y="12" width="250" height="32" />
+        </mxCell>
+        <mxCell id="manager-body" value="manager / UID10001&#10;Issue・承認・ON/OFFを確認" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="manager">
+          <mxGeometry as="geometry" x="14" y="57" width="302" height="69" />
+        </mxCell>
+        <mxCell id="broker" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;" vertex="1" parent="management" tooltip="操作要求を送る&#10;job broker / root&#10;登録先と配置を検査">
+          <mxGeometry as="geometry" x="440" y="110" width="345" height="135" />
+        </mxCell>
+        <mxCell id="broker-icon" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="broker">
+          <mxGeometry as="geometry" x="14" y="13" width="40" height="40" />
+        </mxCell>
+        <mxCell id="broker-icon-1" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="broker-icon">
+          <mxGeometry as="geometry" x="30.0" y="17.08333333333337" width="10.0" height="5.833333333333334" />
+        </mxCell>
+        <mxCell id="broker-icon-2" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=45;" vertex="1" parent="broker-icon">
+          <mxGeometry as="geometry" x="25.606601717798185" y="27.689935051131556" width="10.0" height="5.833333333333334" />
+        </mxCell>
+        <mxCell id="broker-icon-3" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90;" vertex="1" parent="broker-icon">
+          <mxGeometry as="geometry" x="15.0" y="32.08333333333337" width="10.0" height="5.833333333333334" />
+        </mxCell>
+        <mxCell id="broker-icon-4" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=135;" vertex="1" parent="broker-icon">
+          <mxGeometry as="geometry" x="4.393398282201815" y="27.689935051131556" width="10.0" height="5.833333333333334" />
+        </mxCell>
+        <mxCell id="broker-icon-5" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=180;" vertex="1" parent="broker-icon">
+          <mxGeometry as="geometry" x="0.0" y="17.08333333333337" width="10.0" height="5.833333333333334" />
+        </mxCell>
+        <mxCell id="broker-icon-6" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=225;" vertex="1" parent="broker-icon">
+          <mxGeometry as="geometry" x="4.393398282201815" y="6.476731615535073" width="10.0" height="5.833333333333334" />
+        </mxCell>
+        <mxCell id="broker-icon-7" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=270;" vertex="1" parent="broker-icon">
+          <mxGeometry as="geometry" x="15.0" y="2.0833333333333712" width="10.0" height="5.833333333333334" />
+        </mxCell>
+        <mxCell id="broker-icon-8" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=315;" vertex="1" parent="broker-icon">
+          <mxGeometry as="geometry" x="25.606601717798185" y="6.476731615535073" width="10.0" height="5.833333333333334" />
+        </mxCell>
+        <mxCell id="broker-icon-9" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#FFFFFF;strokeColor=#2864A5;rounded=0;arcSize=12;shape=ellipse;rotation=0;" vertex="1" parent="broker-icon">
+          <mxGeometry as="geometry" x="7.5" y="7.5" width="25.0" height="25.0" />
+        </mxCell>
+        <mxCell id="broker-icon-10" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#2864A5;rounded=0;arcSize=12;shape=ellipse;rotation=0;" vertex="1" parent="broker-icon">
+          <mxGeometry as="geometry" x="15.0" y="15.0" width="10.0" height="10.0" />
+        </mxCell>
+        <mxCell id="broker-title" value="操作要求を送る" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=20;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="broker">
+          <mxGeometry as="geometry" x="66" y="12" width="265" height="32" />
+        </mxCell>
+        <mxCell id="broker-body" value="job broker / root&#10;登録先と配置を検査" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="broker">
+          <mxGeometry as="geometry" x="14" y="57" width="317" height="69" />
+        </mxCell>
+        <mxCell id="socket" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#FFF4DC;strokeColor=#9D640D;rounded=1;arcSize=12;" vertex="1" parent="management" tooltip="Docker Engineへの窓口&#10;管理側では /run/c3-docker.sock">
+          <mxGeometry as="geometry" x="320" y="325" width="465" height="105" />
+        </mxCell>
+        <mxCell id="socket-icon" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="socket">
+          <mxGeometry as="geometry" x="14" y="13" width="40" height="40" />
+        </mxCell>
+        <mxCell id="socket-icon-1" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#9D640D;rounded=1;arcSize=12;shape=rectangle;rotation=-40;" vertex="1" parent="socket-icon">
+          <mxGeometry as="geometry" x="2.5" y="14.166666666666629" width="22.5" height="11.666666666666668" />
+        </mxCell>
+        <mxCell id="socket-icon-2" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#9D640D;rounded=1;arcSize=12;shape=rectangle;rotation=-40;" vertex="1" parent="socket-icon">
+          <mxGeometry as="geometry" x="16.666666666666686" y="14.166666666666629" width="22.5" height="11.666666666666668" />
+        </mxCell>
+        <mxCell id="socket-title" value="Docker Engineへの窓口" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=20;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="socket">
+          <mxGeometry as="geometry" x="66" y="12" width="385" height="32" />
+        </mxCell>
+        <mxCell id="socket-body" value="管理側では /run/c3-docker.sock" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=16;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="socket">
+          <mxGeometry as="geometry" x="14" y="57" width="437" height="39" />
+        </mxCell>
+        <mxCell id="supervisor" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#E8F6F6;strokeColor=#087E8B;rounded=1;arcSize=12;" vertex="1" parent="experiment" tooltip="③ 起動・監督する&#10;job supervisor / root&#10;GPU・資源・子孫を監督">
+          <mxGeometry as="geometry" x="40" y="110" width="330" height="135" />
+        </mxCell>
+        <mxCell id="supervisor-icon" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="supervisor">
+          <mxGeometry as="geometry" x="14" y="13" width="40" height="40" />
+        </mxCell>
+        <mxCell id="supervisor-icon-1" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#087E8B;rounded=1;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="supervisor-icon">
+          <mxGeometry as="geometry" x="2.5" y="5.0" width="35.0" height="30.0" />
+        </mxCell>
+        <mxCell id="supervisor-icon-2" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0.0;" vertex="1" parent="supervisor-icon">
+          <mxGeometry as="geometry" x="2.5" y="10.666666666666629" width="35.0" height="2.0" />
+        </mxCell>
+        <mxCell id="supervisor-icon-3" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=40.60129464500447;" vertex="1" parent="supervisor-icon">
+          <mxGeometry as="geometry" x="8.24185647612785" y="19.58333333333337" width="7.68295371441074" height="2.5" />
+        </mxCell>
+        <mxCell id="supervisor-icon-4" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=139.39870535499554;" vertex="1" parent="supervisor-icon">
+          <mxGeometry as="geometry" x="8.24185647612785" y="24.58333333333337" width="7.68295371441074" height="2.5" />
+        </mxCell>
+        <mxCell id="supervisor-icon-5" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0.0;" vertex="1" parent="supervisor-icon">
+          <mxGeometry as="geometry" x="19.166666666666742" y="27.08333333333337" width="10.0" height="2.5" />
+        </mxCell>
+        <mxCell id="supervisor-title" value="③ 起動・監督する" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=20;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="supervisor">
+          <mxGeometry as="geometry" x="66" y="12" width="250" height="32" />
+        </mxCell>
+        <mxCell id="supervisor-body" value="job supervisor / root&#10;GPU・資源・子孫を監督" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="supervisor">
+          <mxGeometry as="geometry" x="14" y="57" width="302" height="69" />
+        </mxCell>
+        <mxCell id="codex" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#E8F6F6;strokeColor=#087E8B;rounded=1;arcSize=12;" vertex="1" parent="experiment" tooltip="④ 研究を進める&#10;Codex / UID10002&#10;編集 → 実験 → 待機 → 解析 → PR">
+          <mxGeometry as="geometry" x="425" y="110" width="350" height="135" />
+        </mxCell>
+        <mxCell id="codex-icon" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="codex">
+          <mxGeometry as="geometry" x="14" y="13" width="40" height="40" />
+        </mxCell>
+        <mxCell id="codex-icon-1" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#087E8B;rounded=1;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="codex-icon">
+          <mxGeometry as="geometry" x="5.8333333333332575" y="11.666666666666629" width="28.333333333333336" height="23.333333333333336" />
+        </mxCell>
+        <mxCell id="codex-icon-2" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="codex-icon">
+          <mxGeometry as="geometry" x="16.666666666666742" y="7.333333333333371" width="6.666666666666667" height="2.0" />
+        </mxCell>
+        <mxCell id="codex-icon-3" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=#087E8B;rounded=0;arcSize=12;shape=ellipse;rotation=0;" vertex="1" parent="codex-icon">
+          <mxGeometry as="geometry" x="17.5" y="1.6666666666666288" width="5.0" height="5.0" />
+        </mxCell>
+        <mxCell id="codex-icon-4" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=#087E8B;rounded=0;arcSize=12;shape=ellipse;rotation=0;" vertex="1" parent="codex-icon">
+          <mxGeometry as="geometry" x="11.666666666666742" y="18.33333333333337" width="4.166666666666667" height="4.166666666666667" />
+        </mxCell>
+        <mxCell id="codex-icon-5" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=#087E8B;rounded=0;arcSize=12;shape=ellipse;rotation=0;" vertex="1" parent="codex-icon">
+          <mxGeometry as="geometry" x="24.166666666666742" y="18.33333333333337" width="4.166666666666667" height="4.166666666666667" />
+        </mxCell>
+        <mxCell id="codex-icon-6" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0.0;" vertex="1" parent="codex-icon">
+          <mxGeometry as="geometry" x="14.166666666666742" y="27.33333333333337" width="11.666666666666668" height="2.0" />
+        </mxCell>
+        <mxCell id="codex-icon-7" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#087E8B;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="codex-icon">
+          <mxGeometry as="geometry" x="1.6666666666667425" y="19.16666666666663" width="4.166666666666667" height="9.166666666666668" />
+        </mxCell>
+        <mxCell id="codex-icon-8" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#087E8B;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="codex-icon">
+          <mxGeometry as="geometry" x="34.16666666666674" y="19.16666666666663" width="4.166666666666667" height="9.166666666666668" />
+        </mxCell>
+        <mxCell id="codex-title" value="④ 研究を進める" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=20;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="codex">
+          <mxGeometry as="geometry" x="66" y="12" width="270" height="32" />
+        </mxCell>
+        <mxCell id="codex-body" value="Codex / UID10002&#10;編集 → 実験 → 待機 → 解析 → PR" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="codex">
+          <mxGeometry as="geometry" x="14" y="57" width="322" height="69" />
+        </mxCell>
+        <mxCell id="exp-note" value="ハーネスは「いつ・どこで・どの権限で動かすか」を管理。&#10;Codexは、許可された実験環境で研究の進め方を選ぶ。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=21;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#E8F6F6;strokeColor=#087E8B;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1130" y="715" width="735" height="105" />
+        </mxCell>
+        <mxCell id="engine" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#F0F4F8;strokeColor=#718298;rounded=1;arcSize=12;" vertex="1" parent="host" tooltip="Docker Engine（dockerd）&#10;② 要求を受け、指定したコンテナでプロセスを起動">
+          <mxGeometry as="geometry" x="675" y="665" width="560" height="135" />
+        </mxCell>
+        <mxCell id="engine-icon" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="engine">
+          <mxGeometry as="geometry" x="14" y="13" width="40" height="40" />
+        </mxCell>
+        <mxCell id="engine-icon-1" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#718298;rounded=1;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="engine-icon">
+          <mxGeometry as="geometry" x="5.0" y="3.3333333333333712" width="30.0" height="33.333333333333336" />
+        </mxCell>
+        <mxCell id="engine-icon-2" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#718298;rounded=1;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="engine-icon">
+          <mxGeometry as="geometry" x="8.333333333333371" y="7.5" width="23.333333333333336" height="5.833333333333334" />
+        </mxCell>
+        <mxCell id="engine-icon-3" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#718298;strokeColor=#718298;rounded=0;arcSize=12;shape=ellipse;rotation=0;" vertex="1" parent="engine-icon">
+          <mxGeometry as="geometry" x="10.833333333333371" y="9.166666666666629" width="2.5" height="2.5" />
+        </mxCell>
+        <mxCell id="engine-icon-4" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#718298;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0.0;" vertex="1" parent="engine-icon">
+          <mxGeometry as="geometry" x="19.16666666666663" y="9.416666666666629" width="8.333333333333334" height="2.0" />
+        </mxCell>
+        <mxCell id="engine-icon-5" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#718298;rounded=1;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="engine-icon">
+          <mxGeometry as="geometry" x="8.333333333333371" y="17.5" width="23.333333333333336" height="5.833333333333334" />
+        </mxCell>
+        <mxCell id="engine-icon-6" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#718298;strokeColor=#718298;rounded=0;arcSize=12;shape=ellipse;rotation=0;" vertex="1" parent="engine-icon">
+          <mxGeometry as="geometry" x="10.833333333333371" y="19.16666666666663" width="2.5" height="2.5" />
+        </mxCell>
+        <mxCell id="engine-icon-7" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#718298;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0.0;" vertex="1" parent="engine-icon">
+          <mxGeometry as="geometry" x="19.16666666666663" y="19.41666666666663" width="8.333333333333334" height="2.0" />
+        </mxCell>
+        <mxCell id="engine-icon-8" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#718298;rounded=1;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="engine-icon">
+          <mxGeometry as="geometry" x="8.333333333333371" y="27.5" width="23.333333333333336" height="5.833333333333334" />
+        </mxCell>
+        <mxCell id="engine-icon-9" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#718298;strokeColor=#718298;rounded=0;arcSize=12;shape=ellipse;rotation=0;" vertex="1" parent="engine-icon">
+          <mxGeometry as="geometry" x="10.833333333333371" y="29.16666666666663" width="2.5" height="2.5" />
+        </mxCell>
+        <mxCell id="engine-icon-10" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#718298;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0.0;" vertex="1" parent="engine-icon">
+          <mxGeometry as="geometry" x="19.16666666666663" y="29.41666666666663" width="8.333333333333334" height="2.0" />
+        </mxCell>
+        <mxCell id="engine-title" value="Docker Engine（dockerd）" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=20;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="engine">
+          <mxGeometry as="geometry" x="66" y="12" width="480" height="32" />
+        </mxCell>
+        <mxCell id="engine-body" value="② 要求を受け、指定したコンテナでプロセスを起動" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="engine">
+          <mxGeometry as="geometry" x="14" y="57" width="532" height="69" />
+        </mxCell>
+        <mxCell id="socket-alias" value="ホストの /var/run/docker.sock を&#10;管理側に別名で接続している。&#10;実験側には接続しない。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=21;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#FFF4DC;strokeColor=#9D640D;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="90" y="930" width="480" height="165" />
+        </mxCell>
+        <mxCell id="exec-label" value="指定先で&#10;固定コードを起動" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=16;fontColor=#2864A5;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="915.0" y="674.4" width="170" height="51.2" />
+        </mxCell>
+        <mxCell id="read-order" value="順番：①判断 → broker → socket → ②Docker Engine → ③supervisor → ④Codex。&#10;この図の矢印は起動要求を示す。実行中は同じ経路の標準入出力で状態・結果も往復する（詳しくは図03と詳細仕様）。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=21;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#F0F4F8;strokeColor=#718298;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="65" y="1170" width="1870" height="110" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="02-isolation" name="02  なぜCodexは管理側を直接操作できない？">
+    <mxGraphModel dx="2000" dy="1400" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2000" pageHeight="1400" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="host" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=left;verticalAlign=top;fontStyle=1;spacing=12;strokeWidth=2;fillColor=#F0F4F8;strokeColor=#718298;rounded=1;arcSize=12;spacingTop=14;container=1;collapsible=0;recursiveResize=0;" vertex="1" parent="1" tooltip="同じホストでも、コンテナごとに見える範囲が異なる&#10;図の赤い×は、この配置で用意しないアクセス経路。ネットワーク全体の遮断を意味しない。">
+          <mxGeometry as="geometry" x="45" y="160" width="1910" height="1105" />
+        </mxCell>
+        <mxCell id="management" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=left;verticalAlign=top;fontStyle=1;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;spacingTop=14;container=1;collapsible=0;recursiveResize=0;" vertex="1" parent="host" tooltip="管理用コンテナ&#10;固定コードだけにDocker操作と管理データを任せる">
+          <mxGeometry as="geometry" x="35" y="95" width="830" height="555" />
+        </mxCell>
+        <mxCell id="experiment" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=left;verticalAlign=top;fontStyle=1;spacing=12;strokeWidth=2;fillColor=#E8F6F6;strokeColor=#087E8B;rounded=1;arcSize=12;spacingTop=14;container=1;collapsible=0;recursiveResize=0;" vertex="1" parent="host" tooltip="実験用コンテナ&#10;Codexは研究UID10002。管理側とファイルを共有しない。">
+          <mxGeometry as="geometry" x="1045" y="95" width="830" height="555" />
+        </mxCell>
+        <mxCell id="broker-window" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#9D640D;strokeWidth=2;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="broker" target="socket">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="450" y="432.5" />
+            <mxPoint as="targetPoint" x="515" y="432.5" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="file-tools" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#087E8B;strokeWidth=2;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="codex" target="workspace">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1465" y="432.5" />
+            <mxPoint as="targetPoint" x="1520" y="432.5" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="denied-request" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#AD3E45;strokeWidth=2;endArrow=none;endFill=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1130" y="432.5" />
+            <mxPoint as="targetPoint" x="1050" y="432.5" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="denied-window" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#AD3E45;strokeWidth=2;endArrow=none;endFill=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="950" y="432.5" />
+            <mxPoint as="targetPoint" x="865" y="432.5" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="no-volume-right" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#AD3E45;strokeWidth=2;endArrow=none;endFill=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1130" y="672.5" />
+            <mxPoint as="targetPoint" x="1050" y="672.5" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="no-volume-left" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#AD3E45;strokeWidth=2;endArrow=none;endFill=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="950" y="672.5" />
+            <mxPoint as="targetPoint" x="865" y="672.5" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="heading" value="02  なぜCodexは管理側を直接操作できない？" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=34;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="48" y="28" width="1840" height="50" />
+        </mxCell>
+        <mxCell id="subtitle" value="プロンプトのお願いではなく、「見えるファイル」「操作の窓口」「OSユーザー」の権限で制限する。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=19;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="86" width="1890" height="48" />
+        </mxCell>
+        <mxCell id="footer" value="ハーネス入門 2 / 03  |  実装基準: PR108 @ 21af4c2d  |  配置例: leo（2026-11-16記録）" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=14;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="1324" width="1890" height="24" />
+        </mxCell>
+        <mxCell id="source" value="根拠: spec §3, 7, 12 / execution_docker.validate_container, validate_docker_authority / execution_worker.validate_preparation" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=14;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="1352" width="1890" height="26" />
+        </mxCell>
+        <mxCell id="host-icon" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="host">
+          <mxGeometry as="geometry" x="14" y="13" width="40" height="40" />
+        </mxCell>
+        <mxCell id="host-icon-1" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#718298;rounded=1;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="host-icon">
+          <mxGeometry as="geometry" x="5.0" y="3.333333333333343" width="30.0" height="33.333333333333336" />
+        </mxCell>
+        <mxCell id="host-icon-2" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#718298;rounded=1;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="host-icon">
+          <mxGeometry as="geometry" x="8.333333333333329" y="7.5" width="23.333333333333336" height="5.833333333333334" />
+        </mxCell>
+        <mxCell id="host-icon-3" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#718298;strokeColor=#718298;rounded=0;arcSize=12;shape=ellipse;rotation=0;" vertex="1" parent="host-icon">
+          <mxGeometry as="geometry" x="10.833333333333329" y="9.166666666666657" width="2.5" height="2.5" />
+        </mxCell>
+        <mxCell id="host-icon-4" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#718298;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0.0;" vertex="1" parent="host-icon">
+          <mxGeometry as="geometry" x="19.16666666666667" y="9.416666666666657" width="8.333333333333334" height="2.0" />
+        </mxCell>
+        <mxCell id="host-icon-5" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#718298;rounded=1;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="host-icon">
+          <mxGeometry as="geometry" x="8.333333333333329" y="17.5" width="23.333333333333336" height="5.833333333333334" />
+        </mxCell>
+        <mxCell id="host-icon-6" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#718298;strokeColor=#718298;rounded=0;arcSize=12;shape=ellipse;rotation=0;" vertex="1" parent="host-icon">
+          <mxGeometry as="geometry" x="10.833333333333329" y="19.166666666666657" width="2.5" height="2.5" />
+        </mxCell>
+        <mxCell id="host-icon-7" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#718298;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0.0;" vertex="1" parent="host-icon">
+          <mxGeometry as="geometry" x="19.16666666666667" y="19.416666666666657" width="8.333333333333334" height="2.0" />
+        </mxCell>
+        <mxCell id="host-icon-8" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#718298;rounded=1;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="host-icon">
+          <mxGeometry as="geometry" x="8.333333333333329" y="27.5" width="23.333333333333336" height="5.833333333333334" />
+        </mxCell>
+        <mxCell id="host-icon-9" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#718298;strokeColor=#718298;rounded=0;arcSize=12;shape=ellipse;rotation=0;" vertex="1" parent="host-icon">
+          <mxGeometry as="geometry" x="10.833333333333329" y="29.166666666666657" width="2.5" height="2.5" />
+        </mxCell>
+        <mxCell id="host-icon-10" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#718298;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0.0;" vertex="1" parent="host-icon">
+          <mxGeometry as="geometry" x="19.16666666666667" y="29.416666666666657" width="8.333333333333334" height="2.0" />
+        </mxCell>
+        <mxCell id="host-title" value="同じホストでも、コンテナごとに見える範囲が異なる" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=22;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="host">
+          <mxGeometry as="geometry" x="66" y="9" width="1830" height="32" />
+        </mxCell>
+        <mxCell id="host-body" value="図の赤い×は、この配置で用意しないアクセス経路。ネットワーク全体の遮断を意味しない。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=15;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="host">
+          <mxGeometry as="geometry" x="66" y="40" width="1830" height="22" />
+        </mxCell>
+        <mxCell id="management-icon" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="management">
+          <mxGeometry as="geometry" x="14" y="13" width="40" height="40" />
+        </mxCell>
+        <mxCell id="management-icon-1" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#2864A5;rounded=1;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="management-icon">
+          <mxGeometry as="geometry" x="2.5" y="10.0" width="35.0" height="25.0" />
+        </mxCell>
+        <mxCell id="management-icon-2" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#2864A5;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="management-icon">
+          <mxGeometry as="geometry" x="6.666666666666671" y="5.0" width="10.0" height="5.0" />
+        </mxCell>
+        <mxCell id="management-icon-3" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#2864A5;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="management-icon">
+          <mxGeometry as="geometry" x="23.333333333333343" y="5.0" width="10.0" height="5.0" />
+        </mxCell>
+        <mxCell id="management-icon-4" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="management-icon">
+          <mxGeometry as="geometry" x="1.6666666666666714" y="21.5" width="15.0" height="2.0" />
+        </mxCell>
+        <mxCell id="management-icon-5" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="management-icon">
+          <mxGeometry as="geometry" x="9.166666666666671" y="21.5" width="15.0" height="2.0" />
+        </mxCell>
+        <mxCell id="management-icon-6" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="management-icon">
+          <mxGeometry as="geometry" x="16.66666666666667" y="21.5" width="15.0" height="2.0" />
+        </mxCell>
+        <mxCell id="management-icon-7" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="management-icon">
+          <mxGeometry as="geometry" x="24.16666666666667" y="21.5" width="15.0" height="2.0" />
+        </mxCell>
+        <mxCell id="management-title" value="管理用コンテナ" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=22;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="management">
+          <mxGeometry as="geometry" x="66" y="9" width="750" height="32" />
+        </mxCell>
+        <mxCell id="management-body" value="固定コードだけにDocker操作と管理データを任せる" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=15;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="management">
+          <mxGeometry as="geometry" x="66" y="40" width="750" height="22" />
+        </mxCell>
+        <mxCell id="experiment-icon" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="experiment">
+          <mxGeometry as="geometry" x="14" y="13" width="40" height="40" />
+        </mxCell>
+        <mxCell id="experiment-icon-1" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#087E8B;rounded=1;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="experiment-icon">
+          <mxGeometry as="geometry" x="2.5" y="10.0" width="35.0" height="25.0" />
+        </mxCell>
+        <mxCell id="experiment-icon-2" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#087E8B;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="experiment-icon">
+          <mxGeometry as="geometry" x="6.6666666666667425" y="5.0" width="10.0" height="5.0" />
+        </mxCell>
+        <mxCell id="experiment-icon-3" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#087E8B;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="experiment-icon">
+          <mxGeometry as="geometry" x="23.333333333333258" y="5.0" width="10.0" height="5.0" />
+        </mxCell>
+        <mxCell id="experiment-icon-4" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="experiment-icon">
+          <mxGeometry as="geometry" x="1.6666666666667425" y="21.5" width="15.0" height="2.0" />
+        </mxCell>
+        <mxCell id="experiment-icon-5" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="experiment-icon">
+          <mxGeometry as="geometry" x="9.166666666666742" y="21.5" width="15.0" height="2.0" />
+        </mxCell>
+        <mxCell id="experiment-icon-6" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="experiment-icon">
+          <mxGeometry as="geometry" x="16.666666666666742" y="21.5" width="15.0" height="2.0" />
+        </mxCell>
+        <mxCell id="experiment-icon-7" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="experiment-icon">
+          <mxGeometry as="geometry" x="24.166666666666742" y="21.5" width="15.0" height="2.0" />
+        </mxCell>
+        <mxCell id="experiment-title" value="実験用コンテナ" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=22;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="experiment">
+          <mxGeometry as="geometry" x="66" y="9" width="750" height="32" />
+        </mxCell>
+        <mxCell id="experiment-body" value="Codexは研究UID10002。管理側とファイルを共有しない。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=15;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="experiment">
+          <mxGeometry as="geometry" x="66" y="40" width="750" height="22" />
+        </mxCell>
+        <mxCell id="broker" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;" vertex="1" parent="management" tooltip="固定の操作コード&#10;root broker&#10;manager・runnerに操作権限なし">
+          <mxGeometry as="geometry" x="40" y="110" width="330" height="135" />
+        </mxCell>
+        <mxCell id="broker-icon" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="broker">
+          <mxGeometry as="geometry" x="14" y="13" width="40" height="40" />
+        </mxCell>
+        <mxCell id="broker-icon-1" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="broker-icon">
+          <mxGeometry as="geometry" x="30.0" y="17.083333333333314" width="10.0" height="5.833333333333334" />
+        </mxCell>
+        <mxCell id="broker-icon-2" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=45;" vertex="1" parent="broker-icon">
+          <mxGeometry as="geometry" x="25.606601717798213" y="27.689935051131556" width="10.0" height="5.833333333333334" />
+        </mxCell>
+        <mxCell id="broker-icon-3" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90;" vertex="1" parent="broker-icon">
+          <mxGeometry as="geometry" x="15.0" y="32.083333333333314" width="10.0" height="5.833333333333334" />
+        </mxCell>
+        <mxCell id="broker-icon-4" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=135;" vertex="1" parent="broker-icon">
+          <mxGeometry as="geometry" x="4.393398282201787" y="27.689935051131556" width="10.0" height="5.833333333333334" />
+        </mxCell>
+        <mxCell id="broker-icon-5" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=180;" vertex="1" parent="broker-icon">
+          <mxGeometry as="geometry" x="0.0" y="17.083333333333314" width="10.0" height="5.833333333333334" />
+        </mxCell>
+        <mxCell id="broker-icon-6" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=225;" vertex="1" parent="broker-icon">
+          <mxGeometry as="geometry" x="4.393398282201787" y="6.4767316155351295" width="10.0" height="5.833333333333334" />
+        </mxCell>
+        <mxCell id="broker-icon-7" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=270;" vertex="1" parent="broker-icon">
+          <mxGeometry as="geometry" x="15.0" y="2.0833333333333144" width="10.0" height="5.833333333333334" />
+        </mxCell>
+        <mxCell id="broker-icon-8" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=315;" vertex="1" parent="broker-icon">
+          <mxGeometry as="geometry" x="25.606601717798213" y="6.4767316155351295" width="10.0" height="5.833333333333334" />
+        </mxCell>
+        <mxCell id="broker-icon-9" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#FFFFFF;strokeColor=#2864A5;rounded=0;arcSize=12;shape=ellipse;rotation=0;" vertex="1" parent="broker-icon">
+          <mxGeometry as="geometry" x="7.5" y="7.5" width="25.0" height="25.0" />
+        </mxCell>
+        <mxCell id="broker-icon-10" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#2864A5;rounded=0;arcSize=12;shape=ellipse;rotation=0;" vertex="1" parent="broker-icon">
+          <mxGeometry as="geometry" x="15.0" y="15.0" width="10.0" height="10.0" />
+        </mxCell>
+        <mxCell id="broker-title" value="固定の操作コード" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=20;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="broker">
+          <mxGeometry as="geometry" x="66" y="12" width="250" height="32" />
+        </mxCell>
+        <mxCell id="broker-body" value="root broker&#10;manager・runnerに操作権限なし" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="broker">
+          <mxGeometry as="geometry" x="14" y="57" width="302" height="69" />
+        </mxCell>
+        <mxCell id="socket" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#FFF4DC;strokeColor=#9D640D;rounded=1;arcSize=12;" vertex="1" parent="management" tooltip="Docker socketがある&#10;/run/c3-docker.sock&#10;ホストの窓口をbind接続">
+          <mxGeometry as="geometry" x="435" y="110" width="350" height="135" />
+        </mxCell>
+        <mxCell id="socket-icon" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="socket">
+          <mxGeometry as="geometry" x="14" y="13" width="40" height="40" />
+        </mxCell>
+        <mxCell id="socket-icon-1" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#9D640D;rounded=1;arcSize=12;shape=rectangle;rotation=-40;" vertex="1" parent="socket-icon">
+          <mxGeometry as="geometry" x="2.5" y="14.166666666666686" width="22.5" height="11.666666666666668" />
+        </mxCell>
+        <mxCell id="socket-icon-2" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#9D640D;rounded=1;arcSize=12;shape=rectangle;rotation=-40;" vertex="1" parent="socket-icon">
+          <mxGeometry as="geometry" x="16.66666666666663" y="14.166666666666686" width="22.5" height="11.666666666666668" />
+        </mxCell>
+        <mxCell id="socket-title" value="Docker socketがある" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=20;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="socket">
+          <mxGeometry as="geometry" x="66" y="12" width="270" height="32" />
+        </mxCell>
+        <mxCell id="socket-body" value="/run/c3-docker.sock&#10;ホストの窓口をbind接続" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="socket">
+          <mxGeometry as="geometry" x="14" y="57" width="322" height="69" />
+        </mxCell>
+        <mxCell id="codex" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#E8F6F6;strokeColor=#087E8B;rounded=1;arcSize=12;" vertex="1" parent="experiment" tooltip="Codex&#10;UID10002 / 非root&#10;通常shell・file toolsを利用">
+          <mxGeometry as="geometry" x="40" y="110" width="335" height="135" />
+        </mxCell>
+        <mxCell id="codex-icon" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="codex">
+          <mxGeometry as="geometry" x="14" y="13" width="40" height="40" />
+        </mxCell>
+        <mxCell id="codex-icon-1" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#087E8B;rounded=1;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="codex-icon">
+          <mxGeometry as="geometry" x="5.8333333333332575" y="11.666666666666686" width="28.333333333333336" height="23.333333333333336" />
+        </mxCell>
+        <mxCell id="codex-icon-2" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="codex-icon">
+          <mxGeometry as="geometry" x="16.666666666666742" y="7.333333333333314" width="6.666666666666667" height="2.0" />
+        </mxCell>
+        <mxCell id="codex-icon-3" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=#087E8B;rounded=0;arcSize=12;shape=ellipse;rotation=0;" vertex="1" parent="codex-icon">
+          <mxGeometry as="geometry" x="17.5" y="1.6666666666666856" width="5.0" height="5.0" />
+        </mxCell>
+        <mxCell id="codex-icon-4" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=#087E8B;rounded=0;arcSize=12;shape=ellipse;rotation=0;" vertex="1" parent="codex-icon">
+          <mxGeometry as="geometry" x="11.666666666666742" y="18.333333333333314" width="4.166666666666667" height="4.166666666666667" />
+        </mxCell>
+        <mxCell id="codex-icon-5" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=#087E8B;rounded=0;arcSize=12;shape=ellipse;rotation=0;" vertex="1" parent="codex-icon">
+          <mxGeometry as="geometry" x="24.166666666666742" y="18.333333333333314" width="4.166666666666667" height="4.166666666666667" />
+        </mxCell>
+        <mxCell id="codex-icon-6" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0.0;" vertex="1" parent="codex-icon">
+          <mxGeometry as="geometry" x="14.166666666666742" y="27.333333333333314" width="11.666666666666668" height="2.0" />
+        </mxCell>
+        <mxCell id="codex-icon-7" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#087E8B;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="codex-icon">
+          <mxGeometry as="geometry" x="1.6666666666667425" y="19.166666666666686" width="4.166666666666667" height="9.166666666666668" />
+        </mxCell>
+        <mxCell id="codex-icon-8" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#087E8B;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="codex-icon">
+          <mxGeometry as="geometry" x="34.16666666666674" y="19.166666666666686" width="4.166666666666667" height="9.166666666666668" />
+        </mxCell>
+        <mxCell id="codex-title" value="Codex" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=20;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="codex">
+          <mxGeometry as="geometry" x="66" y="12" width="255" height="32" />
+        </mxCell>
+        <mxCell id="codex-body" value="UID10002 / 非root&#10;通常shell・file toolsを利用" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="codex">
+          <mxGeometry as="geometry" x="14" y="57" width="307" height="69" />
+        </mxCell>
+        <mxCell id="workspace" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#E8F6F6;strokeColor=#087E8B;rounded=1;arcSize=12;" vertex="1" parent="experiment" tooltip="研究ファイルを操作&#10;/research/c3&#10;編集・実験・解析に利用">
+          <mxGeometry as="geometry" x="430" y="110" width="350" height="135" />
+        </mxCell>
+        <mxCell id="workspace-icon" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="workspace">
+          <mxGeometry as="geometry" x="14" y="13" width="40" height="40" />
+        </mxCell>
+        <mxCell id="workspace-icon-1" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#FFFFFF;strokeColor=#087E8B;rounded=1;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="workspace-icon">
+          <mxGeometry as="geometry" x="2.5" y="7.5" width="15.833333333333334" height="8.333333333333334" />
+        </mxCell>
+        <mxCell id="workspace-icon-2" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#FFFFFF;strokeColor=#087E8B;rounded=1;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="workspace-icon">
+          <mxGeometry as="geometry" x="2.5" y="13.333333333333314" width="35.0" height="20.833333333333336" />
+        </mxCell>
+        <mxCell id="workspace-icon-3" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0.0;" vertex="1" parent="workspace-icon">
+          <mxGeometry as="geometry" x="8.333333333333258" y="19.0" width="21.666666666666668" height="2.0" />
+        </mxCell>
+        <mxCell id="workspace-title" value="研究ファイルを操作" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=20;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="workspace">
+          <mxGeometry as="geometry" x="66" y="12" width="270" height="32" />
+        </mxCell>
+        <mxCell id="workspace-body" value="/research/c3&#10;編集・実験・解析に利用" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="workspace">
+          <mxGeometry as="geometry" x="14" y="57" width="322" height="69" />
+        </mxCell>
+        <mxCell id="control" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;" vertex="1" parent="management" tooltip="管理データは管理側だけ&#10;/control：設定・承認・claim・認証原本&#10;/runner：受付の登録情報">
+          <mxGeometry as="geometry" x="40" y="350" width="745" height="135" />
+        </mxCell>
+        <mxCell id="control-icon" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="control">
+          <mxGeometry as="geometry" x="14" y="13" width="40" height="40" />
+        </mxCell>
+        <mxCell id="control-icon-1" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#FFFFFF;strokeColor=#2864A5;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="control-icon">
+          <mxGeometry as="geometry" x="5.833333333333343" y="9.166666666666629" width="28.333333333333336" height="22.5" />
+        </mxCell>
+        <mxCell id="control-icon-2" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#FFFFFF;strokeColor=#2864A5;rounded=0;arcSize=12;shape=ellipse;rotation=0;" vertex="1" parent="control-icon">
+          <mxGeometry as="geometry" x="5.833333333333343" y="25.0" width="28.333333333333336" height="10.0" />
+        </mxCell>
+        <mxCell id="control-icon-3" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#FFFFFF;strokeColor=#2864A5;rounded=0;arcSize=12;shape=ellipse;rotation=0;" vertex="1" parent="control-icon">
+          <mxGeometry as="geometry" x="5.833333333333343" y="15.0" width="28.333333333333336" height="10.0" />
+        </mxCell>
+        <mxCell id="control-icon-4" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#FFFFFF;strokeColor=#2864A5;rounded=0;arcSize=12;shape=ellipse;rotation=0;" vertex="1" parent="control-icon">
+          <mxGeometry as="geometry" x="5.833333333333343" y="7.5" width="28.333333333333336" height="10.0" />
+        </mxCell>
+        <mxCell id="control-title" value="管理データは管理側だけ" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=20;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="control">
+          <mxGeometry as="geometry" x="66" y="12" width="665" height="32" />
+        </mxCell>
+        <mxCell id="control-body" value="/control：設定・承認・claim・認証原本&#10;/runner：受付の登録情報" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="control">
+          <mxGeometry as="geometry" x="14" y="57" width="717" height="69" />
+        </mxCell>
+        <mxCell id="missing" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#FCEDEF;strokeColor=#AD3E45;rounded=1;arcSize=12;" vertex="1" parent="experiment" tooltip="実験側へ渡さない&#10;Docker socket、/control、/runner&#10;管理用GitHub認証・ホストSSH鍵">
+          <mxGeometry as="geometry" x="40" y="350" width="740" height="135" />
+        </mxCell>
+        <mxCell id="missing-icon" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="missing">
+          <mxGeometry as="geometry" x="14" y="13" width="40" height="40" />
+        </mxCell>
+        <mxCell id="missing-icon-1" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#AD3E45;rounded=0;arcSize=12;shape=ellipse;rotation=0;" vertex="1" parent="missing-icon">
+          <mxGeometry as="geometry" x="2.5" y="2.5" width="35.0" height="35.0" />
+        </mxCell>
+        <mxCell id="missing-icon-2" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#AD3E45;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="missing-icon">
+          <mxGeometry as="geometry" x="13.333333333333258" y="15.0" width="13.333333333333334" height="3.3333333333333335" />
+        </mxCell>
+        <mxCell id="missing-icon-3" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#AD3E45;strokeColor=#AD3E45;rounded=0;arcSize=12;shape=ellipse;rotation=0;" vertex="1" parent="missing-icon">
+          <mxGeometry as="geometry" x="18.333333333333258" y="28.33333333333337" width="3.3333333333333335" height="3.3333333333333335" />
+        </mxCell>
+        <mxCell id="missing-title" value="実験側へ渡さない" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=20;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="missing">
+          <mxGeometry as="geometry" x="66" y="12" width="660" height="32" />
+        </mxCell>
+        <mxCell id="missing-body" value="Docker socket、/control、/runner&#10;管理用GitHub認証・ホストSSH鍵" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="missing">
+          <mxGeometry as="geometry" x="14" y="57" width="712" height="69" />
+        </mxCell>
+        <mxCell id="no-docker" value="×" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=36;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=1;spacing=12;strokeWidth=2;fillColor=#FCEDEF;strokeColor=#AD3E45;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="950" y="402" width="100" height="60" />
+        </mxCell>
+        <mxCell id="no-share" value="×" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=36;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=1;spacing=12;strokeWidth=2;fillColor=#FCEDEF;strokeColor=#AD3E45;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="950" y="642" width="100" height="60" />
+        </mxCell>
+        <mxCell id="docker-label" value="操作の入口なし" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=17;fontColor=#AD3E45;align=center;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="917" y="355" width="165" height="34" />
+        </mxCell>
+        <mxCell id="share-label" value="共有なし" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=17;fontColor=#AD3E45;align=center;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="925" y="600" width="150" height="32" />
+        </mxCell>
+        <mxCell id="wall-files" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#F0F4F8;strokeColor=#718298;rounded=1;arcSize=12;" vertex="1" parent="host" tooltip="壁① ファイルの分離&#10;コンテナ内の同じパス名でも、別のファイル。&#10;管理volumeやホストフォルダを実験側に接続しない。&#10;現在の実験コンテナは Mounts=[]。">
+          <mxGeometry as="geometry" x="35" y="695" width="565" height="235" />
+        </mxCell>
+        <mxCell id="wall-files-icon" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="wall-files">
+          <mxGeometry as="geometry" x="14" y="13" width="40" height="40" />
+        </mxCell>
+        <mxCell id="wall-files-icon-1" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#FFFFFF;strokeColor=#718298;rounded=1;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="wall-files-icon">
+          <mxGeometry as="geometry" x="2.5" y="7.5" width="15.833333333333334" height="8.333333333333334" />
+        </mxCell>
+        <mxCell id="wall-files-icon-2" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#FFFFFF;strokeColor=#718298;rounded=1;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="wall-files-icon">
+          <mxGeometry as="geometry" x="2.5" y="13.333333333333371" width="35.0" height="20.833333333333336" />
+        </mxCell>
+        <mxCell id="wall-files-icon-3" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#718298;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0.0;" vertex="1" parent="wall-files-icon">
+          <mxGeometry as="geometry" x="8.333333333333329" y="19.0" width="21.666666666666668" height="2.0" />
+        </mxCell>
+        <mxCell id="wall-files-title" value="壁① ファイルの分離" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=20;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="wall-files">
+          <mxGeometry as="geometry" x="66" y="12" width="485" height="32" />
+        </mxCell>
+        <mxCell id="wall-files-body" value="コンテナ内の同じパス名でも、別のファイル。&#10;管理volumeやホストフォルダを実験側に接続しない。&#10;現在の実験コンテナは Mounts=[]。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="wall-files">
+          <mxGeometry as="geometry" x="14" y="57" width="537" height="169" />
+        </mxCell>
+        <mxCell id="wall-socket" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#FFF4DC;strokeColor=#9D640D;rounded=1;arcSize=12;" vertex="1" parent="host" tooltip="壁② 操作権限の分離&#10;socketはコンテナ限定の鍵ではなく、Docker全体への強い窓口。&#10;登録先に操作を限定するのは固定コードの役割。&#10;Codexにはその窓口を渡さない。">
+          <mxGeometry as="geometry" x="630" y="695" width="625" height="235" />
+        </mxCell>
+        <mxCell id="wall-socket-icon" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="wall-socket">
+          <mxGeometry as="geometry" x="14" y="13" width="40" height="40" />
+        </mxCell>
+        <mxCell id="wall-socket-icon-1" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#9D640D;rounded=0;arcSize=12;shape=ellipse;rotation=0;" vertex="1" parent="wall-socket-icon">
+          <mxGeometry as="geometry" x="2.5" y="3.3333333333333712" width="18.333333333333336" height="18.333333333333336" />
+        </mxCell>
+        <mxCell id="wall-socket-icon-2" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#9D640D;rounded=0;arcSize=12;shape=ellipse;rotation=0;" vertex="1" parent="wall-socket-icon">
+          <mxGeometry as="geometry" x="7.5" y="8.333333333333371" width="6.666666666666667" height="6.666666666666667" />
+        </mxCell>
+        <mxCell id="wall-socket-icon-3" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#9D640D;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=42.13759477388825;" vertex="1" parent="wall-socket-icon">
+          <mxGeometry as="geometry" x="15.28349811791145" y="26.25" width="23.59967043084383" height="3.3333333333333335" />
+        </mxCell>
+        <mxCell id="wall-socket-icon-4" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#9D640D;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=-45.0;" vertex="1" parent="wall-socket-icon">
+          <mxGeometry as="geometry" x="25.631132760733976" y="24.16666666666663" width="7.071067811865475" height="3.3333333333333335" />
+        </mxCell>
+        <mxCell id="wall-socket-icon-5" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#9D640D;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=-45.0;" vertex="1" parent="wall-socket-icon">
+          <mxGeometry as="geometry" x="30.631132760733976" y="29.16666666666663" width="7.071067811865475" height="3.3333333333333335" />
+        </mxCell>
+        <mxCell id="wall-socket-title" value="壁② 操作権限の分離" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=20;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="wall-socket">
+          <mxGeometry as="geometry" x="66" y="12" width="545" height="32" />
+        </mxCell>
+        <mxCell id="wall-socket-body" value="socketはコンテナ限定の鍵ではなく、Docker全体への強い窓口。&#10;登録先に操作を限定するのは固定コードの役割。&#10;Codexにはその窓口を渡さない。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="wall-socket">
+          <mxGeometry as="geometry" x="14" y="57" width="597" height="169" />
+        </mxCell>
+        <mxCell id="wall-uid" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#E8F6F6;strokeColor=#087E8B;rounded=1;arcSize=12;" vertex="1" parent="host" tooltip="壁③ OSユーザーの分離&#10;同じ実験コンテナでも、監督はroot、CodexはUID10002。&#10;追加groupなし / no-new-privileges。&#10;固定コード・root私有状態を保護する。">
+          <mxGeometry as="geometry" x="1285" y="695" width="565" height="235" />
+        </mxCell>
+        <mxCell id="wall-uid-icon" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="wall-uid">
+          <mxGeometry as="geometry" x="14" y="13" width="40" height="40" />
+        </mxCell>
+        <mxCell id="wall-uid-icon-1" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#087E8B;rounded=1;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="wall-uid-icon">
+          <mxGeometry as="geometry" x="10.0" y="3.3333333333333712" width="20.0" height="21.666666666666668" />
+        </mxCell>
+        <mxCell id="wall-uid-icon-2" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#FFFFFF;strokeColor=#087E8B;rounded=1;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="wall-uid-icon">
+          <mxGeometry as="geometry" x="5.0" y="17.5" width="30.0" height="19.166666666666668" />
+        </mxCell>
+        <mxCell id="wall-uid-icon-3" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=#087E8B;rounded=0;arcSize=12;shape=ellipse;rotation=0;" vertex="1" parent="wall-uid-icon">
+          <mxGeometry as="geometry" x="17.5" y="22.5" width="5.0" height="5.0" />
+        </mxCell>
+        <mxCell id="wall-uid-icon-4" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="wall-uid-icon">
+          <mxGeometry as="geometry" x="17.5" y="27.91666666666663" width="5.0" height="2.5" />
+        </mxCell>
+        <mxCell id="wall-uid-title" value="壁③ OSユーザーの分離" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=20;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="wall-uid">
+          <mxGeometry as="geometry" x="66" y="12" width="485" height="32" />
+        </mxCell>
+        <mxCell id="wall-uid-body" value="同じ実験コンテナでも、監督はroot、CodexはUID10002。&#10;追加groupなし / no-new-privileges。&#10;固定コード・root私有状態を保護する。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="wall-uid">
+          <mxGeometry as="geometry" x="14" y="57" width="537" height="169" />
+        </mxCell>
+        <mxCell id="limits" value="制限の対象は管理操作と権限。モデル・GitHubへの外向き通信や、研究UIDで読める既存ファイルの利用は可能。&#10;共有設定やDocker APIの公開を変更すれば前提も変わる。コンテナはホストとカーネルを共有し、絶対的な隔離ではない。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=21;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#F0F4F8;strokeColor=#718298;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="80" y="1130" width="1815" height="100" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="03-supervision" name="03  実験中もハーネスは何をしている？">
+    <mxGraphModel dx="2000" dy="1400" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2000" pageHeight="1400" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="management" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=left;verticalAlign=top;fontStyle=1;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;spacingTop=14;container=1;collapsible=0;recursiveResize=0;" vertex="1" parent="1" tooltip="管理側：依頼と実行の条件を守る&#10;manager・brokerの役割を段階別に表示。Docker経由の通信は省略。">
+          <mxGeometry as="geometry" x="65" y="180" width="800" height="880" />
+        </mxCell>
+        <mxCell id="experiment" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=left;verticalAlign=top;fontStyle=1;spacing=12;strokeWidth=2;fillColor=#E8F6F6;strokeColor=#087E8B;rounded=1;arcSize=12;spacingTop=14;container=1;collapsible=0;recursiveResize=0;" vertex="1" parent="1" tooltip="実験側：研究と監督を別プロセスで行う&#10;②④⑤は同じsupervisorの役割。図は段階を分けて示す。">
+          <mxGeometry as="geometry" x="1000" y="180" width="930" height="880" />
+        </mxCell>
+        <mxCell id="admit-prepare" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#2864A5;strokeWidth=2;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="admit" target="prepare">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="825" y="347.5" />
+            <mxPoint as="targetPoint" x="1050" y="347.5" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="prepare-codex" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#087E8B;strokeWidth=2;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="prepare" target="codex">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1420" y="347.5" />
+            <mxPoint as="targetPoint" x="1480" y="347.5" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="launch-experiment" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#087E8B;strokeWidth=2;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="codex" target="job">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1665.0" y="410" />
+            <mxPoint as="targetPoint" x="1665.0" y="505" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="send-lease" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#2864A5;strokeWidth=2;endArrow=block;endFill=1;dashed=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lease" target="monitor">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="825" y="582.5" />
+            <mxPoint as="targetPoint" x="1050" y="582.5" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="observe-job" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#087E8B;strokeWidth=2;endArrow=block;endFill=1;dashed=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="monitor" target="job">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1420" y="582.5" />
+            <mxPoint as="targetPoint" x="1480" y="582.5" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="exit-cleanup" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#087E8B;strokeWidth=2;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="codex" target="cleanup">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1850" y="347.5" />
+            <mxPoint as="targetPoint" x="1850" y="957.5" />
+            <Array as="points">
+              <mxPoint x="1890" y="347.5" />
+              <mxPoint x="1890" y="957.5" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="record-result" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#087E8B;strokeWidth=2;endArrow=block;endFill=1;dashed=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="cleanup" target="record">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1050" y="957.5" />
+            <mxPoint as="targetPoint" x="825" y="957.5" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="heading" value="03  実験中もハーネスは何をしている？" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=34;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="48" y="28" width="1840" height="50" />
+        </mxCell>
+        <mxCell id="subtitle" value="研究の手順はCodexが選ぶ。ハーネスは開始条件・継続条件・終了時の回収を固定コードで確認する。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=19;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="86" width="1890" height="48" />
+        </mxCell>
+        <mxCell id="footer" value="ハーネス入門 3 / 03  |  実装基準: PR108 @ 21af4c2d  |  配置例: leo（2026-11-16記録）" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=14;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="1324" width="1890" height="24" />
+        </mxCell>
+        <mxCell id="source" value="根拠: spec §8–13 / direct_pr_service / execution_delivery / execution_worker.run_job / execution_process.cleanup_family" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=14;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="1352" width="1890" height="26" />
+        </mxCell>
+        <mxCell id="management-icon" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="management">
+          <mxGeometry as="geometry" x="14" y="13" width="40" height="40" />
+        </mxCell>
+        <mxCell id="management-icon-1" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#2864A5;rounded=1;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="management-icon">
+          <mxGeometry as="geometry" x="2.5" y="10.0" width="35.0" height="25.0" />
+        </mxCell>
+        <mxCell id="management-icon-2" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#2864A5;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="management-icon">
+          <mxGeometry as="geometry" x="6.666666666666671" y="5.0" width="10.0" height="5.0" />
+        </mxCell>
+        <mxCell id="management-icon-3" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#2864A5;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="management-icon">
+          <mxGeometry as="geometry" x="23.333333333333343" y="5.0" width="10.0" height="5.0" />
+        </mxCell>
+        <mxCell id="management-icon-4" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="management-icon">
+          <mxGeometry as="geometry" x="1.6666666666666714" y="21.5" width="15.0" height="2.0" />
+        </mxCell>
+        <mxCell id="management-icon-5" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="management-icon">
+          <mxGeometry as="geometry" x="9.166666666666671" y="21.5" width="15.0" height="2.0" />
+        </mxCell>
+        <mxCell id="management-icon-6" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="management-icon">
+          <mxGeometry as="geometry" x="16.66666666666667" y="21.5" width="15.0" height="2.0" />
+        </mxCell>
+        <mxCell id="management-icon-7" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="management-icon">
+          <mxGeometry as="geometry" x="24.16666666666667" y="21.5" width="15.0" height="2.0" />
+        </mxCell>
+        <mxCell id="management-title" value="管理側：依頼と実行の条件を守る" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=22;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="management">
+          <mxGeometry as="geometry" x="66" y="9" width="720" height="32" />
+        </mxCell>
+        <mxCell id="management-body" value="manager・brokerの役割を段階別に表示。Docker経由の通信は省略。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=15;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="management">
+          <mxGeometry as="geometry" x="66" y="40" width="720" height="22" />
+        </mxCell>
+        <mxCell id="experiment-icon" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="experiment">
+          <mxGeometry as="geometry" x="14" y="13" width="40" height="40" />
+        </mxCell>
+        <mxCell id="experiment-icon-1" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#087E8B;rounded=1;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="experiment-icon">
+          <mxGeometry as="geometry" x="2.5" y="10.0" width="35.0" height="25.0" />
+        </mxCell>
+        <mxCell id="experiment-icon-2" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#087E8B;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="experiment-icon">
+          <mxGeometry as="geometry" x="6.666666666666629" y="5.0" width="10.0" height="5.0" />
+        </mxCell>
+        <mxCell id="experiment-icon-3" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#087E8B;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="experiment-icon">
+          <mxGeometry as="geometry" x="23.333333333333258" y="5.0" width="10.0" height="5.0" />
+        </mxCell>
+        <mxCell id="experiment-icon-4" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="experiment-icon">
+          <mxGeometry as="geometry" x="1.6666666666666288" y="21.5" width="15.0" height="2.0" />
+        </mxCell>
+        <mxCell id="experiment-icon-5" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="experiment-icon">
+          <mxGeometry as="geometry" x="9.166666666666629" y="21.5" width="15.0" height="2.0" />
+        </mxCell>
+        <mxCell id="experiment-icon-6" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="experiment-icon">
+          <mxGeometry as="geometry" x="16.666666666666742" y="21.5" width="15.0" height="2.0" />
+        </mxCell>
+        <mxCell id="experiment-icon-7" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="experiment-icon">
+          <mxGeometry as="geometry" x="24.166666666666742" y="21.5" width="15.0" height="2.0" />
+        </mxCell>
+        <mxCell id="experiment-title" value="実験側：研究と監督を別プロセスで行う" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=22;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="experiment">
+          <mxGeometry as="geometry" x="66" y="9" width="850" height="32" />
+        </mxCell>
+        <mxCell id="experiment-body" value="②④⑤は同じsupervisorの役割。図は段階を分けて示す。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=15;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="experiment">
+          <mxGeometry as="geometry" x="66" y="40" width="850" height="22" />
+        </mxCell>
+        <mxCell id="admit" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;" vertex="1" parent="management" tooltip="① 始めてよいか確認&#10;承認されたIssue・設定ON・登録先・予算を検査。&#10;実行前チェックを通し、一度だけclaimして実行を渡す。">
+          <mxGeometry as="geometry" x="35" y="105" width="725" height="125" />
+        </mxCell>
+        <mxCell id="admit-icon" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="admit">
+          <mxGeometry as="geometry" x="14" y="13" width="40" height="40" />
+        </mxCell>
+        <mxCell id="admit-icon-1" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#2864A5;rounded=0;arcSize=12;shape=ellipse;rotation=0;" vertex="1" parent="admit-icon">
+          <mxGeometry as="geometry" x="2.5" y="2.5" width="35.0" height="35.0" />
+        </mxCell>
+        <mxCell id="admit-icon-2" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=45.0;" vertex="1" parent="admit-icon">
+          <mxGeometry as="geometry" x="8.446699141100893" y="23.333333333333314" width="10.606601717798213" height="2.5" />
+        </mxCell>
+        <mxCell id="admit-icon-3" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=-49.899092453787766;" vertex="1" parent="admit-icon">
+          <mxGeometry as="geometry" x="13.816881376354814" y="19.166666666666686" width="20.699570580623703" height="2.5" />
+        </mxCell>
+        <mxCell id="admit-title" value="① 始めてよいか確認" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=20;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="admit">
+          <mxGeometry as="geometry" x="66" y="12" width="645" height="32" />
+        </mxCell>
+        <mxCell id="admit-body" value="承認されたIssue・設定ON・登録先・予算を検査。&#10;実行前チェックを通し、一度だけclaimして実行を渡す。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="admit">
+          <mxGeometry as="geometry" x="14" y="57" width="697" height="59" />
+        </mxCell>
+        <mxCell id="prepare" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#E8F6F6;strokeColor=#087E8B;rounded=1;arcSize=12;" vertex="1" parent="experiment" tooltip="② 起動を準備&#10;supervisor / root&#10;GPU空き確認・job用認証を準備">
+          <mxGeometry as="geometry" x="50" y="105" width="370" height="125" />
+        </mxCell>
+        <mxCell id="prepare-icon" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="prepare">
+          <mxGeometry as="geometry" x="14" y="13" width="40" height="40" />
+        </mxCell>
+        <mxCell id="prepare-icon-1" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#087E8B;rounded=1;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="prepare-icon">
+          <mxGeometry as="geometry" x="2.5" y="5.0" width="35.0" height="30.0" />
+        </mxCell>
+        <mxCell id="prepare-icon-2" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0.0;" vertex="1" parent="prepare-icon">
+          <mxGeometry as="geometry" x="2.5" y="10.666666666666686" width="35.0" height="2.0" />
+        </mxCell>
+        <mxCell id="prepare-icon-3" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=40.60129464500447;" vertex="1" parent="prepare-icon">
+          <mxGeometry as="geometry" x="8.24185647612785" y="19.583333333333314" width="7.68295371441074" height="2.5" />
+        </mxCell>
+        <mxCell id="prepare-icon-4" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=139.39870535499554;" vertex="1" parent="prepare-icon">
+          <mxGeometry as="geometry" x="8.24185647612785" y="24.583333333333314" width="7.68295371441074" height="2.5" />
+        </mxCell>
+        <mxCell id="prepare-icon-5" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0.0;" vertex="1" parent="prepare-icon">
+          <mxGeometry as="geometry" x="19.166666666666742" y="27.083333333333314" width="10.0" height="2.5" />
+        </mxCell>
+        <mxCell id="prepare-title" value="② 起動を準備" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=20;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="prepare">
+          <mxGeometry as="geometry" x="66" y="12" width="290" height="32" />
+        </mxCell>
+        <mxCell id="prepare-body" value="supervisor / root&#10;GPU空き確認・job用認証を準備" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="prepare">
+          <mxGeometry as="geometry" x="14" y="57" width="342" height="59" />
+        </mxCell>
+        <mxCell id="codex" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#E8F6F6;strokeColor=#087E8B;rounded=1;arcSize=12;" vertex="1" parent="experiment" tooltip="③ 同じセッションで研究&#10;Codex / UID10002&#10;編集・実験・待機・解析・結果PR">
+          <mxGeometry as="geometry" x="480" y="105" width="370" height="125" />
+        </mxCell>
+        <mxCell id="codex-icon" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="codex">
+          <mxGeometry as="geometry" x="14" y="13" width="40" height="40" />
+        </mxCell>
+        <mxCell id="codex-icon-1" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#087E8B;rounded=1;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="codex-icon">
+          <mxGeometry as="geometry" x="5.8333333333332575" y="11.666666666666686" width="28.333333333333336" height="23.333333333333336" />
+        </mxCell>
+        <mxCell id="codex-icon-2" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="codex-icon">
+          <mxGeometry as="geometry" x="16.666666666666742" y="7.333333333333314" width="6.666666666666667" height="2.0" />
+        </mxCell>
+        <mxCell id="codex-icon-3" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=#087E8B;rounded=0;arcSize=12;shape=ellipse;rotation=0;" vertex="1" parent="codex-icon">
+          <mxGeometry as="geometry" x="17.5" y="1.6666666666666856" width="5.0" height="5.0" />
+        </mxCell>
+        <mxCell id="codex-icon-4" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=#087E8B;rounded=0;arcSize=12;shape=ellipse;rotation=0;" vertex="1" parent="codex-icon">
+          <mxGeometry as="geometry" x="11.666666666666742" y="18.333333333333314" width="4.166666666666667" height="4.166666666666667" />
+        </mxCell>
+        <mxCell id="codex-icon-5" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=#087E8B;rounded=0;arcSize=12;shape=ellipse;rotation=0;" vertex="1" parent="codex-icon">
+          <mxGeometry as="geometry" x="24.166666666666742" y="18.333333333333314" width="4.166666666666667" height="4.166666666666667" />
+        </mxCell>
+        <mxCell id="codex-icon-6" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0.0;" vertex="1" parent="codex-icon">
+          <mxGeometry as="geometry" x="14.166666666666742" y="27.333333333333314" width="11.666666666666668" height="2.0" />
+        </mxCell>
+        <mxCell id="codex-icon-7" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#087E8B;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="codex-icon">
+          <mxGeometry as="geometry" x="1.6666666666667425" y="19.166666666666686" width="4.166666666666667" height="9.166666666666668" />
+        </mxCell>
+        <mxCell id="codex-icon-8" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#087E8B;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="codex-icon">
+          <mxGeometry as="geometry" x="34.16666666666674" y="19.166666666666686" width="4.166666666666667" height="9.166666666666668" />
+        </mxCell>
+        <mxCell id="codex-title" value="③ 同じセッションで研究" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=20;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="codex">
+          <mxGeometry as="geometry" x="66" y="12" width="290" height="32" />
+        </mxCell>
+        <mxCell id="codex-body" value="Codex / UID10002&#10;編集・実験・待機・解析・結果PR" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="codex">
+          <mxGeometry as="geometry" x="14" y="57" width="342" height="59" />
+        </mxCell>
+        <mxCell id="lease" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;" vertex="1" parent="management" tooltip="④ 継続してよいか確認&#10;managerが承認・取消・期限を再確認。&#10;brokerは約2秒ごとに継続確認（lease）を送る。&#10;OFFは次の仕事を止め、単なるOFFで現在のjobを取り消さない。">
+          <mxGeometry as="geometry" x="35" y="325" width="725" height="155" />
+        </mxCell>
+        <mxCell id="lease-icon" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="lease">
+          <mxGeometry as="geometry" x="14" y="13" width="40" height="40" />
+        </mxCell>
+        <mxCell id="lease-icon-1" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#2864A5;rounded=1;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="lease-icon">
+          <mxGeometry as="geometry" x="2.5" y="5.0" width="35.0" height="30.0" />
+        </mxCell>
+        <mxCell id="lease-icon-2" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0.0;" vertex="1" parent="lease-icon">
+          <mxGeometry as="geometry" x="5.0" y="20.66666666666663" width="6.666666666666667" height="2.0" />
+        </mxCell>
+        <mxCell id="lease-icon-3" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=-65.55604521958347;" vertex="1" parent="lease-icon">
+          <mxGeometry as="geometry" x="8.715397511002266" y="16.08333333333337" width="10.069204977995478" height="2.0" />
+        </mxCell>
+        <mxCell id="lease-icon-4" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=69.77514056883192;" vertex="1" parent="lease-icon">
+          <mxGeometry as="geometry" x="10.313143028618086" y="19.41666666666663" width="16.873713942763825" height="2.0" />
+        </mxCell>
+        <mxCell id="lease-icon-5" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=-65.55604521958347;" vertex="1" parent="lease-icon">
+          <mxGeometry as="geometry" x="18.715397511002266" y="22.75" width="10.069204977995478" height="2.0" />
+        </mxCell>
+        <mxCell id="lease-icon-6" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0.0;" vertex="1" parent="lease-icon">
+          <mxGeometry as="geometry" x="25.833333333333343" y="18.16666666666663" width="9.166666666666668" height="2.0" />
+        </mxCell>
+        <mxCell id="lease-title" value="④ 継続してよいか確認" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=20;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="lease">
+          <mxGeometry as="geometry" x="66" y="12" width="645" height="32" />
+        </mxCell>
+        <mxCell id="lease-body" value="managerが承認・取消・期限を再確認。&#10;brokerは約2秒ごとに継続確認（lease）を送る。&#10;OFFは次の仕事を止め、単なるOFFで現在のjobを取り消さない。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="lease">
+          <mxGeometry as="geometry" x="14" y="57" width="697" height="89" />
+        </mxCell>
+        <mxCell id="monitor" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#E8F6F6;strokeColor=#087E8B;rounded=1;arcSize=12;" vertex="1" parent="experiment" tooltip="④ 資源と子孫を監督&#10;supervisor / root&#10;GPU・メモリ等を観測、lease窓は10秒&#10;。&#10;違反や途絶なら自jobを停止。">
+          <mxGeometry as="geometry" x="50" y="325" width="370" height="155" />
+        </mxCell>
+        <mxCell id="monitor-icon" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="monitor">
+          <mxGeometry as="geometry" x="14" y="13" width="40" height="40" />
+        </mxCell>
+        <mxCell id="monitor-icon-1" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#087E8B;rounded=1;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="monitor-icon">
+          <mxGeometry as="geometry" x="2.5" y="3.3333333333333712" width="35.0" height="25.833333333333336" />
+        </mxCell>
+        <mxCell id="monitor-icon-2" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="monitor-icon">
+          <mxGeometry as="geometry" x="16.666666666666742" y="31.5" width="6.666666666666667" height="2.0" />
+        </mxCell>
+        <mxCell id="monitor-icon-3" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0.0;" vertex="1" parent="monitor-icon">
+          <mxGeometry as="geometry" x="10.833333333333258" y="35.66666666666663" width="18.333333333333336" height="2.0" />
+        </mxCell>
+        <mxCell id="monitor-icon-4" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=-41.6335393365702;" vertex="1" parent="monitor-icon">
+          <mxGeometry as="geometry" x="6.232668925503276" y="18.16666666666663" width="10.034662148993581" height="2.0" />
+        </mxCell>
+        <mxCell id="monitor-icon-5" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=29.054604099077146;" vertex="1" parent="monitor-icon">
+          <mxGeometry as="geometry" x="14.460154107922108" y="16.91666666666663" width="8.579691784155834" height="2.0" />
+        </mxCell>
+        <mxCell id="monitor-icon-6" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=-49.76364169072618;" vertex="1" parent="monitor-icon">
+          <mxGeometry as="geometry" x="19.987755680863984" y="13.583333333333371" width="14.19115530493867" height="2.0" />
+        </mxCell>
+        <mxCell id="monitor-title" value="④ 資源と子孫を監督" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=20;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="monitor">
+          <mxGeometry as="geometry" x="66" y="12" width="290" height="32" />
+        </mxCell>
+        <mxCell id="monitor-body" value="supervisor / root&#10;GPU・メモリ等を観測、lease窓は10秒。&#10;違反や途絶なら自jobを停止。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=17;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="monitor">
+          <mxGeometry as="geometry" x="14" y="57" width="342" height="89" />
+        </mxCell>
+        <mxCell id="job" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#ECF7EE;strokeColor=#32754B;rounded=1;arcSize=12;" vertex="1" parent="experiment" tooltip="実験プロセスが計算&#10;Codexがshellで起動した子プロセス。&#10;許可されたGPUを利用。&#10;他者の実験は停止しない。">
+          <mxGeometry as="geometry" x="480" y="325" width="370" height="155" />
+        </mxCell>
+        <mxCell id="job-icon" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="job">
+          <mxGeometry as="geometry" x="14" y="13" width="40" height="40" />
+        </mxCell>
+        <mxCell id="job-icon-1" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#32754B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="job-icon">
+          <mxGeometry as="geometry" x="7.0833333333332575" y="2.75" width="5.833333333333334" height="2.0" />
+        </mxCell>
+        <mxCell id="job-icon-2" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#32754B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="job-icon">
+          <mxGeometry as="geometry" x="7.0833333333332575" y="35.25" width="5.833333333333334" height="2.0" />
+        </mxCell>
+        <mxCell id="job-icon-3" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#32754B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0.0;" vertex="1" parent="job-icon">
+          <mxGeometry as="geometry" x="0.8333333333332575" y="9.0" width="5.833333333333334" height="2.0" />
+        </mxCell>
+        <mxCell id="job-icon-4" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#32754B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0.0;" vertex="1" parent="job-icon">
+          <mxGeometry as="geometry" x="33.33333333333326" y="9.0" width="5.833333333333334" height="2.0" />
+        </mxCell>
+        <mxCell id="job-icon-5" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#32754B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="job-icon">
+          <mxGeometry as="geometry" x="17.083333333333258" y="2.75" width="5.833333333333334" height="2.0" />
+        </mxCell>
+        <mxCell id="job-icon-6" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#32754B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="job-icon">
+          <mxGeometry as="geometry" x="17.083333333333258" y="35.25" width="5.833333333333334" height="2.0" />
+        </mxCell>
+        <mxCell id="job-icon-7" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#32754B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0.0;" vertex="1" parent="job-icon">
+          <mxGeometry as="geometry" x="0.8333333333332575" y="19.0" width="5.833333333333334" height="2.0" />
+        </mxCell>
+        <mxCell id="job-icon-8" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#32754B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0.0;" vertex="1" parent="job-icon">
+          <mxGeometry as="geometry" x="33.33333333333326" y="19.0" width="5.833333333333334" height="2.0" />
+        </mxCell>
+        <mxCell id="job-icon-9" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#32754B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="job-icon">
+          <mxGeometry as="geometry" x="27.083333333333258" y="2.75" width="5.833333333333334" height="2.0" />
+        </mxCell>
+        <mxCell id="job-icon-10" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#32754B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="job-icon">
+          <mxGeometry as="geometry" x="27.083333333333258" y="35.25" width="5.833333333333334" height="2.0" />
+        </mxCell>
+        <mxCell id="job-icon-11" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#32754B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0.0;" vertex="1" parent="job-icon">
+          <mxGeometry as="geometry" x="0.8333333333332575" y="29.0" width="5.833333333333334" height="2.0" />
+        </mxCell>
+        <mxCell id="job-icon-12" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#32754B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0.0;" vertex="1" parent="job-icon">
+          <mxGeometry as="geometry" x="33.33333333333326" y="29.0" width="5.833333333333334" height="2.0" />
+        </mxCell>
+        <mxCell id="job-icon-13" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#FFFFFF;strokeColor=#32754B;rounded=1;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="job-icon">
+          <mxGeometry as="geometry" x="6.6666666666667425" y="6.666666666666629" width="26.666666666666668" height="26.666666666666668" />
+        </mxCell>
+        <mxCell id="job-icon-14" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#32754B;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="job-icon">
+          <mxGeometry as="geometry" x="12.5" y="12.5" width="15.0" height="15.0" />
+        </mxCell>
+        <mxCell id="job-icon-15" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#32754B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=90.0;" vertex="1" parent="job-icon">
+          <mxGeometry as="geometry" x="12.5" y="19.0" width="15.0" height="2.0" />
+        </mxCell>
+        <mxCell id="job-icon-16" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#32754B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0.0;" vertex="1" parent="job-icon">
+          <mxGeometry as="geometry" x="12.5" y="19.0" width="15.0" height="2.0" />
+        </mxCell>
+        <mxCell id="job-title" value="実験プロセスが計算" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=20;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="job">
+          <mxGeometry as="geometry" x="66" y="12" width="290" height="32" />
+        </mxCell>
+        <mxCell id="job-body" value="Codexがshellで起動した子プロセス。&#10;許可されたGPUを利用。&#10;他者の実験は停止しない。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="job">
+          <mxGeometry as="geometry" x="14" y="57" width="342" height="89" />
+        </mxCell>
+        <mxCell id="same-session" value="実験待ちも同じCodexセッション。&#10;終了後の解析用にCodexを呼び直す構&#10;成ではない。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=19;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#F0F4F8;strokeColor=#718298;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1480" y="710" width="370" height="110" />
+        </mxCell>
+        <mxCell id="cleanup" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#E8F6F6;strokeColor=#087E8B;rounded=1;arcSize=12;" vertex="1" parent="experiment" tooltip="⑤ 終了時に必ず後始末&#10;正常終了・失敗・取消のいずれも、自jobの子孫を停止・回収。&#10;必要な認証refreshの保存ACKを確認 → job用homeを削除。&#10;研究workspaceや他者のプロセスを一括削除する処理ではない。">
+          <mxGeometry as="geometry" x="50" y="700" width="800" height="155" />
+        </mxCell>
+        <mxCell id="cleanup-icon" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="cleanup">
+          <mxGeometry as="geometry" x="14" y="13" width="40" height="40" />
+        </mxCell>
+        <mxCell id="cleanup-icon-1" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#087E8B;rounded=0;arcSize=12;shape=ellipse;rotation=0;" vertex="1" parent="cleanup-icon">
+          <mxGeometry as="geometry" x="2.5" y="2.5" width="35.0" height="35.0" />
+        </mxCell>
+        <mxCell id="cleanup-icon-2" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=45.0;" vertex="1" parent="cleanup-icon">
+          <mxGeometry as="geometry" x="8.446699141100908" y="23.33333333333337" width="10.606601717798213" height="2.5" />
+        </mxCell>
+        <mxCell id="cleanup-icon-3" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#087E8B;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=-49.899092453787766;" vertex="1" parent="cleanup-icon">
+          <mxGeometry as="geometry" x="13.816881376354786" y="19.16666666666663" width="20.699570580623703" height="2.5" />
+        </mxCell>
+        <mxCell id="cleanup-title" value="⑤ 終了時に必ず後始末" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=20;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="cleanup">
+          <mxGeometry as="geometry" x="66" y="12" width="720" height="32" />
+        </mxCell>
+        <mxCell id="cleanup-body" value="正常終了・失敗・取消のいずれも、自jobの子孫を停止・回収。&#10;必要な認証refreshの保存ACKを確認 → job用homeを削除。&#10;研究workspaceや他者のプロセスを一括削除する処理ではない。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="cleanup">
+          <mxGeometry as="geometry" x="14" y="57" width="772" height="89" />
+        </mxCell>
+        <mxCell id="record" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;" vertex="1" parent="management" tooltip="⑥ 結果と回収の確認を記録&#10;回収の確認後に結果を管理側へ返し、実行台帳に記録。&#10;WORKER_FINISHEDは科学的成功の証明ではない。&#10;PRの照合・科学的な独立受入の範囲は詳細図06を参照。">
+          <mxGeometry as="geometry" x="35" y="700" width="725" height="155" />
+        </mxCell>
+        <mxCell id="record-icon" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="record">
+          <mxGeometry as="geometry" x="14" y="13" width="40" height="40" />
+        </mxCell>
+        <mxCell id="record-icon-1" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=none;strokeColor=#2864A5;rounded=1;arcSize=12;shape=rectangle;rotation=0;" vertex="1" parent="record-icon">
+          <mxGeometry as="geometry" x="6.666666666666671" y="2.5" width="26.666666666666668" height="35.0" />
+        </mxCell>
+        <mxCell id="record-icon-2" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0.0;" vertex="1" parent="record-icon">
+          <mxGeometry as="geometry" x="12.5" y="9.833333333333371" width="15.0" height="2.0" />
+        </mxCell>
+        <mxCell id="record-icon-3" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0.0;" vertex="1" parent="record-icon">
+          <mxGeometry as="geometry" x="12.5" y="16.5" width="15.0" height="2.0" />
+        </mxCell>
+        <mxCell id="record-icon-4" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=0.0;" vertex="1" parent="record-icon">
+          <mxGeometry as="geometry" x="12.5" y="23.16666666666663" width="15.0" height="2.0" />
+        </mxCell>
+        <mxCell id="record-icon-5" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=38.65980825409009;" vertex="1" parent="record-icon">
+          <mxGeometry as="geometry" x="13.582031567736308" y="31.25" width="5.335936864527374" height="2.5" />
+        </mxCell>
+        <mxCell id="record-icon-6" value="" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=1.6666666666666667;fillColor=#2864A5;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;rotation=-39.28940686250036;" vertex="1" parent="record-icon">
+          <mxGeometry as="geometry" x="16.99472066518672" y="29.16666666666663" width="11.843892002959914" height="2.5" />
+        </mxCell>
+        <mxCell id="record-title" value="⑥ 結果と回収の確認を記録" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=20;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="record">
+          <mxGeometry as="geometry" x="66" y="12" width="645" height="32" />
+        </mxCell>
+        <mxCell id="record-body" value="回収の確認後に結果を管理側へ返し、実行台帳に記録。&#10;WORKER_FINISHEDは科学的成功の証明ではない。&#10;PRの照合・科学的な独立受入の範囲は詳細図06を参照。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="record">
+          <mxGeometry as="geometry" x="14" y="57" width="697" height="89" />
+        </mxCell>
+        <mxCell id="admit-prepare-label" value="承認済みjob" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=16;fontColor=#2864A5;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="862.5" y="311.0" width="155" height="28.0" />
+        </mxCell>
+        <mxCell id="send-lease-label" value="lease" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=16;fontColor=#2864A5;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="872.5" y="546.0" width="135" height="28.0" />
+        </mxCell>
+        <mxCell id="exit-cleanup-label" value="Codex終了・失敗・取消" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=16;fontColor=#087E8B;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1725.0" y="836.0" width="220" height="28.0" />
+        </mxCell>
+        <mxCell id="gate" value="後始末や認証保存を確認できなければ、blocked / gateを残して次の研究を始めない。&#10;研究の結果がよかったかどうかとは別に、「開始してよいか・継続してよいか・片付いたか」を固定コードで管理する。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=23;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#FCEDEF;strokeColor=#AD3E45;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="100" y="1115" width="1750" height="130" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
