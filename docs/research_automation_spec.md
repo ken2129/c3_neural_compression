@@ -18,6 +18,10 @@ Codexによる研究・実験・結果PRまでを処理するシステムの仕�
 概要は[研究自動化システム](research_automation.md)、過去の実行証拠は
 [実GPU E2E記録](research/2026-11-15_native_container_e2e.md)を参照する。
 
+**[詳細図（全7ページ）](research_automation_diagrams.md)**：配置・保存領域、受付/承認、実験/回収、
+状態遷移、権限/認証、結果PR、GPU/資源を図で確認できる。
+[編集用draw.ioファイル](diagrams/research_automation/research_automation.drawio)とSVGプレビューを同梱する。
+
 <details>
 <summary>目次（全20節）</summary>
 

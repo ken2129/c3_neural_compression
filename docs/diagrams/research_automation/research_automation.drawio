@@ -1,0 +1,1097 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" agent="C3 documentation" version="30.2.4" type="device">
+  <diagram id="01-deployment" name="01  配置・プロセス・保存領域">
+    <mxGraphModel dx="2000" dy="1400" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2000" pageHeight="1400" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="host" value="leo / Linux + ローカルDocker Engine" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=24;fontColor=#183047;align=left;verticalAlign=top;fontStyle=1;spacing=12;strokeWidth=2;fillColor=#F0F4F8;strokeColor=#718298;rounded=1;arcSize=12;spacingTop=14;container=1;collapsible=0;recursiveResize=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="40" y="325" width="1920" height="960" />
+        </mxCell>
+        <mxCell id="management" value="管理用 / uchishiba-c3-native-20261111-controller-1" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=20;fontColor=#183047;align=left;verticalAlign=top;fontStyle=1;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;spacingTop=14;container=1;collapsible=0;recursiveResize=0;" vertex="1" parent="host">
+          <mxGeometry as="geometry" x="35" y="65" width="850" height="535" />
+        </mxCell>
+        <mxCell id="experiment" value="実験用 / uchishiba-c3-experiment（再利用）" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=20;fontColor=#183047;align=left;verticalAlign=top;fontStyle=1;spacing=12;strokeWidth=2;fillColor=#E8F6F6;strokeColor=#087E8B;rounded=1;arcSize=12;spacingTop=14;container=1;collapsible=0;recursiveResize=0;" vertex="1" parent="host">
+          <mxGeometry as="geometry" x="1035" y="65" width="850" height="535" />
+        </mxCell>
+        <mxCell id="actions" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#2864A5;strokeWidth=2;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="github" target="runner">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="485.0" y="275" />
+            <mxPoint as="targetPoint" x="227.5" y="485" />
+            <Array as="points">
+              <mxPoint x="485" y="300" />
+              <mxPoint x="45" y="300" />
+              <mxPoint x="45" y="465" />
+              <mxPoint x="227.5" y="465" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="receipt" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#2864A5;strokeWidth=2;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="runner" target="inbox">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="345" y="545.0" />
+            <mxPoint as="targetPoint" x="390" y="545.0" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dequeue" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#2864A5;strokeWidth=2;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="inbox" target="manager">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="515.0" y="605" />
+            <mxPoint as="targetPoint" x="515.0" y="680" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dispatch" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#2864A5;strokeWidth=2;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="manager" target="pid1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="640" y="740.0" />
+            <mxPoint as="targetPoint" x="690" y="545.0" />
+            <Array as="points">
+              <mxPoint x="665" y="740" />
+              <mxPoint x="665" y="545" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fork" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#2864A5;strokeWidth=2;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="pid1" target="broker">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="790.0" y="605" />
+            <mxPoint as="targetPoint" x="790.0" y="680" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="exec" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#2864A5;strokeWidth=2;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="broker" target="supervisor">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="890" y="740.0" />
+            <mxPoint as="targetPoint" x="1110" y="555.0" />
+            <Array as="points">
+              <mxPoint x="1000" y="740" />
+              <mxPoint x="1000" y="555" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="worker" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#087E8B;strokeWidth=2;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="supervisor" target="codex">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1430" y="555.0" />
+            <mxPoint as="targetPoint" x="1490" y="555.0" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="model-egress" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#087E8B;strokeWidth=2;endArrow=block;endFill=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="codex" target="model">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1690.0" y="485" />
+            <mxPoint as="targetPoint" x="1515.0" y="275" />
+            <Array as="points">
+              <mxPoint x="1690" y="305" />
+              <mxPoint x="1515" y="305" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="files" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#087E8B;strokeWidth=2;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="codex" target="workspace">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1690.0" y="625" />
+            <mxPoint as="targetPoint" x="1270.0" y="745" />
+            <Array as="points">
+              <mxPoint x="1690" y="680" />
+              <mxPoint x="1270" y="680" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="home-access" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#9D640D;strokeWidth=2;endArrow=block;endFill=1;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="codex" target="homes">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1690.0" y="625" />
+            <mxPoint as="targetPoint" x="1690.0" y="745" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="control-storage" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#2864A5;strokeWidth=2;endArrow=block;endFill=1;dashed=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="manager" target="controlvol">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="390" y="740.0" />
+            <mxPoint as="targetPoint" x="320.0" y="1020" />
+            <Array as="points">
+              <mxPoint x="360" y="740" />
+              <mxPoint x="360" y="650" />
+              <mxPoint x="65" y="650" />
+              <mxPoint x="65" y="990" />
+              <mxPoint x="320" y="990" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="runner-storage" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#2864A5;strokeWidth=2;endArrow=block;endFill=1;dashed=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="runner" target="runnervol">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="110" y="545.0" />
+            <mxPoint as="targetPoint" x="780.0" y="1020" />
+            <Array as="points">
+              <mxPoint x="90" y="545" />
+              <mxPoint x="90" y="955" />
+              <mxPoint x="780" y="955" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="native-record" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#087E8B;strokeWidth=2;endArrow=block;endFill=1;dashed=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="supervisor" target="nativeprivate">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1110" y="555.0" />
+            <mxPoint as="targetPoint" x="1295.0" y="1020" />
+            <Array as="points">
+              <mxPoint x="1060" y="555" />
+              <mxPoint x="1060" y="965" />
+              <mxPoint x="1295" y="965" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gpu-access" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#32754B;strokeWidth=2;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="codex" target="gpu">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1890" y="555.0" />
+            <mxPoint as="targetPoint" x="1707.5" y="1020" />
+            <Array as="points">
+              <mxPoint x="1945" y="555" />
+              <mxPoint x="1945" y="980" />
+              <mxPoint x="1707.5" y="980" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="socket-authority" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#9D640D;strokeWidth=2;endArrow=block;endFill=1;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="broker" target="socket">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="790.0" y="800" />
+            <mxPoint as="targetPoint" x="790.0" y="835" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="heading" value="01  配置・プロセス・保存領域" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=34;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="48" y="28" width="1840" height="50" />
+        </mxCell>
+        <mxCell id="subtitle" value="同じLinuxホストの2コンテナ。管理側だけがDockerを操作し、Codexは実験側で動く。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=19;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="86" width="1890" height="48" />
+        </mxCell>
+        <mxCell id="footer" value="01 / 07   |   仕様基準: docs/research_automation_spec.md @ ed3ce770   |   実装: PR108 @ 21af4c2d" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=14;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="1324" width="1890" height="24" />
+        </mxCell>
+        <mxCell id="source" value="根拠: spec §2–3, 7, 14, 17 / execution_docker.py / 2026-11-16 docker inspect" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=14;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="1352" width="1890" height="26" />
+        </mxCell>
+        <mxCell id="github" value="GitHub / ken2129/c3_neural_compression&#10;Issue・owner承認・Actions・結果PR" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=22;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=1;spacing=12;strokeWidth=2;fillColor=#F0F4F8;strokeColor=#718298;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="90" y="160" width="790" height="115" />
+        </mxCell>
+        <mxCell id="model" value="モデルサービス&#10;実験側Codexから外向き通信" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=22;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=1;spacing=12;strokeWidth=2;fillColor=#F0F4F8;strokeColor=#718298;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1120" y="160" width="790" height="115" />
+        </mxCell>
+        <mxCell id="runner" value="Actions runner&#10;UID10003&#10;固定clientでreceipt送信" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;" vertex="1" parent="management">
+          <mxGeometry as="geometry" x="35" y="95" width="235" height="120" />
+        </mxCell>
+        <mxCell id="inbox" value="Unix socket → inbox&#10;receiptをcommit後ACK&#10;実行承認とは別" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;" vertex="1" parent="management">
+          <mxGeometry as="geometry" x="315" y="95" width="250" height="120" />
+        </mxCell>
+        <mxCell id="manager" value="manager / UID10001&#10;承認・ON/OFF・claim&#10;実行結果を保存" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;" vertex="1" parent="management">
+          <mxGeometry as="geometry" x="315" y="290" width="250" height="120" />
+        </mxCell>
+        <mxCell id="pid1" value="PID1 / root（常駐）&#10;manager・runner・&#10;jobを監督&#10;job用brokerを起動" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=16;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;" vertex="1" parent="management">
+          <mxGeometry as="geometry" x="615" y="95" width="200" height="120" />
+        </mxCell>
+        <mxCell id="broker" value="job broker / root&#10;固定のDocker操作&#10;root専用socket" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=16;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;" vertex="1" parent="management">
+          <mxGeometry as="geometry" x="615" y="290" width="200" height="120" />
+        </mxCell>
+        <mxCell id="rootfs" value="管理のroot filesystemはread-only&#10;/work と /control-ipc はtmpfs（一時領域）&#10;PID1・manager・runnerは常駐。brokerはjobごと。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=16;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#F0F4F8;strokeColor=#718298;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="110" y="815" width="540" height="90" />
+        </mxCell>
+        <mxCell id="socket" value="/run/c3-docker.sock&#10;ホストsocketのbind" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=15;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#FFF4DC;strokeColor=#9D640D;rounded=1;arcSize=12;" vertex="1" parent="management">
+          <mxGeometry as="geometry" x="615" y="445" width="200" height="65" />
+        </mxCell>
+        <mxCell id="supervisor" value="job supervisor / root&#10;prepare・GPU待機・lease&#10;子孫・一時認証を回収" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#E8F6F6;strokeColor=#087E8B;rounded=1;arcSize=12;" vertex="1" parent="experiment">
+          <mxGeometry as="geometry" x="35" y="95" width="320" height="140" />
+        </mxCell>
+        <mxCell id="job-lifetime" value="supervisor・Codexはjob中だけ起動。コンテナのPID1は待機し、再利用する。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=16;fontColor=#087E8B;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1105" y="437" width="795" height="32" />
+        </mxCell>
+        <mxCell id="codex" value="Codex / UID10002&#10;編集 → 実験 → 待機 → 解析 → PR&#10;1 app-server / thread / turn&#10;結果PRはGitHubへ公開" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#E8F6F6;strokeColor=#087E8B;rounded=1;arcSize=12;" vertex="1" parent="experiment">
+          <mxGeometry as="geometry" x="415" y="95" width="400" height="140" />
+        </mxCell>
+        <mxCell id="workspace" value="/research/c3&#10;研究コード・成果物を保持&#10;コンテナの書込み層" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#E8F6F6;strokeColor=#087E8B;rounded=1;arcSize=12;" vertex="1" parent="experiment">
+          <mxGeometry as="geometry" x="35" y="355" width="320" height="135" />
+        </mxCell>
+        <mxCell id="homes" value="/work/worker-home&#10;/work/codex-home&#10;job用認証コピー。通常終了時に削除" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=17;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#FFF4DC;strokeColor=#9D640D;rounded=1;arcSize=12;" vertex="1" parent="experiment">
+          <mxGeometry as="geometry" x="415" y="355" width="400" height="135" />
+        </mxCell>
+        <mxCell id="controlvol" value="永続volume → /control&#10;設定・管理認証・承認・claim・結果&#10;uchishiba-c3-native-20261111_goal-control" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=17;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;" vertex="1" parent="host">
+          <mxGeometry as="geometry" x="65" y="695" width="430" height="150" />
+        </mxCell>
+        <mxCell id="runnervol" value="永続volume → /runner&#10;runner本体・登録情報&#10;uchishiba-c3-native-20261111_runner-state" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=16;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;" vertex="1" parent="host">
+          <mxGeometry as="geometry" x="535" y="695" width="410" height="150" />
+        </mxCell>
+        <mxCell id="nativeprivate" value="/var/lib/c3-execution&#10;root私有run / lock / blocked&#10;これも実験コンテナ内の書込み層" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=17;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#E8F6F6;strokeColor=#087E8B;rounded=1;arcSize=12;" vertex="1" parent="host">
+          <mxGeometry as="geometry" x="1070" y="695" width="370" height="150" />
+        </mxCell>
+        <mxCell id="gpu" value="ホストの許可GPU 1枚&#10;Docker割当 + UUID登録&#10;研究UIDの子プロセスが利用" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#ECF7EE;strokeColor=#32754B;rounded=1;arcSize=12;" vertex="1" parent="host">
+          <mxGeometry as="geometry" x="1485" y="695" width="365" height="150" />
+        </mxCell>
+        <mxCell id="storage-note" value="保存の違い：管理側の /control・/runner はvolume。実験側にはbind / volumeなし（Mounts=[]）。&#10;実験コンテナの停止・再起動で作業は残るが、削除すると追加・変更したファイルは失われる。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=17;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#F0F4F8;strokeColor=#718298;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="105" y="1200" width="1785" height="62" />
+        </mxCell>
+        <mxCell id="actions-label" value="Actions通知" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=16;fontColor=#2864A5;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="250.0" y="286.0" width="150" height="28.0" />
+        </mxCell>
+        <mxCell id="dequeue-label" value="ON時に取出し" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=16;fontColor=#2864A5;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="420.0" y="633.0" width="190" height="28.0" />
+        </mxCell>
+        <mxCell id="dispatch-label" value="job IPC" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=16;fontColor=#2864A5;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="615.0" y="636.0" width="100" height="28.0" />
+        </mxCell>
+        <mxCell id="exec-label" value="local Docker&#10;inspect / exec -i" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=16;fontColor=#2864A5;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="920.0" y="616.4" width="160" height="51.2" />
+        </mxCell>
+        <mxCell id="model-egress-label" value="モデル通信" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=16;fontColor=#087E8B;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1615.0" y="326.0" width="150" height="28.0" />
+        </mxCell>
+        <mxCell id="files-label" value="通常shell / file tools" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=16;fontColor=#087E8B;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1385.0" y="666.0" width="250" height="28.0" />
+        </mxCell>
+        <mxCell id="gpu-access-label" value="計算は許可GPUのみ" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=16;fontColor=#32754B;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1592.0" y="942.0" width="230" height="28.0" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="02-admission" name="02  イベント受付・承認・開始のシーケンス">
+    <mxGraphModel dx="2000" dy="1400" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2000" pageHeight="1400" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="gh-line" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#718298;strokeWidth=2;endArrow=none;endFill=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="150" y="235" />
+            <mxPoint as="targetPoint" x="150" y="1150" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="runner-line" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#718298;strokeWidth=2;endArrow=none;endFill=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="470" y="235" />
+            <mxPoint as="targetPoint" x="470" y="1150" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="mgr-line" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#718298;strokeWidth=2;endArrow=none;endFill=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="800" y="235" />
+            <mxPoint as="targetPoint" x="800" y="1150" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="store-line" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#718298;strokeWidth=2;endArrow=none;endFill=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1140" y="235" />
+            <mxPoint as="targetPoint" x="1140" y="1150" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="broker-line" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#718298;strokeWidth=2;endArrow=none;endFill=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1490" y="235" />
+            <mxPoint as="targetPoint" x="1490" y="1150" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sup-line" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#718298;strokeWidth=2;endArrow=none;endFill=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1840" y="235" />
+            <mxPoint as="targetPoint" x="1840" y="1150" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m01" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#2864A5;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="150" y="305" />
+            <mxPoint as="targetPoint" x="470" y="305" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m02" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#2864A5;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="470" y="375" />
+            <mxPoint as="targetPoint" x="800" y="375" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m03" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#2864A5;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="800" y="445" />
+            <mxPoint as="targetPoint" x="1140" y="445" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m04" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#2864A5;strokeWidth=2;endArrow=block;endFill=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="800" y="510" />
+            <mxPoint as="targetPoint" x="470" y="510" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m05" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#2864A5;strokeWidth=2;endArrow=block;endFill=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1140" y="660" />
+            <mxPoint as="targetPoint" x="800" y="660" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m06" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#2864A5;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="800" y="730" />
+            <mxPoint as="targetPoint" x="150" y="730" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m07" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#2864A5;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="800" y="800" />
+            <mxPoint as="targetPoint" x="1490" y="800" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m08" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#2864A5;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1490" y="870" />
+            <mxPoint as="targetPoint" x="1840" y="870" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m09" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#087E8B;strokeWidth=2;endArrow=block;endFill=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1840" y="935" />
+            <mxPoint as="targetPoint" x="1490" y="935" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m10" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#2864A5;strokeWidth=2;endArrow=block;endFill=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1490" y="1000" />
+            <mxPoint as="targetPoint" x="800" y="1000" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m11" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#2864A5;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="800" y="1065" />
+            <mxPoint as="targetPoint" x="1140" y="1065" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m12" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#2864A5;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="800" y="1130" />
+            <mxPoint as="targetPoint" x="1490" y="1130" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="heading" value="02  イベント受付・承認・開始のシーケンス" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=34;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="48" y="28" width="1840" height="50" />
+        </mxCell>
+        <mxCell id="subtitle" value="receiptは通知、ownerコメントは承認、claimは実行消費。3つを別々に扱う。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=19;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="86" width="1890" height="48" />
+        </mxCell>
+        <mxCell id="footer" value="02 / 07   |   仕様基準: docs/research_automation_spec.md @ ed3ce770   |   実装: PR108 @ 21af4c2d" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=14;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="1324" width="1890" height="24" />
+        </mxCell>
+        <mxCell id="source" value="根拠: actions_inbox.py / direct_pr_service.py / execution_delivery.py / resident launcher" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=14;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="1352" width="1890" height="26" />
+        </mxCell>
+        <mxCell id="gh" value="GitHub&#10;Issue / 承認" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=1;spacing=12;strokeWidth=2;fillColor=#F0F4F8;strokeColor=#718298;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="20.0" y="155" width="260" height="80" />
+        </mxCell>
+        <mxCell id="runner" value="runner / UID10003&#10;固定submit client" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=1;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="340.0" y="155" width="260" height="80" />
+        </mxCell>
+        <mxCell id="mgr" value="manager / UID10001&#10;承認・直列dispatch" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=1;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="670.0" y="155" width="260" height="80" />
+        </mxCell>
+        <mxCell id="store" value="永続状態&#10;inbox / 実行台帳" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=1;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1010.0" y="155" width="260" height="80" />
+        </mxCell>
+        <mxCell id="broker" value="root broker&#10;ローカルDocker" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=1;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1360.0" y="155" width="260" height="80" />
+        </mxCell>
+        <mxCell id="sup" value="実験supervisor&#10;root・モデル未起動" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=1;spacing=12;strokeWidth=2;fillColor=#E8F6F6;strokeColor=#087E8B;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1710.0" y="155" width="260" height="80" />
+        </mxCell>
+        <mxCell id="m01-text" value="1  Issue / commentイベント →&#10;Actions job" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=17;fontColor=#2864A5;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="165.0" y="247.35" width="290" height="49.65" />
+        </mxCell>
+        <mxCell id="m02-text" value="2  receipt（Unix socket / peer&#10;UID照合）" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=17;fontColor=#2864A5;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="485.0" y="317.35" width="300" height="49.65" />
+        </mxCell>
+        <mxCell id="m03-text" value="3  receiptを永続化 / FULL&#10;commit" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=17;fontColor=#2864A5;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="815.0" y="387.35" width="310" height="49.65" />
+        </mxCell>
+        <mxCell id="m04-text" value="4  commit後ACK → Actionsは&#10;配送成功" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=17;fontColor=#2864A5;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="485.0" y="452.35" width="300" height="49.65" />
+        </mxCell>
+        <mxCell id="off-note" value="OFFでも受付設定がONならreceiptを保存。&#10;OFFの間は取出し・新規実行を始めない。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#FFF4DC;strokeColor=#9D640D;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="555" width="550" height="85" />
+        </mxCell>
+        <mxCell id="m05-text" value="5  ON時にPENDING → ACTIVE" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=17;fontColor=#2864A5;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="815.0" y="627.0" width="310" height="25.0" />
+        </mxCell>
+        <mxCell id="m06-text" value="6  現行Issue・未編集owner承認を再取得 / 内容hash・期限・取消を照合" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=17;fontColor=#2864A5;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="165.0" y="697.0" width="620" height="25.0" />
+        </mxCell>
+        <mxCell id="m07-text" value="7  モデル・scope・予算を解決 → preflight要求" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=17;fontColor=#2864A5;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="815.0" y="767.0" width="660" height="25.0" />
+        </mxCell>
+        <mxCell id="m08-text" value="8  acquire / 公開bootstrap /&#10;prepare" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=17;fontColor=#2864A5;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1505.0" y="812.35" width="320" height="49.65" />
+        </mxCell>
+        <mxCell id="m09-text" value="9  ready（epoch + policy hash）" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=17;fontColor=#087E8B;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1505.0" y="902.0" width="320" height="25.0" />
+        </mxCell>
+        <mxCell id="m10-text" value="10  実行前チェック通過（開始境界）。この後のOFFだけでは取り消さない" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=17;fontColor=#2864A5;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="815.0" y="967.0" width="660" height="25.0" />
+        </mxCell>
+        <mxCell id="m11-text" value="11  owner記録確認 + 単回claimを&#10;保存" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=17;fontColor=#2864A5;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="815.0" y="1007.35" width="310" height="49.65" />
+        </mxCell>
+        <mxCell id="m12-text" value="12  bindingを送る。brokerがjob認証を読み、executeへ" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=17;fontColor=#2864A5;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="815.0" y="1097.0" width="660" height="25.0" />
+        </mxCell>
+        <mxCell id="prepared" value="prepareまで：モデル認証は実験側へ渡さず、model turnも開始しない。&#10;同一Issueの既存claim、未登録先、scope/予算/承認不一致は、新しい研究実行に進まない。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=19;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#F0F4F8;strokeColor=#718298;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="1190" width="1840" height="95" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="03-execution" name="03  実験・認証・終了のシーケンス">
+    <mxGraphModel dx="2000" dy="1400" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2000" pageHeight="1400" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="mgr-line" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#718298;strokeWidth=2;endArrow=none;endFill=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="170" y="235" />
+            <mxPoint as="targetPoint" x="170" y="1170" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="broker-line" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#718298;strokeWidth=2;endArrow=none;endFill=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="510" y="235" />
+            <mxPoint as="targetPoint" x="510" y="1170" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sup-line" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#718298;strokeWidth=2;endArrow=none;endFill=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="860" y="235" />
+            <mxPoint as="targetPoint" x="860" y="1170" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="codex-line" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#718298;strokeWidth=2;endArrow=none;endFill=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1210" y="235" />
+            <mxPoint as="targetPoint" x="1210" y="1170" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="helper-line" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#718298;strokeWidth=2;endArrow=none;endFill=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1550" y="235" />
+            <mxPoint as="targetPoint" x="1550" y="1170" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gh-line" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#718298;strokeWidth=2;endArrow=none;endFill=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1850" y="235" />
+            <mxPoint as="targetPoint" x="1850" y="1170" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="x01" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#9D640D;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="510" y="300" />
+            <mxPoint as="targetPoint" x="860" y="300" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="x03" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#087E8B;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="860" y="490" />
+            <mxPoint as="targetPoint" x="1210" y="490" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="x05" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#32754B;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1210" y="675" />
+            <mxPoint as="targetPoint" x="1550" y="675" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="x06" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#32754B;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1550" y="745" />
+            <mxPoint as="targetPoint" x="1850" y="745" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="x07" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#087E8B;strokeWidth=2;endArrow=block;endFill=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1210" y="815" />
+            <mxPoint as="targetPoint" x="860" y="815" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="x09" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#087E8B;strokeWidth=2;endArrow=block;endFill=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="860" y="1010" />
+            <mxPoint as="targetPoint" x="510" y="1010" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="x10" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#2864A5;strokeWidth=2;endArrow=block;endFill=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="510" y="1075" />
+            <mxPoint as="targetPoint" x="170" y="1075" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="x11" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#2864A5;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="170" y="1140" />
+            <mxPoint as="targetPoint" x="510" y="1140" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="heading" value="03  実験・認証・終了のシーケンス" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=34;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="48" y="28" width="1840" height="50" />
+        </mxCell>
+        <mxCell id="subtitle" value="Codexは実験側の同じセッションで研究を完了する。結果は回収の確認後に返す。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=19;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="86" width="1890" height="48" />
+        </mxCell>
+        <mxCell id="footer" value="03 / 07   |   仕様基準: docs/research_automation_spec.md @ ed3ce770   |   実装: PR108 @ 21af4c2d" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=14;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="1324" width="1890" height="24" />
+        </mxCell>
+        <mxCell id="source" value="根拠: execution_delivery.ContainerSession.run / execution_worker.run_job / goal_runner / worker_pr" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=14;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="1352" width="1890" height="26" />
+        </mxCell>
+        <mxCell id="mgr" value="manager&#10;承認再確認・台帳" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=1;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="42.5" y="155" width="255" height="80" />
+        </mxCell>
+        <mxCell id="broker" value="root broker&#10;私有pipe" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=1;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="382.5" y="155" width="255" height="80" />
+        </mxCell>
+        <mxCell id="sup" value="実験supervisor&#10;GPU / lease / 回収" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=1;spacing=12;strokeWidth=2;fillColor=#E8F6F6;strokeColor=#087E8B;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="732.5" y="155" width="255" height="80" />
+        </mxCell>
+        <mxCell id="codex" value="Codex / UID10002&#10;通常shell・file tools" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=1;spacing=12;strokeWidth=2;fillColor=#E8F6F6;strokeColor=#087E8B;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1082.5" y="155" width="255" height="80" />
+        </mxCell>
+        <mxCell id="helper" value="公開helper&#10;workerが任意で利用" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=1;spacing=12;strokeWidth=2;fillColor=#ECF7EE;strokeColor=#32754B;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1422.5" y="155" width="255" height="80" />
+        </mxCell>
+        <mxCell id="gh" value="GitHub&#10;結果PR" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=1;spacing=12;strokeWidth=2;fillColor=#F0F4F8;strokeColor=#718298;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1722.5" y="155" width="255" height="80" />
+        </mxCell>
+        <mxCell id="x01-text" value="1  execute：binding + job用認証" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=17;fontColor=#9D640D;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="525.0" y="267.0" width="320" height="25.0" />
+        </mxCell>
+        <mxCell id="gpuwait" value="2  GPU空き待機・lock・再観測&#10;モデル認証homeを準備 → 版照合済みCodex起動" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#E8F6F6;strokeColor=#087E8B;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="710" y="345" width="630" height="85" />
+        </mxCell>
+        <mxCell id="x03-text" value="3  Codexセッションを1回起動" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=17;fontColor=#087E8B;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="875.0" y="457.0" width="320" height="25.0" />
+        </mxCell>
+        <mxCell id="modelwork" value="4  コード調査・編集 → 実験 → 完了待ち → 解析&#10;同一セッション。実験後に解析用Codexを呼び直さない。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#E8F6F6;strokeColor=#087E8B;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1040" y="525" width="850" height="85" />
+        </mxCell>
+        <mxCell id="x05-text" value="5  manifest・planを渡してpublish" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=17;fontColor=#32754B;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1225.0" y="642.0" width="310" height="25.0" />
+        </mxCell>
+        <mxCell id="x06-text" value="6  intent → branch / PR →&#10;readback" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=17;fontColor=#32754B;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1565.0" y="687.35" width="270" height="49.65" />
+        </mxCell>
+        <mxCell id="x07-text" value="7  最終JSON：outcome /&#10;summary / pr_url" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=17;fontColor=#087E8B;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="875.0" y="757.35" width="320" height="49.65" />
+        </mxCell>
+        <mxCell id="cleanup" value="8  transportを閉じる → 子孫を停止・reap → ECHILD&#10;必要な認証refreshを管理側へ返して保存ACKを確認 → 一時home削除" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#FFF4DC;strokeColor=#9D640D;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="690" y="850" width="960" height="95" />
+        </mxCell>
+        <mxCell id="x09-text" value="9  worker_result / failure +&#10;cleanup_verified" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=17;fontColor=#087E8B;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="525.0" y="952.35" width="320" height="49.65" />
+        </mxCell>
+        <mxCell id="x10-text" value="10  私有結果保存・構造化結果 / 失&#10;敗を返す" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=17;fontColor=#2864A5;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="185.0" y="1017.35" width="310" height="49.65" />
+        </mxCell>
+        <mxCell id="x11-text" value="11  job_finished → 管理側回収&#10;ACK → receipt FINISHED" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=17;fontColor=#2864A5;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="185.0" y="1082.35" width="310" height="49.65" />
+        </mxCell>
+        <mxCell id="loops" value="実行中の並行監督：managerが承認再確認 → brokerは約2秒ごとにlease。実験側のlease窓は10秒。&#10;OFFは次の仕事を止める。取消・期限・lease途絶・資源違反は現在の自jobを止める。回収不明なら次を始めない。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#F0F4F8;strokeColor=#718298;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="65" y="1200" width="1850" height="90" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="04-states" name="04  状態遷移とON/OFF">
+    <mxGraphModel dx="2000" dy="1400" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2000" pageHeight="1400" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="qframe" value="A  配送台帳 / inbox.sqlite" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=23;fontColor=#183047;align=left;verticalAlign=top;fontStyle=1;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;spacingTop=14;container=1;collapsible=0;recursiveResize=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="55" y="165" width="900" height="440" />
+        </mxCell>
+        <mxCell id="rframe" value="B  研究実行台帳 / state.sqlite + claims" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=23;fontColor=#183047;align=left;verticalAlign=top;fontStyle=1;spacing=12;strokeWidth=2;fillColor=#E8F6F6;strokeColor=#087E8B;rounded=1;arcSize=12;spacingTop=14;container=1;collapsible=0;recursiveResize=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1010" y="165" width="930" height="440" />
+        </mxCell>
+        <mxCell id="admission-frame" value="C  OFFと開始が重なる場合の境界" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=23;fontColor=#183047;align=left;verticalAlign=top;fontStyle=1;spacing=12;strokeWidth=2;fillColor=#FFF4DC;strokeColor=#9D640D;rounded=1;arcSize=12;spacingTop=14;container=1;collapsible=0;recursiveResize=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="55" y="660" width="1885" height="300" />
+        </mxCell>
+        <mxCell id="qa" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#2864A5;strokeWidth=2;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="pending" target="active">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="330" y="332.5" />
+            <mxPoint as="targetPoint" x="380" y="332.5" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="qb" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#32754B;strokeWidth=2;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="active" target="finished">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="610" y="332.5" />
+            <mxPoint as="targetPoint" x="665" y="332.5" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="qc" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#9D640D;strokeWidth=2;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="active" target="pending">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="495.0" y="380" />
+            <mxPoint as="targetPoint" x="210.0" y="380" />
+            <Array as="points">
+              <mxPoint x="495" y="445" />
+              <mxPoint x="210" y="445" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ra" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#087E8B;strokeWidth=2;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="unclaimed" target="claimed">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1285" y="332.5" />
+            <mxPoint as="targetPoint" x="1345" y="332.5" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rb" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#32754B;strokeWidth=2;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="claimed" target="done">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1580" y="332.5" />
+            <mxPoint as="targetPoint" x="1640" y="332.5" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rc" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#AD3E45;strokeWidth=2;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="claimed" target="blocked">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1462.5" y="380" />
+            <mxPoint as="targetPoint" x="1462.5" y="460" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="before-boundary" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#2864A5;strokeWidth=2;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="pre" target="boundary">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="560" y="817.5" />
+            <mxPoint as="targetPoint" x="750" y="817.5" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="after-boundary" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#087E8B;strokeWidth=2;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="boundary" target="admitted">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1180" y="817.5" />
+            <mxPoint as="targetPoint" x="1370" y="817.5" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="heading" value="04  状態遷移とON/OFF" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=34;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="48" y="28" width="1840" height="50" />
+        </mxCell>
+        <mxCell id="subtitle" value="配送状態、研究実行状態、開始境界、回収のgateは別の状態機械。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=19;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="86" width="1890" height="48" />
+        </mxCell>
+        <mxCell id="footer" value="04 / 07   |   仕様基準: docs/research_automation_spec.md @ ed3ce770   |   実装: PR108 @ 21af4c2d" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=14;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="1324" width="1890" height="24" />
+        </mxCell>
+        <mxCell id="source" value="根拠: actions_inbox.Inbox / direct_pr_service.DirectPRController / resident launcher / execution_worker" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=14;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="1352" width="1890" height="26" />
+        </mxCell>
+        <mxCell id="pending" value="PENDING&#10;commit済みの通知" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;" vertex="1" parent="qframe">
+          <mxGeometry as="geometry" x="35" y="120" width="240" height="95" />
+        </mxCell>
+        <mxCell id="active" value="ACTIVE&#10;直列に処理中" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;" vertex="1" parent="qframe">
+          <mxGeometry as="geometry" x="325" y="120" width="230" height="95" />
+        </mxCell>
+        <mxCell id="finished" value="FINISHED&#10;job回収ACK後" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#ECF7EE;strokeColor=#32754B;rounded=1;arcSize=12;" vertex="1" parent="qframe">
+          <mxGeometry as="geometry" x="610" y="120" width="250" height="95" />
+        </mxCell>
+        <mxCell id="qa-label" value="ON + 受付有効" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=16;fontColor=#2864A5;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="265.0" y="249.0" width="180" height="28.0" />
+        </mxCell>
+        <mxCell id="qb-label" value="処理・回収確認" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=16;fontColor=#32754B;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="545.0" y="249.0" width="190" height="28.0" />
+        </mxCell>
+        <mxCell id="qc-label" value="開始前OFF / 確認済み起動時のdelivery lease回復" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=16;fontColor=#9D640D;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70.0" y="463.0" width="560" height="28.0" />
+        </mxCell>
+        <mxCell id="dedup" value="同じreceipt ID + 同じ内容 → duplicate ACK。&#10;同じIDの異なるpayload → 拒否。run_attemptだけでは新しい配送にしない。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=17;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#F0F4F8;strokeColor=#718298;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="90" y="530" width="825" height="60" />
+        </mxCell>
+        <mxCell id="unclaimed" value="未claim&#10;承認・準備の検査" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#E8F6F6;strokeColor=#087E8B;rounded=1;arcSize=12;" vertex="1" parent="rframe">
+          <mxGeometry as="geometry" x="40" y="120" width="235" height="95" />
+        </mxCell>
+        <mxCell id="claimed" value="CLAIMED&#10;一度だけ実行を消費" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#E8F6F6;strokeColor=#087E8B;rounded=1;arcSize=12;" vertex="1" parent="rframe">
+          <mxGeometry as="geometry" x="335" y="120" width="235" height="95" />
+        </mxCell>
+        <mxCell id="done" value="WORKER_FINISHED&#10;completed / incomplete" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=17;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#ECF7EE;strokeColor=#32754B;rounded=1;arcSize=12;" vertex="1" parent="rframe">
+          <mxGeometry as="geometry" x="630" y="120" width="260" height="95" />
+        </mxCell>
+        <mxCell id="blocked" value="BLOCKED&#10;失敗記録を保持" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#FCEDEF;strokeColor=#AD3E45;rounded=1;arcSize=12;" vertex="1" parent="rframe">
+          <mxGeometry as="geometry" x="335" y="295" width="235" height="90" />
+        </mxCell>
+        <mxCell id="ra-label" value="durable claim" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=16;fontColor=#087E8B;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1235.0" y="249.0" width="160" height="28.0" />
+        </mxCell>
+        <mxCell id="rb-label" value="結果を保存" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=16;fontColor=#32754B;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1535.0" y="249.0" width="150" height="28.0" />
+        </mxCell>
+        <mxCell id="rc-label" value="実行失敗" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=16;fontColor=#AD3E45;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1382.0" y="406.0" width="160" height="28.0" />
+        </mxCell>
+        <mxCell id="duplicate-run" value="既存claimは再実行しない&#10;PR欠損・通知重複でも&#10;claimを消さない" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=17;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#F0F4F8;strokeColor=#718298;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1615" y="445" width="290" height="115" />
+        </mxCell>
+        <mxCell id="pre" value="開始境界の前&#10;設定・承認・実配置を検査" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#FFF4DC;strokeColor=#9D640D;rounded=1;arcSize=12;" vertex="1" parent="admission-frame">
+          <mxGeometry as="geometry" x="45" y="110" width="460" height="95" />
+        </mxCell>
+        <mxCell id="boundary" value="実行前チェック通過&#10;（preflight成功）" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=22;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=1;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;" vertex="1" parent="admission-frame">
+          <mxGeometry as="geometry" x="695" y="100" width="430" height="115" />
+        </mxCell>
+        <mxCell id="admitted" value="開始済みの同じjob&#10;claim → worker → 結果 → 回収" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#E8F6F6;strokeColor=#087E8B;rounded=1;arcSize=12;" vertex="1" parent="admission-frame">
+          <mxGeometry as="geometry" x="1315" y="110" width="500" height="95" />
+        </mxCell>
+        <mxCell id="before-boundary-label" value="ONで通過" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=16;fontColor=#2864A5;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="565.0" y="791.0" width="170" height="28.0" />
+        </mxCell>
+        <mxCell id="after-boundary-label" value="以後のOFFだけでは取り消さない" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=16;fontColor=#087E8B;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1135.0" y="791.0" width="280" height="28.0" />
+        </mxCell>
+        <mxCell id="off-left" value="OFFなら一時領域を回収し、通知をPENDINGへ。claimなし。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#9D640D;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="100" y="895" width="660" height="40" />
+        </mxCell>
+        <mxCell id="off-right" value="取消・期限・設定不一致・資源監視は続く。OFF ≠ cancel。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#087E8B;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1210" y="895" width="660" height="40" />
+        </mxCell>
+        <mxCell id="gate" value="D  回収・起動時の停止gate&#10;起動時の未確定CLAIMED / cleanup不明 / latchあり&#10;→ 新規dispatchを止める。自動reset・研究retryをしない。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=22;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#FCEDEF;strokeColor=#AD3E45;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="1030" width="1020" height="200" />
+        </mxCell>
+        <mxCell id="separation" value="配送のACTIVE → PENDINGは、研究claimの解除ではない。&#10;WORKER_FINISHEDは科学的成功の証明ではない。&#10;管理側終了だけでは実験側の回収済みを証明しない。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=21;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#F0F4F8;strokeColor=#718298;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1150" y="1030" width="750" height="200" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="05-permissions" name="05  権限・認証・永続性の境界">
+    <mxGraphModel dx="2000" dy="1400" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2000" pageHeight="1400" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="management" value="管理側の信頼領域" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=24;fontColor=#183047;align=left;verticalAlign=top;fontStyle=1;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;spacingTop=14;container=1;collapsible=0;recursiveResize=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="55" y="175" width="880" height="765" />
+        </mxCell>
+        <mxCell id="experiment" value="実験側の信頼領域" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=24;fontColor=#183047;align=left;verticalAlign=top;fontStyle=1;spacing=12;strokeWidth=2;fillColor=#E8F6F6;strokeColor=#087E8B;rounded=1;arcSize=12;spacingTop=14;container=1;collapsible=0;recursiveResize=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1040" y="175" width="900" height="765" />
+        </mxCell>
+        <mxCell id="original-read" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#2864A5;strokeWidth=2;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="vol" target="root">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="492.5" y="440" />
+            <mxPoint as="targetPoint" x="702.5" y="520" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="manager-read" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#2864A5;strokeWidth=2;endArrow=block;endFill=1;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="vol" target="reader">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="492.5" y="440" />
+            <mxPoint as="targetPoint" x="275.0" y="520" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="credentials" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#9D640D;strokeWidth=2;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="root" target="supervisor">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="890" y="602.5" />
+            <mxPoint as="targetPoint" x="1080" y="362.5" />
+            <Array as="points">
+              <mxPoint x="985" y="602" />
+              <mxPoint x="985" y="363" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="stage" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#9D640D;strokeWidth=2;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="supervisor" target="homes">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1460" y="362.5" />
+            <mxPoint as="targetPoint" x="1515" y="362.5" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="use-auth" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#9D640D;strokeWidth=2;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="homes" target="worker">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1707.5" y="440" />
+            <mxPoint as="targetPoint" x="1585.0" y="550" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="spawn" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#087E8B;strokeWidth=2;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="supervisor" target="worker">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1270.0" y="440" />
+            <mxPoint as="targetPoint" x="1270" y="622.5" />
+            <Array as="points">
+              <mxPoint x="1150" y="622" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="work-data" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#087E8B;strokeWidth=2;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="worker" target="data">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1585.0" y="695" />
+            <mxPoint as="targetPoint" x="1585.0" y="770" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="socket-use" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#9D640D;strokeWidth=2;endArrow=block;endFill=1;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="root" target="sock">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="702.5" y="685" />
+            <mxPoint as="targetPoint" x="702.5" y="760" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="heading" value="05  権限・認証・永続性の境界" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=34;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="48" y="28" width="1840" height="50" />
+        </mxCell>
+        <mxCell id="subtitle" value="管理側の認証とDocker権限をCodexへ渡さない。worker用認証はjob限定で明示して渡す。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=19;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="86" width="1890" height="48" />
+        </mxCell>
+        <mxCell id="footer" value="05 / 07   |   仕様基準: docs/research_automation_spec.md @ ed3ce770   |   実装: PR108 @ 21af4c2d" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=14;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="1324" width="1890" height="24" />
+        </mxCell>
+        <mxCell id="source" value="根拠: execution_docker.validate_docker_authority / execution_worker.stage_credentials, return_auth_state / worker_pr" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=14;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="1352" width="1890" height="26" />
+        </mxCell>
+        <mxCell id="vol" value="/control（manager所有 / 私有volume）&#10;モデル認証原本 / manager GitHub / PR用認証原本&#10;設定・owner記録・claim・結果" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=20;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;" vertex="1" parent="management">
+          <mxGeometry as="geometry" x="40" y="110" width="795" height="155" />
+        </mxCell>
+        <mxCell id="reader" value="manager / UID10001&#10;GitHubから現行Issueとownerコメント&#10;を読む&#10;worker成果物をrootとして実行しない" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;" vertex="1" parent="management">
+          <mxGeometry as="geometry" x="40" y="345" width="360" height="165" />
+        </mxCell>
+        <mxCell id="root" value="job broker / root&#10;PID1経由でjobごとに起動&#10;固定Dockerバイナリ + root専用socket&#10;必要なjob認証だけを私有pipeへ" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;" vertex="1" parent="management">
+          <mxGeometry as="geometry" x="460" y="345" width="375" height="165" />
+        </mxCell>
+        <mxCell id="runner" value="runner / UID10003&#10;/runnerの専用volume&#10;管理台帳・認証にはアクセスさせない" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#F0F4F8;strokeColor=#718298;rounded=1;arcSize=12;" vertex="1" parent="management">
+          <mxGeometry as="geometry" x="40" y="585" width="360" height="135" />
+        </mxCell>
+        <mxCell id="sock" value="host /var/run/docker.sock&#10;→ /run/c3-docker.sock&#10;root以外の権限を配置時に検査" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#FFF4DC;strokeColor=#9D640D;rounded=1;arcSize=12;" vertex="1" parent="management">
+          <mxGeometry as="geometry" x="460" y="585" width="375" height="135" />
+        </mxCell>
+        <mxCell id="supervisor" value="root supervisor&#10;UID切替 / lease / 子孫回収&#10;job用homeを新規作成・所有権設定" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#E8F6F6;strokeColor=#087E8B;rounded=1;arcSize=12;" vertex="1" parent="experiment">
+          <mxGeometry as="geometry" x="40" y="110" width="380" height="155" />
+        </mxCell>
+        <mxCell id="homes" value="私有job用home&#10;/work/codex-home/auth.json&#10;/work/worker-home/github-token" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#FFF4DC;strokeColor=#9D640D;rounded=1;arcSize=12;" vertex="1" parent="experiment">
+          <mxGeometry as="geometry" x="475" y="110" width="385" height="155" />
+        </mxCell>
+        <mxCell id="worker" value="Codex / 研究UID10002&#10;空の追加group / no-new-privileges&#10;通常shell・file toolsとjob用認証を利用" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=20;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#E8F6F6;strokeColor=#087E8B;rounded=1;arcSize=12;" vertex="1" parent="experiment">
+          <mxGeometry as="geometry" x="230" y="375" width="630" height="145" />
+        </mxCell>
+        <mxCell id="data" value="研究workspace&#10;同じUIDで読める既存データは残る&#10;write_scopeはOSの全書込隔離ではない" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=19;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#F0F4F8;strokeColor=#718298;rounded=1;arcSize=12;" vertex="1" parent="experiment">
+          <mxGeometry as="geometry" x="230" y="595" width="630" height="125" />
+        </mxCell>
+        <mxCell id="credentials-label" value="モデル + PR用認証&#10;私有pipeで転送" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=16;fontColor=#9D640D;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="885.0" y="454.4" width="200" height="51.2" />
+        </mxCell>
+        <mxCell id="stage-label" value="0600 / UID10002" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=16;fontColor=#9D640D;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1387.5" y="236.0" width="205" height="28.0" />
+        </mxCell>
+        <mxCell id="no-copy" value="渡さない：管理用GitHub認証、/control、/runner、Docker socket、ホストのSSH鍵。&#10;ただし、PR用credentialにowner権限を使う現在の設定では、承認コメント作成能力等の残余リスクがある。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=20;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#FCEDEF;strokeColor=#AD3E45;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="995" width="1845" height="95" />
+        </mxCell>
+        <mxCell id="refresh" value="認証refresh：同じ記録上のaccount identityだけを私有channelで返す。管理原本の競合も検査し、保存ACK後に回収。&#10;正常回収：子孫停止・ECHILD → refresh保存確認 → job用home削除。失敗なら私有状態を保持してblock。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=21;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#FFF4DC;strokeColor=#9D640D;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="1130" width="1845" height="120" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="06-publication" name="06  結果PR・識別情報・検証の範囲">
+    <mxGraphModel dx="2000" dy="1400" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2000" pageHeight="1400" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="helper-frame" value="workerが使う既存の公開helper（managerの代理公開ではない）" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=23;fontColor=#183047;align=left;verticalAlign=top;fontStyle=1;spacing=12;strokeWidth=2;fillColor=#ECF7EE;strokeColor=#32754B;rounded=1;arcSize=12;spacingTop=14;container=1;collapsible=0;recursiveResize=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="55" y="385" width="1880" height="510" />
+        </mxCell>
+        <mxCell id="plan-binding" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#2864A5;strokeWidth=2;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="plan" target="binding">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1275" y="255.0" />
+            <mxPoint as="targetPoint" x="1385" y="255.0" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="issue-binding" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#2864A5;strokeWidth=2;endArrow=block;endFill=1;dashed=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="issue" target="binding">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="340.0" y="185" />
+            <mxPoint as="targetPoint" x="1660.0" y="185" />
+            <Array as="points">
+              <mxPoint x="340" y="150" />
+              <mxPoint x="1660" y="150" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="manifest-id" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#32754B;strokeWidth=2;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="manifest" target="identity">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="455" y="572.5" />
+            <mxPoint as="targetPoint" x="550" y="572.5" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="id-intent" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#32754B;strokeWidth=2;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="identity" target="intent">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="940" y="572.5" />
+            <mxPoint as="targetPoint" x="1035" y="572.5" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="intent-publish" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#32754B;strokeWidth=2;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="intent" target="publish">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1410" y="572.5" />
+            <mxPoint as="targetPoint" x="1505" y="572.5" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="publish-readback" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#32754B;strokeWidth=2;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="publish" target="readback">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1697.5" y="640" />
+            <mxPoint as="targetPoint" x="1885" y="785.0" />
+            <Array as="points">
+              <mxPoint x="1697.5" y="680" />
+              <mxPoint x="1910" y="680" />
+              <mxPoint x="1910" y="785" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="resolved-plan" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#2864A5;strokeWidth=2;endArrow=block;endFill=1;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="plan" target="identity">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1000.0" y="325" />
+            <mxPoint as="targetPoint" x="745.0" y="505" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="heading" value="06  結果PR・識別情報・検証の範囲" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=34;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="48" y="28" width="1840" height="50" />
+        </mxCell>
+        <mxCell id="subtitle" value="既存の公開helperは固定コードで照合する。管理側の科学的な独立受入は未接続。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=19;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="86" width="1890" height="48" />
+        </mxCell>
+        <mxCell id="footer" value="06 / 07   |   仕様基準: docs/research_automation_spec.md @ ed3ce770   |   実装: PR108 @ 21af4c2d" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=14;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="1324" width="1890" height="24" />
+        </mxCell>
+        <mxCell id="source" value="根拠: goal_plan / direct_pr_service / worker_pr.prepare_publication, publish, _reconcile / Issue116" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=14;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="1352" width="1890" height="26" />
+        </mxCell>
+        <mxCell id="issue" value="ownerが承認したIssue&#10;number / author / title / body&#10;→ content SHA256" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=21;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="65" y="185" width="550" height="140" />
+        </mxCell>
+        <mxCell id="plan" value="共通設定から解決済みplan&#10;model / execution alias / scope / budget&#10;→ plan digest" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=21;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="725" y="185" width="550" height="140" />
+        </mxCell>
+        <mxCell id="binding" value="run binding&#10;Issue hash + plan digest + source SHA&#10;request_id / run_id / issue_number" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=21;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1385" y="185" width="550" height="140" />
+        </mxCell>
+        <mxCell id="manifest" value="manifest&#10;files + 公開description&#10;scope内の通常ファイルだけ&#10;最大32件 / 合計1MiB" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=19;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#ECF7EE;strokeColor=#32754B;rounded=1;arcSize=12;" vertex="1" parent="helper-frame">
+          <mxGeometry as="geometry" x="35" y="120" width="365" height="135" />
+        </mxCell>
+        <mxCell id="identity" value="publication digest&#10;plan + description + path/mode/blob&#10;決定的なresearch branch名" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#ECF7EE;strokeColor=#32754B;rounded=1;arcSize=12;" vertex="1" parent="helper-frame">
+          <mxGeometry as="geometry" x="495" y="120" width="390" height="135" />
+        </mxCell>
+        <mxCell id="intent" value="durable intentを先に保存&#10;排他的作成 + fsync&#10;不明なmutationを繰り返さない" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#ECF7EE;strokeColor=#32754B;rounded=1;arcSize=12;" vertex="1" parent="helper-frame">
+          <mxGeometry as="geometry" x="980" y="120" width="375" height="135" />
+        </mxCell>
+        <mxCell id="publish" value="GitHubへ公開&#10;blob → tree → commit&#10;→ branch → 通常PR" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=19;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#ECF7EE;strokeColor=#32754B;rounded=1;arcSize=12;" vertex="1" parent="helper-frame">
+          <mxGeometry as="geometry" x="1450" y="120" width="385" height="135" />
+        </mxCell>
+        <mxCell id="readback" value="既存PRを読み取り照合&#10;actor / title・body / head・base / 親commit / 差分 / 完全tree / blob SHA・mode / draft=false&#10;commit末尾LF1文字の省略だけ許容。その他の変更は拒否。再呼出しは読取だけ。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=20;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#ECF7EE;strokeColor=#32754B;rounded=1;arcSize=12;" vertex="1" parent="helper-frame">
+          <mxGeometry as="geometry" x="45" y="340" width="1785" height="120" />
+        </mxCell>
+        <mxCell id="report" value="Codexの最終申告 → 管理側が構造とbindingを検査・保存&#10;outcome: completed / incomplete、summary、pr_url、elapsed&#10;WORKER_FINISHEDでも pr_verified=false / research_success_verified=false" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=22;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="965" width="1130" height="215" />
+        </mxCell>
+        <mxCell id="future" value="Issue116 / 追加案・未実装&#10;管理側の既存照合への接続・記録&#10;実験ごとの検証と共通レポート&#10;現行の成功条件には描き込まない" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=21;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#F0F4F8;strokeColor=#718298;rounded=1;arcSize=12;dashed=1;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1300" y="965" width="610" height="215" />
+        </mxCell>
+        <mxCell id="not-equivalent" value="別々の事実：モデル完了 ≠ PR実在 ≠ 科学的正しさ ≠ 回収確認 ≠ merge。&#10;公開helperの照合は既存。Issue116はそれを管理側の完了フローへ接続し、足りない検証と記録を補う提案。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#FFF4DC;strokeColor=#9D640D;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="75" y="1220" width="1830" height="65" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="07-resources" name="07  GPU取得・資源監視・停止と回収">
+    <mxGraphModel dx="2000" dy="1400" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2000" pageHeight="1400" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="gpu-frame" value="A  許可GPUの選択（モデル起動前）" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=23;fontColor=#183047;align=left;verticalAlign=top;fontStyle=1;spacing=12;strokeWidth=2;fillColor=#ECF7EE;strokeColor=#32754B;rounded=1;arcSize=12;spacingTop=14;container=1;collapsible=0;recursiveResize=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="55" y="170" width="1880" height="290" />
+        </mxCell>
+        <mxCell id="g1" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#32754B;strokeWidth=2;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="observe" target="stable">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="480" y="342.5" />
+            <mxPoint as="targetPoint" x="575" y="342.5" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="g2" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#32754B;strokeWidth=2;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="stable" target="lock">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="965" y="342.5" />
+            <mxPoint as="targetPoint" x="1060" y="342.5" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="g3" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#32754B;strokeWidth=2;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lock" target="select">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1450" y="342.5" />
+            <mxPoint as="targetPoint" x="1545" y="342.5" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gpu-to-run" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#32754B;strokeWidth=2;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="select" target="running">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1720.0" y="405" />
+            <mxPoint as="targetPoint" x="525.0" y="535" />
+            <Array as="points">
+              <mxPoint x="1720" y="495" />
+              <mxPoint x="525" y="495" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="monitor-loop" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#087E8B;strokeWidth=2;endArrow=block;endFill=1;dashed=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="running" target="samples">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="970" y="610.0" />
+            <mxPoint as="targetPoint" x="1050" y="610.0" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="normal-exit" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#087E8B;strokeWidth=2;endArrow=block;endFill=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="running" target="cleanup">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="80" y="610.0" />
+            <mxPoint as="targetPoint" x="80" y="1095.0" />
+            <Array as="points">
+              <mxPoint x="55" y="610" />
+              <mxPoint x="55" y="1095" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="approval-stop" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#2864A5;strokeWidth=2;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="lease" target="cleanup">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="525.0" y="895" />
+            <mxPoint as="targetPoint" x="670.0" y="1000" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="resource-stop" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#9D640D;strokeWidth=2;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="samples" target="cleanup">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1475.0" y="685" />
+            <mxPoint as="targetPoint" x="670.0" y="1000" />
+            <Array as="points">
+              <mxPoint x="1475" y="710" />
+              <mxPoint x="1950" y="710" />
+              <mxPoint x="1950" y="950" />
+              <mxPoint x="670" y="950" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cleanup-uncertain" value="" style="edgeStyle=none;rounded=0;html=0;strokeColor=#AD3E45;strokeWidth=2;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="cleanup" target="uncertain">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="1260" y="1095.0" />
+            <mxPoint as="targetPoint" x="1370" y="1095.0" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="heading" value="07  GPU取得・資源監視・停止と回収" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=34;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=1;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="48" y="28" width="1840" height="50" />
+        </mxCell>
+        <mxCell id="subtitle" value="GPU登録時はA→B。GPUなし登録はAを省略。空き観測は予約ではなく、停止は自jobの子孫だけ。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=19;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="86" width="1890" height="48" />
+        </mxCell>
+        <mxCell id="footer" value="07 / 07   |   仕様基準: docs/research_automation_spec.md @ ed3ce770   |   実装: PR108 @ 21af4c2d" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=14;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="1324" width="1890" height="24" />
+        </mxCell>
+        <mxCell id="source" value="根拠: execution_process.idle, cleanup_family / execution_worker.run_job, Lease / execution_delivery" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=14;fontColor=#53677A;align=left;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=none;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="1352" width="1890" height="26" />
+        </mxCell>
+        <mxCell id="observe" value="nvidia-smiで観測&#10;compute-processなし&#10;利用率 &lt;=5% / メモリ &lt;=256MiB" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=19;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#ECF7EE;strokeColor=#32754B;rounded=1;arcSize=12;" vertex="1" parent="gpu-frame">
+          <mxGeometry as="geometry" x="35" y="110" width="390" height="125" />
+        </mxCell>
+        <mxCell id="stable" value="3回連続で空きを観測&#10;概ね1秒間隔&#10;max_wait とjob予算内" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=19;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#ECF7EE;strokeColor=#32754B;rounded=1;arcSize=12;" vertex="1" parent="gpu-frame">
+          <mxGeometry as="geometry" x="520" y="110" width="390" height="125" />
+        </mxCell>
+        <mxCell id="lock" value="GPU別ローカルlock&#10;取得後に空きを再観測&#10;外部jobの排他予約ではない" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=19;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#ECF7EE;strokeColor=#32754B;rounded=1;arcSize=12;" vertex="1" parent="gpu-frame">
+          <mxGeometry as="geometry" x="1005" y="110" width="390" height="125" />
+        </mxCell>
+        <mxCell id="select" value="許可GPUを1枚選択&#10;CUDA_VISIBLE_DEVICES=UUID&#10;JAX事前確保を無効化" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=18;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#ECF7EE;strokeColor=#32754B;rounded=1;arcSize=12;" vertex="1" parent="gpu-frame">
+          <mxGeometry as="geometry" x="1490" y="110" width="350" height="125" />
+        </mxCell>
+        <mxCell id="running" value="B  同じCodexセッションで研究を実行&#10;CPU affinity / processごとのRLIMIT_CPU・FSIZE / protocol出力制限&#10;job予算に回収用20秒を確保。金額hard capではない。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=22;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#E8F6F6;strokeColor=#087E8B;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="80" y="535" width="890" height="150" />
+        </mxCell>
+        <mxCell id="samples" value="C  最短0.5秒間隔の観測&#10;子孫RSS・thread数 / workspace増分 + 一時home / 最低空き&#10;選択GPUのcompute-process &gt;1なら競合とみなす" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=21;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#E8F6F6;strokeColor=#087E8B;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1050" y="535" width="850" height="150" />
+        </mxCell>
+        <mxCell id="lease" value="D  承認・接続の継続確認&#10;managerが承認を再確認。brokerは約2秒ごとにlease&#10;実験側は10秒のlease窓。取消・期限・途絶で自job停止" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=21;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#EAF2FC;strokeColor=#2864A5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="80" y="750" width="890" height="145" />
+        </mxCell>
+        <mxCell id="limits" value="既存コンテナ：既存割当は変更せずsampled limit&#10;新規作成：Docker CPU / RAM / PIDs上限も設定&#10;観測の合間の瞬間超過や絶対peakを保証しない" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=20;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#FFF4DC;strokeColor=#9D640D;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1050" y="750" width="850" height="145" />
+        </mxCell>
+        <mxCell id="cleanup" value="E  正常・失敗・取消のいずれも回収へ&#10;自jobの子孫にSIGTERM → 必要ならSIGKILL → waitpidでECHILD&#10;認証refreshの保存ACK → job用home削除 → cleanup_verified" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=22;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#E8F6F6;strokeColor=#087E8B;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="80" y="1000" width="1180" height="190" />
+        </mxCell>
+        <mxCell id="uncertain" value="回収・認証保存が不明&#10;blocked / gateを保持&#10;次の研究jobを始めない&#10;claimを消して再試行しない" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=22;fontColor=#183047;align=center;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#FCEDEF;strokeColor=#AD3E45;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1370" y="1000" width="530" height="190" />
+        </mxCell>
+        <mxCell id="cleanup-uncertain-label" value="確認失敗" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=16;fontColor=#AD3E45;align=center;verticalAlign=middle;fontStyle=0;spacing=0;strokeWidth=2;fillColor=#FFFFFF;strokeColor=none;rounded=0;arcSize=12;shape=rectangle;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1245.0" y="1051.0" width="140" height="28.0" />
+        </mxCell>
+        <mxCell id="distinguish" value="独立したSlack空き通知：60秒周期で3分継続を確認する補助プロセス。上記の3回観測とは別。&#10;空き通知は予約・研究起動・controllerのONではなく、現在の2コンテナ経路へ統合した機能でもない。" style="html=0;whiteSpace=wrap;fontFamily=Hiragino Sans;fontSize=17;fontColor=#183047;align=left;verticalAlign=middle;fontStyle=0;spacing=12;strokeWidth=2;fillColor=#F0F4F8;strokeColor=#718298;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="80" y="1230" width="1820" height="65" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
